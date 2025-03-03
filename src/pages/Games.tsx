@@ -1,17 +1,13 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Calendar } from 'lucide-react';
+import { Filter, Search } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import GameCard from '@/components/GameCard';
 
 const Games = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('all'); // all, upcoming, past
-  
-  // Dummy games data
-  const allGames = [
+  const [games, setGames] = useState([
     {
       id: '1',
       title: 'Especial Semana Santa 2023',
@@ -41,51 +37,53 @@ const Games = () => {
     },
     {
       id: '4',
-      title: 'Historia de La Esperanza de Triana',
-      date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-      participants: 12,
+      title: 'Curiosidades de la Semana Santa',
+      date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      participants: 62,
       maxParticipants: 100,
-      prizePool: 80,
-      image: 'https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+      prizePool: 75,
+      image: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '5',
-      title: 'Grandes Misterios Sevillanos',
-      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-      participants: 100,
-      maxParticipants: 100,
-      prizePool: 80,
-      image: 'https://images.unsplash.com/photo-1583248369069-9d91f1640fe6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+      title: 'Música y Marchas Procesionales',
+      date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      participants: 15,
+      maxParticipants: 80,
+      prizePool: 60,
+      image: 'https://images.unsplash.com/photo-1575147834960-bf3a3b2d2c0f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '6',
-      title: 'Iconografía Mariana',
-      date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
-      participants: 75,
+      title: 'Historia de la Semana Santa',
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // Past game
+      participants: 94,
       maxParticipants: 100,
-      prizePool: 80,
-      image: 'https://images.unsplash.com/photo-1541331192910-7c850afa9118?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+      prizePool: 90,
+      image: 'https://images.unsplash.com/photo-1523676060187-f55189a71f5e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     }
-  ];
-  
-  // Filter games based on upcoming/past and search term
-  const filteredGames = allGames.filter(game => {
-    // Apply date filter
-    if (filter === 'upcoming' && game.date < new Date()) {
-      return false;
-    }
-    if (filter === 'past' && game.date > new Date()) {
-      return false;
-    }
-    
+  ]);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'upcoming', 'full', 'past'
+
+  const filteredGames = games.filter(game => {
     // Apply search filter
-    if (searchTerm && !game.title.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
+    const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Apply status filter
+    let matchesStatus = true;
+    if (filterStatus === 'upcoming') {
+      matchesStatus = game.date > new Date() && game.participants < game.maxParticipants;
+    } else if (filterStatus === 'full') {
+      matchesStatus = game.date > new Date() && game.participants >= game.maxParticipants;
+    } else if (filterStatus === 'past') {
+      matchesStatus = game.date < new Date();
     }
     
-    return true;
+    return matchesSearch && matchesStatus;
   });
-  
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -101,76 +99,76 @@ const Games = () => {
     visible: { 
       y: 0, 
       opacity: 1,
-      transition: { duration: 0.4, ease: "easeOut" }
+      transition: { duration: 0.4 }
     }
   };
-  
+
   return (
     <>
       <Navbar />
       
-      <section className="pt-32 pb-20 bg-gradient-to-b from-gloria-cream to-white">
+      <div className="pt-24 pb-16 bg-white min-h-screen">
         <div className="container mx-auto px-4 max-w-7xl">
-          <motion.div 
-            className="text-center max-w-3xl mx-auto mb-16"
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
           >
-            <h1 className="text-4xl md:text-5xl font-serif font-bold text-gloria-purple mb-4">
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-gloria-purple mb-4">
               Partidas Disponibles
             </h1>
-            <p className="text-lg text-gray-600">
-              Encuentra la partida perfecta para ti y demuestra tu conocimiento sobre la Semana Santa sevillana
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              Únete a una partida, responde correctamente y compite por premios en tiempo real
             </p>
           </motion.div>
           
-          <motion.div 
-            className="flex flex-col md:flex-row justify-between items-stretch gap-4 mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="relative flex-grow md:max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <div className="flex flex-col md:flex-row justify-between items-stretch gap-4 mb-8">
+            <div className="relative flex-grow max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
               <input
                 type="text"
                 placeholder="Buscar partidas..."
+                className="gloria-input pl-10 w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="gloria-input w-full pl-10 focus:ring-gloria-purple"
               />
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Filter className="text-gloria-purple" size={20} />
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="gloria-input focus:ring-gloria-purple"
-              >
-                <option value="all">Todas las partidas</option>
-                <option value="upcoming">Próximas partidas</option>
-                <option value="past">Partidas pasadas</option>
-              </select>
+            <div className="flex space-x-2">
+              <div className="relative">
+                <select
+                  className="gloria-input pl-10 pr-10 appearance-none"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todas las partidas</option>
+                  <option value="upcoming">Disponibles</option>
+                  <option value="full">Completas</option>
+                  <option value="past">Finalizadas</option>
+                </select>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Filter className="h-5 w-5 text-gray-400" />
+                </div>
+              </div>
             </div>
-          </motion.div>
+          </div>
           
           {filteredGames.length === 0 ? (
-            <motion.div 
-              className="text-center py-16"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              <Calendar className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-              <h3 className="text-xl font-serif font-semibold text-gloria-purple mb-2">
-                No se encontraron partidas
-              </h3>
-              <p className="text-gray-600">
-                No hay partidas disponibles con los filtros actuales. Prueba con otros criterios.
-              </p>
-            </motion.div>
+            <div className="text-center py-16">
+              <p className="text-xl text-gray-500">No se encontraron partidas con los filtros actuales.</p>
+              <button
+                className="mt-4 text-gloria-purple hover:text-gloria-gold transition-colors"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterStatus('all');
+                }}
+              >
+                Eliminar filtros
+              </button>
+            </div>
           ) : (
             <motion.div 
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
@@ -186,7 +184,7 @@ const Games = () => {
             </motion.div>
           )}
         </div>
-      </section>
+      </div>
       
       <Footer />
     </>
