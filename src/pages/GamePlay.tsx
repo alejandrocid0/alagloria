@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams } from 'react-router-dom';
@@ -8,7 +7,6 @@ import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-// Mock Questions
 const gameQuestions = [
   {
     id: 1,
@@ -72,7 +70,6 @@ const gameQuestions = [
   }
 ];
 
-// Mock Players
 const players = [
   { id: 1, name: "María G.", points: 1200, avatar: "https://ui-avatars.com/api/?name=Maria+G&background=5D3891&color=fff" },
   { id: 2, name: "Carlos S.", points: 1000, avatar: "https://ui-avatars.com/api/?name=Carlos+S&background=EAC7C7&color=000" },
@@ -86,7 +83,6 @@ const players = [
   { id: 10, name: "Pablo M.", points: 520, avatar: "https://ui-avatars.com/api/?name=Pablo+M&background=6C4A4A&color=fff" }
 ];
 
-// Game States
 type GameState = 'waiting' | 'question' | 'result' | 'leaderboard' | 'finished';
 
 const GamePlay = () => {
@@ -101,8 +97,15 @@ const GamePlay = () => {
   const [myRank, setMyRank] = useState(5);
   const [lastPoints, setLastPoints] = useState(0);
   
-  // Simulate game progression
   useEffect(() => {
+    if (gameId === 'demo-123') {
+      toast({
+        title: "Modo demostración",
+        description: "Estás jugando una partida de demostración",
+        variant: "default"
+      });
+    }
+    
     if (currentState === 'waiting') {
       const timer = setInterval(() => {
         setCountdown(prev => {
@@ -124,7 +127,6 @@ const GamePlay = () => {
           if (prev <= 1) {
             clearInterval(timer);
             if (!selectedOption) {
-              // If no option was selected, simulate a wrong answer
               setSelectedOption('wrong');
             }
             setCurrentState('result');
@@ -164,11 +166,9 @@ const GamePlay = () => {
   const handleSelectOption = (optionId: string) => {
     if (selectedOption || currentState !== 'question') return;
     
-    // Calculate points based on time remaining
-    const timeBonus = timeRemaining * 10; // More time = more points
+    const timeBonus = timeRemaining * 10;
     const isCorrect = optionId === gameQuestions[currentQuestion].correctOption;
     
-    // Set selected option
     setSelectedOption(optionId);
     
     if (isCorrect) {
@@ -176,17 +176,13 @@ const GamePlay = () => {
       setLastPoints(pointsEarned);
       setMyPoints(prev => prev + pointsEarned);
       
-      // Update rankings
       const newRanking = [...ranking];
-      // Find my position (assume I'm "You")
       const myPosition = newRanking.findIndex(player => player.id === 2);
       newRanking[myPosition].points += pointsEarned;
       
-      // Resort the ranking
       newRanking.sort((a, b) => b.points - a.points);
       setRanking(newRanking);
       
-      // Find my new rank
       const newRank = newRanking.findIndex(player => player.id === 2) + 1;
       setMyRank(newRank);
       
@@ -203,7 +199,6 @@ const GamePlay = () => {
       });
     }
     
-    // Move to result state
     setCurrentState('result');
   };
   
@@ -216,11 +211,10 @@ const GamePlay = () => {
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            {/* Game Header */}
             <div className="bg-gloria-purple text-white px-6 py-4">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center">
                 <h1 className="text-xl md:text-2xl font-serif font-bold">
-                  Trivia Semana Santa 2023
+                  {gameId === 'demo-123' ? 'Partida de Demostración' : 'Trivia Semana Santa 2023'}
                 </h1>
                 
                 <div className="flex items-center space-x-4 mt-2 md:mt-0">
@@ -237,9 +231,7 @@ const GamePlay = () => {
               </div>
             </div>
             
-            {/* Game Content */}
             <div className="p-6">
-              {/* Progress Bar */}
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-gray-500">
@@ -260,7 +252,6 @@ const GamePlay = () => {
                 </div>
               </div>
               
-              {/* Game States */}
               <AnimatePresence mode="wait">
                 {currentState === 'waiting' && (
                   <motion.div 

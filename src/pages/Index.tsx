@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import { ArrowRight, Award, Clock, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -45,7 +43,6 @@ const Index = () => {
     prizes: 0
   });
 
-  // Counter animation
   useEffect(() => {
     const interval = setInterval(() => {
       setCounter(prev => ({
@@ -82,9 +79,8 @@ const Index = () => {
     <>
       <Navbar />
       
-      {/* Hero Section */}
       <section className="pt-24 pb-16 md:pt-40 md:pb-24 bg-gradient-to-b from-gloria-cream to-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\\'80\\' height=\\'80\\' viewBox=\\'0 0 80 80\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cg fill=\\'none\\' fill-rule=\\'evenodd\\'%3E%3Cg fill=\\'%234a2a6b\\' fill-opacity=\\'0.03\\'%3E%3Cpath d=\\'M50 50c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10s-10-4.477-10-10 4.477-10 10-10zM10 10c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10S0 25.523 0 20s4.477-10 10-10zm10 8c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm40 40c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z\\' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\\'80\\' height=\\'80\\' viewBox=\\'0 0 80 80\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cg fill=\\'none\\' fill-rule=\\'evenodd\\'%3E%3Cg fill=\\'%234a2a6b\\' fill-opacity=\\'0.03\\'%3E%3Cpath d=\\'M50 50c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10s-10-4.477-10-10 4.477-10 10-10zM10 10c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10S0 25.523 0 20s4.477-10 10-10zm10 8c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm40 40c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z\\' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
         
         <div className="container mx-auto px-4 max-w-7xl relative z-10">
           <motion.div 
@@ -119,19 +115,27 @@ const Index = () => {
               transition={{ duration: 0.6, delay: 0.6 }}
             >
               <Button 
-                variant="secondary" 
-                size="lg" 
+                variant="secondary"
+                size="lg"
                 href="/games"
               >
                 Ver Partidas Disponibles
               </Button>
               
               <Button 
-                variant="outline" 
-                size="lg" 
+                variant="outline"
+                size="lg"
                 href="/how-to-play"
               >
                 Cómo Jugar
+              </Button>
+
+              <Button 
+                variant="default"
+                size="lg"
+                href="/game/demo-123"
+              >
+                Jugar Partida Demo
               </Button>
             </motion.div>
           </motion.div>
@@ -140,7 +144,6 @@ const Index = () => {
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
       </section>
       
-      {/* How It Works */}
       <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4 max-w-7xl">
           <motion.div 
@@ -205,7 +208,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Stats Counter */}
       <section className="py-16 bg-gloria-deepPurple text-white">
         <div className="container mx-auto px-4 max-w-7xl">
           <motion.div 
@@ -239,7 +241,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Upcoming Games */}
       <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex flex-col md:flex-row justify-between items-center mb-12">
@@ -288,7 +289,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* CTA Section */}
       <section className="py-16 md:py-24 bg-gloria-purple text-white">
         <div className="container mx-auto px-4 max-w-7xl">
           <motion.div 
