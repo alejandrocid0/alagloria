@@ -1,111 +1,94 @@
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, Award, Users, AlertTriangle, Check, X } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { getQuizById } from '@/services/quizService';
+import { QuizQuestion } from '@/types/quiz';
 
-const gameQuestions = [
-  {
-    id: 1,
-    question: "¿En qué año se fundó la Hermandad de La Macarena?",
-    options: [
-      { id: "a", text: "1595" },
-      { id: "b", text: "1640" },
-      { id: "c", text: "1750" },
-      { id: "d", text: "1824" },
-      { id: "e", text: "1875" }
-    ],
-    correctOption: "b"
-  },
-  {
-    id: 2,
-    question: "¿Qué día de la Semana Santa realiza su estación de penitencia la Hermandad de El Gran Poder?",
-    options: [
-      { id: "a", text: "Lunes Santo" },
-      { id: "b", text: "Martes Santo" },
-      { id: "c", text: "Miércoles Santo" },
-      { id: "d", text: "Jueves Santo" },
-      { id: "e", text: "Madrugada" }
-    ],
-    correctOption: "e"
-  },
-  {
-    id: 3,
-    question: "¿Quién es el autor de la Virgen de la Esperanza Macarena?",
-    options: [
-      { id: "a", text: "Juan de Mesa" },
-      { id: "b", text: "Pedro Roldán" },
-      { id: "c", text: "Anónimo" },
-      { id: "d", text: "Martínez Montañés" },
-      { id: "e", text: "Luis Álvarez Duarte" }
-    ],
-    correctOption: "c"
-  },
-  {
-    id: 4,
-    question: "¿Cuál es la Hermandad con más nazarenos de la Semana Santa de Sevilla?",
-    options: [
-      { id: "a", text: "El Gran Poder" },
-      { id: "b", text: "La Macarena" },
-      { id: "c", text: "El Silencio" },
-      { id: "d", text: "La Esperanza de Triana" },
-      { id: "e", text: "El Calvario" }
-    ],
-    correctOption: "b"
-  },
-  {
-    id: 5,
-    question: "¿Qué Hermandad tiene el paso por la Catedral de Sevilla más largo?",
-    options: [
-      { id: "a", text: "La Estrella" },
-      { id: "b", text: "El Silencio" },
-      { id: "c", text: "La Macarena" },
-      { id: "d", text: "La Amargura" },
-      { id: "e", text: "La Pasión" }
-    ],
-    correctOption: "b"
-  }
-];
-
-const players = [
-  { id: 1, name: "María G.", points: 1200, avatar: "https://ui-avatars.com/api/?name=Maria+G&background=5D3891&color=fff" },
-  { id: 2, name: "Carlos S.", points: 1000, avatar: "https://ui-avatars.com/api/?name=Carlos+S&background=EAC7C7&color=000" },
-  { id: 3, name: "Ana R.", points: 850, avatar: "https://ui-avatars.com/api/?name=Ana+R&background=519259&color=fff" },
-  { id: 4, name: "David M.", points: 820, avatar: "https://ui-avatars.com/api/?name=David+M&background=C58940&color=fff" },
-  { id: 5, name: "Laura P.", points: 700, avatar: "https://ui-avatars.com/api/?name=Laura+P&background=DF7861&color=fff" },
-  { id: 6, name: "Miguel A.", points: 650, avatar: "https://ui-avatars.com/api/?name=Miguel+A&background=748DA6&color=fff" },
-  { id: 7, name: "Elena C.", points: 620, avatar: "https://ui-avatars.com/api/?name=Elena+C&background=A84448&color=fff" },
-  { id: 8, name: "Javier R.", points: 580, avatar: "https://ui-avatars.com/api/?name=Javier+R&background=9A86A4&color=fff" },
-  { id: 9, name: "Sofía L.", points: 540, avatar: "https://ui-avatars.com/api/?name=Sofia+L&background=3F4E4F&color=fff" },
-  { id: 10, name: "Pablo M.", points: 520, avatar: "https://ui-avatars.com/api/?name=Pablo+M&background=6C4A4A&color=fff" }
-];
+// Lista vacía de jugadores para partidas reales
+const initialPlayers: { id: number; name: string; points: number; avatar: string }[] = [];
 
 type GameState = 'waiting' | 'question' | 'result' | 'leaderboard' | 'finished';
 
 const GamePlay = () => {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
   const [currentState, setCurrentState] = useState<GameState>('waiting');
   const [countdown, setCountdown] = useState(10);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(20);
   const [myPoints, setMyPoints] = useState(0);
-  const [ranking, setRanking] = useState(players);
-  const [myRank, setMyRank] = useState(5);
+  const [ranking, setRanking] = useState(initialPlayers);
+  const [myRank, setMyRank] = useState(0);
   const [lastPoints, setLastPoints] = useState(0);
+  const [gameQuestions, setGameQuestions] = useState<QuizQuestion[]>([]);
+  const [quizTitle, setQuizTitle] = useState("");
   
+  // Cargar cuestionario según el ID
   useEffect(() => {
-    if (gameId === 'demo-123') {
-      toast({
-        title: "Modo demostración",
-        description: "Estás jugando una partida de demostración",
-        variant: "default"
-      });
+    if (!gameId) {
+      navigate('/games');
+      return;
     }
     
+    const quiz = getQuizById(gameId);
+    
+    if (quiz) {
+      setGameQuestions(quiz.questions);
+      setQuizTitle(quiz.title);
+      
+      // Si es el cuestionario de demostración
+      if (gameId === 'demo-123') {
+        toast({
+          title: "Modo demostración",
+          description: "Estás jugando una partida de demostración",
+          variant: "default"
+        });
+        
+        // Agregar jugadores ficticios solo para el modo demo
+        setRanking([
+          { id: 1, name: "María G.", points: 1200, avatar: "https://ui-avatars.com/api/?name=Maria+G&background=5D3891&color=fff" },
+          { id: 2, name: "Carlos S.", points: 1000, avatar: "https://ui-avatars.com/api/?name=Carlos+S&background=EAC7C7&color=000" },
+          { id: 3, name: "Ana R.", points: 850, avatar: "https://ui-avatars.com/api/?name=Ana+R&background=519259&color=fff" },
+          { id: 4, name: "David M.", points: 820, avatar: "https://ui-avatars.com/api/?name=David+M&background=C58940&color=fff" },
+          { id: 5, name: "Laura P.", points: 700, avatar: "https://ui-avatars.com/api/?name=Laura+P&background=DF7861&color=fff" },
+          { id: 6, name: "Miguel A.", points: 650, avatar: "https://ui-avatars.com/api/?name=Miguel+A&background=748DA6&color=fff" },
+          { id: 7, name: "Elena C.", points: 620, avatar: "https://ui-avatars.com/api/?name=Elena+C&background=A84448&color=fff" },
+          { id: 8, name: "Javier R.", points: 580, avatar: "https://ui-avatars.com/api/?name=Javier+R&background=9A86A4&color=fff" },
+          { id: 9, name: "Sofía L.", points: 540, avatar: "https://ui-avatars.com/api/?name=Sofia+L&background=3F4E4F&color=fff" },
+          { id: 10, name: "Pablo M.", points: 520, avatar: "https://ui-avatars.com/api/?name=Pablo+M&background=6C4A4A&color=fff" }
+        ]);
+        setMyRank(5);
+      } else {
+        // Para partidas reales, empezamos con ranking vacío
+        setRanking([]);
+        // Añadimos al usuario actual
+        const myPlayer = { 
+          id: 2, 
+          name: "Yo", 
+          points: 0, 
+          avatar: "https://ui-avatars.com/api/?name=Player&background=EAC7C7&color=000" 
+        };
+        setRanking([myPlayer]);
+        setMyRank(1);
+      }
+    } else {
+      toast({
+        title: "Error",
+        description: "No se encontró el cuestionario",
+        variant: "destructive"
+      });
+      navigate('/games');
+    }
+  }, [gameId, navigate]);
+  
+  useEffect(() => {
     if (currentState === 'waiting') {
       const timer = setInterval(() => {
         setCountdown(prev => {
@@ -161,13 +144,13 @@ const GamePlay = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [currentState, currentQuestion, selectedOption]);
+  }, [currentState, currentQuestion, selectedOption, gameQuestions.length]);
   
   const handleSelectOption = (optionId: string) => {
     if (selectedOption || currentState !== 'question') return;
     
     const timeBonus = timeRemaining * 10;
-    const isCorrect = optionId === gameQuestions[currentQuestion].correctOption;
+    const isCorrect = optionId === gameQuestions[currentQuestion]?.correctOption;
     
     setSelectedOption(optionId);
     
@@ -178,13 +161,16 @@ const GamePlay = () => {
       
       const newRanking = [...ranking];
       const myPosition = newRanking.findIndex(player => player.id === 2);
-      newRanking[myPosition].points += pointsEarned;
       
-      newRanking.sort((a, b) => b.points - a.points);
-      setRanking(newRanking);
-      
-      const newRank = newRanking.findIndex(player => player.id === 2) + 1;
-      setMyRank(newRank);
+      if (myPosition !== -1) {
+        newRanking[myPosition].points += pointsEarned;
+        
+        newRanking.sort((a, b) => b.points - a.points);
+        setRanking(newRanking);
+        
+        const newRank = newRanking.findIndex(player => player.id === 2) + 1;
+        setMyRank(newRank);
+      }
       
       toast({
         title: "¡Respuesta correcta!",
@@ -202,6 +188,27 @@ const GamePlay = () => {
     setCurrentState('result');
   };
   
+  // Si no hay preguntas, mostramos un mensaje de carga
+  if (gameQuestions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Navbar />
+        <div className="pt-24 pb-16">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <div className="bg-white rounded-xl shadow-md p-8 text-center">
+              <h2 className="text-xl font-serif font-semibold text-gloria-purple mb-4">
+                Cargando cuestionario...
+              </h2>
+              <Button variant="primary" href="/games">
+                Volver a partidas
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   const currentQuestionData = gameQuestions[currentQuestion];
   
   return (
@@ -214,19 +221,21 @@ const GamePlay = () => {
             <div className="bg-gloria-purple text-white px-6 py-4">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center">
                 <h1 className="text-xl md:text-2xl font-serif font-bold">
-                  {gameId === 'demo-123' ? 'Partida de Demostración' : 'Trivia Semana Santa 2023'}
+                  {quizTitle}
                 </h1>
                 
                 <div className="flex items-center space-x-4 mt-2 md:mt-0">
                   <div className="flex items-center">
                     <Users className="h-5 w-5 mr-2" />
-                    <span>98 jugadores</span>
+                    <span>{ranking.length} jugadores</span>
                   </div>
                   
-                  <div className="flex items-center">
-                    <Award className="h-5 w-5 mr-2" />
-                    <span>200€ en premios</span>
-                  </div>
+                  {gameId !== 'demo-123' && (
+                    <div className="flex items-center">
+                      <Award className="h-5 w-5 mr-2" />
+                      <span>Puntos: {myPoints}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -288,7 +297,7 @@ const GamePlay = () => {
                   </motion.div>
                 )}
                 
-                {currentState === 'question' && (
+                {currentState === 'question' && currentQuestionData && (
                   <motion.div 
                     key="question"
                     initial={{ opacity: 0, y: 20 }}
@@ -348,7 +357,7 @@ const GamePlay = () => {
                   </motion.div>
                 )}
                 
-                {currentState === 'result' && (
+                {currentState === 'result' && currentQuestionData && (
                   <motion.div 
                     key="result"
                     initial={{ opacity: 0, y: 20 }}
@@ -519,7 +528,7 @@ const GamePlay = () => {
                           </div>
                         </div>
                         
-                        {myRank <= 3 ? (
+                        {gameId === 'demo-123' && myRank <= 3 ? (
                           <div className="bg-gloria-gold/20 rounded-lg p-4 mt-6">
                             <div className="flex items-center justify-center">
                               <Award className="h-6 w-6 text-gloria-gold mr-2" />
@@ -533,7 +542,7 @@ const GamePlay = () => {
                           </div>
                         ) : (
                           <div className="text-gray-600 mt-4">
-                            Sigue participando en más partidas para ganar premios.
+                            Sigue participando en más partidas para ganar puntos.
                           </div>
                         )}
                       </div>
@@ -581,9 +590,11 @@ const GamePlay = () => {
                               </div>
                             </div>
                             
-                            <div className="text-right font-semibold">
-                              {index === 0 ? "100€" : index === 1 ? "60€" : "40€"}
-                            </div>
+                            {gameId === 'demo-123' && (
+                              <div className="text-right font-semibold">
+                                {index === 0 ? "100€" : index === 1 ? "60€" : "40€"}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -594,7 +605,7 @@ const GamePlay = () => {
                         Ver más partidas
                       </Button>
                       
-                      <Button variant="secondary" href="/games">
+                      <Button variant="secondary" href="/">
                         Volver al inicio
                       </Button>
                     </div>
