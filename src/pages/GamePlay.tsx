@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -9,8 +8,8 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getQuizById } from '@/services/quizService';
 import { QuizQuestion } from '@/types/quiz';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Lista vacía de jugadores para partidas reales
 const initialPlayers: { id: number; name: string; points: number; avatar: string }[] = [];
 
 type GameState = 'waiting' | 'question' | 'result' | 'leaderboard' | 'finished';
@@ -18,8 +17,9 @@ type GameState = 'waiting' | 'question' | 'result' | 'leaderboard' | 'finished';
 const GamePlay = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [currentState, setCurrentState] = useState<GameState>('waiting');
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(20);
@@ -29,64 +29,86 @@ const GamePlay = () => {
   const [lastPoints, setLastPoints] = useState(0);
   const [gameQuestions, setGameQuestions] = useState<QuizQuestion[]>([]);
   const [quizTitle, setQuizTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Cargar cuestionario según el ID
+  const startGame = () => {
+    setCountdown(0);
+    setCurrentState('question');
+  };
+  
   useEffect(() => {
     if (!gameId) {
       navigate('/games');
       return;
     }
     
-    const quiz = getQuizById(gameId);
+    setLoading(true);
     
-    if (quiz) {
-      setGameQuestions(quiz.questions);
-      setQuizTitle(quiz.title);
+    try {
+      const quiz = getQuizById(gameId);
       
-      // Si es el cuestionario de demostración
-      if (gameId === 'demo-123') {
-        toast({
-          title: "Modo demostración",
-          description: "Estás jugando una partida de demostración",
-          variant: "default"
-        });
+      if (quiz) {
+        setGameQuestions(quiz.questions);
+        setQuizTitle(quiz.title);
         
-        // Agregar jugadores ficticios solo para el modo demo
-        setRanking([
-          { id: 1, name: "María G.", points: 1200, avatar: "https://ui-avatars.com/api/?name=Maria+G&background=5D3891&color=fff" },
-          { id: 2, name: "Carlos S.", points: 1000, avatar: "https://ui-avatars.com/api/?name=Carlos+S&background=EAC7C7&color=000" },
-          { id: 3, name: "Ana R.", points: 850, avatar: "https://ui-avatars.com/api/?name=Ana+R&background=519259&color=fff" },
-          { id: 4, name: "David M.", points: 820, avatar: "https://ui-avatars.com/api/?name=David+M&background=C58940&color=fff" },
-          { id: 5, name: "Laura P.", points: 700, avatar: "https://ui-avatars.com/api/?name=Laura+P&background=DF7861&color=fff" },
-          { id: 6, name: "Miguel A.", points: 650, avatar: "https://ui-avatars.com/api/?name=Miguel+A&background=748DA6&color=fff" },
-          { id: 7, name: "Elena C.", points: 620, avatar: "https://ui-avatars.com/api/?name=Elena+C&background=A84448&color=fff" },
-          { id: 8, name: "Javier R.", points: 580, avatar: "https://ui-avatars.com/api/?name=Javier+R&background=9A86A4&color=fff" },
-          { id: 9, name: "Sofía L.", points: 540, avatar: "https://ui-avatars.com/api/?name=Sofia+L&background=3F4E4F&color=fff" },
-          { id: 10, name: "Pablo M.", points: 520, avatar: "https://ui-avatars.com/api/?name=Pablo+M&background=6C4A4A&color=fff" }
-        ]);
-        setMyRank(5);
+        if (gameId === 'demo-123') {
+          toast({
+            title: "Modo demostración",
+            description: "Estás jugando una partida de demostración",
+            variant: "default"
+          });
+          
+          setRanking([
+            { id: 1, name: "María G.", points: 1200, avatar: "https://ui-avatars.com/api/?name=Maria+G&background=5D3891&color=fff" },
+            { id: 2, name: "Carlos S.", points: 1000, avatar: "https://ui-avatars.com/api/?name=Carlos+S&background=EAC7C7&color=000" },
+            { id: 3, name: "Ana R.", points: 850, avatar: "https://ui-avatars.com/api/?name=Ana+R&background=519259&color=fff" },
+            { id: 4, name: "David M.", points: 820, avatar: "https://ui-avatars.com/api/?name=David+M&background=C58940&color=fff" },
+            { id: 5, name: "Laura P.", points: 700, avatar: "https://ui-avatars.com/api/?name=Laura+P&background=DF7861&color=fff" },
+            { id: 6, name: "Miguel A.", points: 650, avatar: "https://ui-avatars.com/api/?name=Miguel+A&background=748DA6&color=fff" },
+            { id: 7, name: "Elena C.", points: 620, avatar: "https://ui-avatars.com/api/?name=Elena+C&background=A84448&color=fff" },
+            { id: 8, name: "Javier R.", points: 580, avatar: "https://ui-avatars.com/api/?name=Javier+R&background=9A86A4&color=fff" },
+            { id: 9, name: "Sofía L.", points: 540, avatar: "https://ui-avatars.com/api/?name=Sofia+L&background=3F4E4F&color=fff" },
+            { id: 10, name: "Pablo M.", points: 520, avatar: "https://ui-avatars.com/api/?name=Pablo+M&background=6C4A4A&color=fff" }
+          ]);
+          setMyRank(5);
+        } else {
+          const myPlayer = { 
+            id: 2, 
+            name: currentUser?.name || "Yo", 
+            points: 0, 
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name || "Player")}&background=EAC7C7&color=000` 
+          };
+          
+          setRanking([
+            { id: 1, name: "Jugador 1", points: 0, avatar: "https://ui-avatars.com/api/?name=J1&background=5D3891&color=fff" },
+            myPlayer,
+            { id: 3, name: "Jugador 3", points: 0, avatar: "https://ui-avatars.com/api/?name=J3&background=519259&color=fff" },
+          ]);
+          setMyRank(2);
+        }
+        
+        setError(null);
       } else {
-        // Para partidas reales, empezamos con ranking vacío
-        setRanking([]);
-        // Añadimos al usuario actual
-        const myPlayer = { 
-          id: 2, 
-          name: "Yo", 
-          points: 0, 
-          avatar: "https://ui-avatars.com/api/?name=Player&background=EAC7C7&color=000" 
-        };
-        setRanking([myPlayer]);
-        setMyRank(1);
+        setError("No se encontró el cuestionario");
+        toast({
+          title: "Error",
+          description: "No se encontró el cuestionario",
+          variant: "destructive"
+        });
       }
-    } else {
+    } catch (err) {
+      console.error("Error al cargar el cuestionario:", err);
+      setError("Error al cargar el cuestionario");
       toast({
         title: "Error",
-        description: "No se encontró el cuestionario",
+        description: "Ocurrió un error al cargar el cuestionario",
         variant: "destructive"
       });
-      navigate('/games');
+    } finally {
+      setLoading(false);
     }
-  }, [gameId, navigate]);
+  }, [gameId, navigate, currentUser]);
   
   useEffect(() => {
     if (currentState === 'waiting') {
@@ -165,6 +187,13 @@ const GamePlay = () => {
       if (myPosition !== -1) {
         newRanking[myPosition].points += pointsEarned;
         
+        newRanking.forEach((player, idx) => {
+          if (player.id !== 2) {
+            const randomBonus = Math.random() > 0.5 ? Math.floor(Math.random() * pointsEarned) : 0;
+            player.points += randomBonus;
+          }
+        });
+        
         newRanking.sort((a, b) => b.points - a.points);
         setRanking(newRanking);
         
@@ -178,6 +207,22 @@ const GamePlay = () => {
         variant: "default"
       });
     } else {
+      if (gameId !== 'demo-123') {
+        const newRanking = [...ranking];
+        newRanking.forEach((player, idx) => {
+          if (player.id !== 2) {
+            const randomBonus = Math.random() > 0.3 ? Math.floor(Math.random() * 200) : 0;
+            player.points += randomBonus;
+          }
+        });
+        
+        newRanking.sort((a, b) => b.points - a.points);
+        setRanking(newRanking);
+        
+        const newRank = newRanking.findIndex(player => player.id === 2) + 1;
+        setMyRank(newRank);
+      }
+      
       toast({
         title: "Respuesta incorrecta",
         description: "No has ganado puntos en esta pregunta",
@@ -188,8 +233,7 @@ const GamePlay = () => {
     setCurrentState('result');
   };
   
-  // Si no hay preguntas, mostramos un mensaje de carga
-  if (gameQuestions.length === 0) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-100">
         <Navbar />
@@ -198,6 +242,27 @@ const GamePlay = () => {
             <div className="bg-white rounded-xl shadow-md p-8 text-center">
               <h2 className="text-xl font-serif font-semibold text-gloria-purple mb-4">
                 Cargando cuestionario...
+              </h2>
+              <div className="w-16 h-16 border-4 border-gloria-purple border-t-transparent rounded-full animate-spin mx-auto my-4"></div>
+              <Button variant="primary" href="/games">
+                Volver a partidas
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error || gameQuestions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Navbar />
+        <div className="pt-24 pb-16">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <div className="bg-white rounded-xl shadow-md p-8 text-center">
+              <h2 className="text-xl font-serif font-semibold text-gloria-purple mb-4">
+                {error || "No se encontraron preguntas para este cuestionario"}
               </h2>
               <Button variant="primary" href="/games">
                 Volver a partidas
@@ -293,6 +358,14 @@ const GamePlay = () => {
                           </p>
                         </div>
                       </div>
+                      
+                      <Button
+                        variant="primary"
+                        className="mt-6"
+                        onClick={startGame}
+                      >
+                        Empezar ahora
+                      </Button>
                     </div>
                   </motion.div>
                 )}
