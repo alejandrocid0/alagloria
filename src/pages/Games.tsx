@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, Search } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -12,54 +11,54 @@ const Games = () => {
       id: '1',
       title: 'Especial Semana Santa 2023',
       date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-      participants: 84,
-      maxParticipants: 200,
-      prizePool: 160,
+      participants: 0,
+      maxParticipants: 100,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1554394985-1b222cdcc912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '2',
       title: 'Trivia La Macarena',
       date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
-      participants: 150,
-      maxParticipants: 150,
-      prizePool: 120,
+      participants: 0,
+      maxParticipants: 100,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1588638261318-9569c316c152?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '3',
       title: 'Hermandades Domingo de Ramos',
       date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      participants: 35,
+      participants: 0,
       maxParticipants: 100,
-      prizePool: 80,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1553524790-5872ab69e309?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '4',
       title: 'Curiosidades de la Semana Santa',
       date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-      participants: 62,
+      participants: 0,
       maxParticipants: 100,
-      prizePool: 75,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '5',
       title: 'Música y Marchas Procesionales',
       date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-      participants: 15,
-      maxParticipants: 80,
-      prizePool: 60,
+      participants: 0,
+      maxParticipants: 100,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1575147834960-bf3a3b2d2c0f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '6',
       title: 'Historia de la Semana Santa',
       date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // Past game
-      participants: 94,
+      participants: 0,
       maxParticipants: 100,
-      prizePool: 90,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1523676060187-f55189a71f5e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     }
   ]);
@@ -67,11 +66,29 @@ const Games = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'upcoming', 'full', 'past'
 
+  useEffect(() => {
+    const loadGameParticipants = () => {
+      const updatedGames = games.map(game => {
+        const gameParticipantsKey = `game_${game.id}_participants`;
+        const storedParticipants = localStorage.getItem(gameParticipantsKey);
+        
+        const participants = storedParticipants ? parseInt(storedParticipants, 10) : 0;
+        
+        return {
+          ...game,
+          participants
+        };
+      });
+      
+      setGames(updatedGames);
+    };
+    
+    loadGameParticipants();
+  }, []);
+
   const filteredGames = games.filter(game => {
-    // Apply search filter
     const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Apply status filter
     let matchesStatus = true;
     if (filterStatus === 'upcoming') {
       matchesStatus = game.date > new Date() && game.participants < game.maxParticipants;

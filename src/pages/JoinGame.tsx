@@ -1,34 +1,57 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Users, Award, AlertCircle, CreditCard, Check } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const JoinGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
-  
-  // Mock game data based on gameId
-  const gameData = {
+  const { isAuthenticated, currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [gameData, setGameData] = useState({
     id: gameId,
     title: "Especial Semana Santa 2023",
     date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    participants: 84,
-    maxParticipants: 200,
-    prizePool: 160,
+    participants: 0,
+    maxParticipants: 100,
+    prizePool: 100,
     description: "Pon a prueba tus conocimientos sobre la Semana Santa de Sevilla con preguntas sobre historia, curiosidades, y tradiciones. Compite contra otros participantes y gana premios en tiempo real.",
     image: "https://images.unsplash.com/photo-1554394985-1b222cdcc912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
     prizeDistribution: [
-      { position: 1, percentage: 50, amount: 80 },
-      { position: 2, percentage: 30, amount: 48 },
-      { position: 3, percentage: 20, amount: 32 }
+      { position: 1, percentage: 30, amount: 30 },
+      { position: 2, percentage: 20, amount: 20 },
+      { position: 3, percentage: 10, amount: 10 }
     ]
-  };
+  });
+  
+  // Check if user is logged in
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Inicia sesión para unirte",
+        description: "Necesitas iniciar sesión para participar en las partidas",
+        variant: "destructive"
+      });
+      navigate("/login", { state: { redirectTo: `/join/${gameId}` } });
+    }
+    
+    // Load game participants from localStorage
+    const gameParticipantsKey = `game_${gameId}_participants`;
+    const storedParticipants = localStorage.getItem(gameParticipantsKey);
+    const participants = storedParticipants ? parseInt(storedParticipants, 10) : 0;
+    
+    setGameData(prevData => ({
+      ...prevData,
+      participants
+    }));
+  }, [gameId, isAuthenticated, navigate]);
   
   const formattedDate = gameData.date.toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -43,6 +66,27 @@ const JoinGame = () => {
     
     // Simulate payment processing
     setTimeout(() => {
+      // Update participants count in localStorage
+      const gameParticipantsKey = `game_${gameId}_participants`;
+      const currentParticipants = localStorage.getItem(gameParticipantsKey);
+      const newParticipantCount = currentParticipants ? parseInt(currentParticipants, 10) + 1 : 1;
+      
+      // Store updated count
+      localStorage.setItem(gameParticipantsKey, newParticipantCount.toString());
+      
+      // Store user's joined games
+      if (currentUser) {
+        const userGamesKey = `user_${currentUser.id}_games`;
+        const userGames = localStorage.getItem(userGamesKey) ? 
+                        JSON.parse(localStorage.getItem(userGamesKey) || '[]') : [];
+        
+        // Add this game if not already joined
+        if (!userGames.includes(gameId)) {
+          userGames.push(gameId);
+          localStorage.setItem(userGamesKey, JSON.stringify(userGames));
+        }
+      }
+      
       setIsProcessing(false);
       setPaymentComplete(true);
       
@@ -51,6 +95,17 @@ const JoinGame = () => {
         description: "Te has unido a la partida correctamente",
       });
     }, 2000);
+  };
+  
+  // Check if user has already joined this game
+  const hasUserJoined = () => {
+    if (!currentUser) return false;
+    
+    const userGamesKey = `user_${currentUser.id}_games`;
+    const userGames = localStorage.getItem(userGamesKey) ? 
+                    JSON.parse(localStorage.getItem(userGamesKey) || '[]') : [];
+    
+    return userGames.includes(gameId);
   };
   
   return (
@@ -207,18 +262,32 @@ const JoinGame = () => {
                       </div>
                     </div>
                     
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      className="w-full flex items-center justify-center"
-                      isLoading={isProcessing}
-                      onClick={handleJoinGame}
-                    >
-                      {!isProcessing && (
-                        <CreditCard className="mr-2 h-5 w-5" />
-                      )}
-                      Pagar 1€ y unirse
-                    </Button>
+                    {hasUserJoined() ? (
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        className="w-full"
+                        href={`/game/${gameId}`}
+                      >
+                        Ya estás inscrito - Ir a la sala
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        className="w-full flex items-center justify-center"
+                        isLoading={isProcessing}
+                        onClick={handleJoinGame}
+                        disabled={gameData.participants >= gameData.maxParticipants}
+                      >
+                        {!isProcessing && (
+                          <CreditCard className="mr-2 h-5 w-5" />
+                        )}
+                        {gameData.participants >= gameData.maxParticipants 
+                          ? "Partida completa" 
+                          : "Pagar 1€ y unirse"}
+                      </Button>
+                    )}
                     
                     <div className="mt-4 text-center">
                       <Link to="/games" className="text-sm text-gloria-purple hover:text-gloria-gold transition-colors">
