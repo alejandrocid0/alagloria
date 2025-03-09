@@ -1,8 +1,12 @@
 
-import { Calendar, Users, Clock, Award } from 'lucide-react';
+import { Calendar, Users, Clock, Award, Play } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Button from './Button';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 interface GameCardProps {
   id: string;
@@ -18,6 +22,9 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
   const isGameFull = participants >= maxParticipants;
   const isPastGame = date < new Date();
   const percentageFilled = (participants / maxParticipants) * 100;
+  const navigate = useNavigate();
+  const { currentUser, isAuthenticated } = useAuth();
+  const [showDemoButton, setShowDemoButton] = useState(false);
   
   const formattedDate = date.toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -31,10 +38,37 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
     addSuffix: true,
     locale: es
   });
+
+  const handleCardClick = () => {
+    setShowDemoButton(prev => !prev);
+  };
+
+  const handleDemoGame = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Inicia sesión para jugar",
+        description: "Necesitas iniciar sesión para jugar en modo demostración",
+        variant: "destructive"
+      });
+      navigate("/login", { state: { redirectTo: `/games` } });
+      return;
+    }
+    
+    // Navigate to the demo game
+    navigate(`/game/demo-123`);
+    
+    toast({
+      title: "Modo demostración activado",
+      description: "Estás jugando una partida de demostración",
+    });
+  };
   
   return (
-    <div className="glass-panel overflow-hidden transition-all duration-300 hover:shadow-xl">
-      <div className="h-40 overflow-hidden relative">
+    <div className="glass-panel overflow-hidden transition-all duration-300 hover:shadow-xl relative">
+      <div 
+        className="h-40 overflow-hidden relative cursor-pointer" 
+        onClick={handleCardClick}
+      >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gloria-deepPurple/40 z-10" />
         {image ? (
           <img 
@@ -107,6 +141,19 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
             {isPastGame ? "Ver resultados" : isGameFull ? "Completa" : "Unirse - 1€"}
           </Button>
         </div>
+
+        {showDemoButton && (
+          <div className="mt-4 w-full">
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleDemoGame}
+            >
+              <Play size={16} /> Jugar Demo
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
