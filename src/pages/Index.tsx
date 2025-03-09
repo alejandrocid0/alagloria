@@ -131,7 +131,7 @@ const Index = () => {
               </Button>
 
               <Button 
-                variant="default"
+                variant="primary"
                 size="lg"
                 href="/game/demo-123"
               >
