@@ -1,13 +1,15 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, currentUser, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,18 +67,35 @@ const Navbar = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <Link 
-                to="/login" 
-                className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
-              >
-                Iniciar Sesión
-              </Link>
-              <Link 
-                to="/signup" 
-                className="px-4 py-2 rounded-md bg-gloria-gold text-white hover:bg-gloria-gold/90 transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                Registrarse
-              </Link>
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <div className="text-gloria-purple font-medium">
+                    Hola, {currentUser?.name}
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="flex items-center space-x-1 px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
+                  >
+                    <LogOut size={16} />
+                    <span>Salir</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link 
+                    to="/login" 
+                    className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
+                  >
+                    Iniciar Sesión
+                  </Link>
+                  <Link 
+                    to="/signup" 
+                    className="px-4 py-2 rounded-md bg-gloria-gold text-white hover:bg-gloria-gold/90 transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Registrarse
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           
@@ -110,20 +129,41 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-2">
-                <Link 
-                  to="/login" 
-                  className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center"
-                  onClick={closeMenu}
-                >
-                  Iniciar Sesión
-                </Link>
-                <Link 
-                  to="/signup" 
-                  className="py-2 px-4 rounded-md bg-gloria-gold text-white text-center"
-                  onClick={closeMenu}
-                >
-                  Registrarse
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <div className="py-2 px-4 text-gloria-purple font-medium flex items-center">
+                      <User size={16} className="mr-2" />
+                      {currentUser?.name}
+                    </div>
+                    <button 
+                      onClick={() => {
+                        closeMenu();
+                        logout();
+                      }}
+                      className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                    >
+                      <LogOut size={16} className="mr-2" />
+                      Cerrar Sesión
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      to="/login" 
+                      className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center"
+                      onClick={closeMenu}
+                    >
+                      Iniciar Sesión
+                    </Link>
+                    <Link 
+                      to="/signup" 
+                      className="py-2 px-4 rounded-md bg-gloria-gold text-white text-center"
+                      onClick={closeMenu}
+                    >
+                      Registrarse
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

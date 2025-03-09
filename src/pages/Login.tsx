@@ -1,20 +1,52 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
 
+// Function to handle user login
+const loginUser = async (email: string, password: string) => {
+  try {
+    // Get users from localStorage
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    // Find user with matching email and password
+    const user = users.find((u: any) => 
+      u.email === email && u.password === password
+    );
+    
+    if (!user) {
+      throw new Error('Correo electrónico o contraseña incorrectos');
+    }
+    
+    // Set the current user in localStorage
+    localStorage.setItem('currentUser', JSON.stringify({
+      id: user.id,
+      name: user.name,
+      email: user.email
+    }));
+    
+    return user;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Error al iniciar sesión');
+  }
+};
+
 const Login = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Simple validation
@@ -29,17 +61,33 @@ const Login = () => {
 
     setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
+    try {
+      await loginUser(email, password);
+      
       toast({
         title: "¡Bienvenido de nuevo!",
         description: "Has iniciado sesión correctamente",
       });
-      setIsLoading(false);
       
-      // Normally would redirect or update auth state here
-      window.location.href = '/games';
-    }, 1500);
+      // Redirect to games page
+      navigate('/games');
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Ha ocurrido un error durante el inicio de sesión",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

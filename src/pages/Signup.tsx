@@ -1,14 +1,52 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, User, CheckCircle, AlertCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
 
+const createUser = async (userData: {
+  name: string;
+  email: string;
+  password: string;
+}) => {
+  try {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    if (users.some((user: any) => user.email === userData.email)) {
+      throw new Error('Este correo electrónico ya está registrado');
+    }
+    
+    const newUser = {
+      id: crypto.randomUUID(),
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      createdAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    localStorage.setItem('currentUser', JSON.stringify({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email
+    }));
+    
+    return newUser;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Error al crear el usuario');
+  }
+};
+
 const Signup = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -89,7 +127,6 @@ const Signup = () => {
   };
 
   const isValidEmail = (email: string) => {
-    // Simple email validation
     return /\S+@\S+\.\S+/.test(email);
   };
 
@@ -103,7 +140,7 @@ const Signup = () => {
     setStep(1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateStep2()) {
@@ -112,17 +149,36 @@ const Signup = () => {
 
     setIsLoading(true);
     
-    // Simulate registration process
-    setTimeout(() => {
+    try {
+      await createUser({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      });
+      
       toast({
         title: "¡Registro completado!",
         description: "Tu cuenta ha sido creada correctamente",
       });
-      setIsLoading(false);
       
-      // Normally would redirect or update auth state here
-      window.location.href = '/games';
-    }, 1500);
+      navigate('/games');
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Ha ocurrido un error durante el registro",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const passwordStrength = () => {
