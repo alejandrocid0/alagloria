@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Award, Clock, Users } from 'lucide-react';
@@ -38,7 +37,6 @@ const Index = () => {
     }
   ]);
 
-  // Get the real stats based on the games data
   const [stats, setStats] = useState({
     users: 0,
     games: 0,
@@ -46,23 +44,17 @@ const Index = () => {
   });
 
   useEffect(() => {
-    // Calculate real stats from games data
     const calculateRealStats = () => {
-      // Get joined games from localStorage if available
       const joinedGames = JSON.parse(localStorage.getItem('joinedGames') || '{}');
       
-      // Count total participants from all games
       let totalParticipants = 0;
       let totalPrizes = 0;
       
       upcomingGames.forEach(game => {
-        // Get real participants from localStorage, or use the default value
         const gameParticipants = joinedGames[game.id]?.participants || 0;
         
-        // Update game participants
         totalParticipants += gameParticipants;
         
-        // Calculate prize pool
         totalPrizes += (gameParticipants * game.prizePool) / game.maxParticipants;
       });
       
@@ -72,7 +64,6 @@ const Index = () => {
         prizes: totalPrizes
       });
       
-      // Update games with real participant numbers
       setUpcomingGames(prevGames => 
         prevGames.map(game => ({
           ...game,
@@ -83,7 +74,6 @@ const Index = () => {
     
     calculateRealStats();
     
-    // Update stats when localStorage changes
     window.addEventListener('storage', calculateRealStats);
     
     return () => {
@@ -95,7 +85,7 @@ const Index = () => {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
-      transition: { .staggerChildren: 0.2, delayChildren: 0.3 }
+      transition: { staggerChildren: 0.2, delayChildren: 0.3 }
     }
   };
 
