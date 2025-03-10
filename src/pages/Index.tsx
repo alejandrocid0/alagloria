@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Award, Clock, Users } from 'lucide-react';
@@ -12,57 +13,89 @@ const Index = () => {
       id: '1',
       title: 'Especial Semana Santa 2023',
       date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-      participants: 84,
-      maxParticipants: 200,
-      prizePool: 160,
+      participants: 0,
+      maxParticipants: 100,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1554394985-1b222cdcc912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '2',
       title: 'Trivia La Macarena',
       date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
-      participants: 150,
-      maxParticipants: 150,
-      prizePool: 120,
+      participants: 0,
+      maxParticipants: 100,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1588638261318-9569c316c152?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: '3',
       title: 'Hermandades Domingo de Ramos',
       date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      participants: 35,
+      participants: 0,
       maxParticipants: 100,
-      prizePool: 80,
+      prizePool: 100,
       image: 'https://images.unsplash.com/photo-1553524790-5872ab69e309?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
     }
   ]);
 
-  const [counter, setCounter] = useState({
+  // Get the real stats based on the games data
+  const [stats, setStats] = useState({
     users: 0,
     games: 0,
     prizes: 0
   });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCounter(prev => ({
-        users: prev.users >= 5000 ? 5000 : prev.users + 50,
-        games: prev.games >= 120 ? 120 : prev.games + 2,
-        prizes: prev.prizes >= 15000 ? 15000 : prev.prizes + 200
-      }));
-    }, 20);
-
-    return () => clearInterval(interval);
-  }, []);
+    // Calculate real stats from games data
+    const calculateRealStats = () => {
+      // Get joined games from localStorage if available
+      const joinedGames = JSON.parse(localStorage.getItem('joinedGames') || '{}');
+      
+      // Count total participants from all games
+      let totalParticipants = 0;
+      let totalPrizes = 0;
+      
+      upcomingGames.forEach(game => {
+        // Get real participants from localStorage, or use the default value
+        const gameParticipants = joinedGames[game.id]?.participants || 0;
+        
+        // Update game participants
+        totalParticipants += gameParticipants;
+        
+        // Calculate prize pool
+        totalPrizes += (gameParticipants * game.prizePool) / game.maxParticipants;
+      });
+      
+      setStats({
+        users: totalParticipants,
+        games: Object.keys(joinedGames).length || 0,
+        prizes: totalPrizes
+      });
+      
+      // Update games with real participant numbers
+      setUpcomingGames(prevGames => 
+        prevGames.map(game => ({
+          ...game,
+          participants: joinedGames[game.id]?.participants || 0
+        }))
+      );
+    };
+    
+    calculateRealStats();
+    
+    // Update stats when localStorage changes
+    window.addEventListener('storage', calculateRealStats);
+    
+    return () => {
+      window.removeEventListener('storage', calculateRealStats);
+    };
+  }, [upcomingGames]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
-      transition: { 
-        staggerChildren: 0.2,
-        delayChildren: 0.3
-      }
+      transition: { .staggerChildren: 0.2, delayChildren: 0.3 }
     }
   };
 
@@ -219,21 +252,21 @@ const Index = () => {
           >
             <div>
               <p className="text-4xl md:text-5xl font-serif font-bold text-gloria-gold mb-2">
-                +{counter.users.toLocaleString()}
+                {stats.users.toLocaleString()}
               </p>
               <p className="text-lg text-gray-300">Jugadores</p>
             </div>
             
             <div>
               <p className="text-4xl md:text-5xl font-serif font-bold text-gloria-gold mb-2">
-                +{counter.games.toLocaleString()}
+                {stats.games.toLocaleString()}
               </p>
               <p className="text-lg text-gray-300">Partidas jugadas</p>
             </div>
             
             <div>
               <p className="text-4xl md:text-5xl font-serif font-bold text-gloria-gold mb-2">
-                +{counter.prizes.toLocaleString()}€
+                {stats.prizes.toLocaleString()}€
               </p>
               <p className="text-lg text-gray-300">En premios repartidos</p>
             </div>

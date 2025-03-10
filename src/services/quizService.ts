@@ -209,69 +209,69 @@ const quizzes: Quiz[] = [
   },
   {
     id: "demo-123",
-    title: "Cuestionario de Demostración",
-    description: "Cuestionario para probar la aplicación",
-    category: "Demo",
+    title: "Semana Santa de Sevilla - Demo",
+    description: "Prueba una partida sobre Semana Santa de Sevilla",
+    category: "Semana Santa",
     questions: [
       {
         id: 1,
-        question: "¿Qué significa HTML?",
+        question: "¿En qué año se fundó la Hermandad de La Macarena?",
         options: [
-          { id: "a", text: "Hyper Text Markup Language" },
-          { id: "b", text: "High Tech Modern Language" },
-          { id: "c", text: "Hybrid Transfer Method Layout" },
-          { id: "d", text: "Home Tool Markup Language" },
-          { id: "e", text: "Hyper Technical Meta Language" }
+          { id: "a", text: "1595" },
+          { id: "b", text: "1640" },
+          { id: "c", text: "1750" },
+          { id: "d", text: "1824" },
+          { id: "e", text: "1875" }
         ],
-        correctOption: "a"
+        correctOption: "b"
       },
       {
         id: 2,
-        question: "¿Cuál de estos NO es un lenguaje de programación?",
+        question: "¿Qué día de la Semana Santa realiza su estación de penitencia la Hermandad de El Gran Poder?",
         options: [
-          { id: "a", text: "Java" },
-          { id: "b", text: "Python" },
-          { id: "c", text: "HTML" },
-          { id: "d", text: "JavaScript" },
-          { id: "e", text: "Ruby" }
+          { id: "a", text: "Lunes Santo" },
+          { id: "b", text: "Martes Santo" },
+          { id: "c", text: "Miércoles Santo" },
+          { id: "d", text: "Jueves Santo" },
+          { id: "e", text: "Madrugada" }
         ],
-        correctOption: "c"
+        correctOption: "e"
       },
       {
         id: 3,
-        question: "¿Qué animal es el símbolo de la WWF?",
+        question: "¿Qué hermandad es conocida como 'La Estrella'?",
         options: [
-          { id: "a", text: "León" },
-          { id: "b", text: "Oso" },
-          { id: "c", text: "Tigre" },
-          { id: "d", text: "Panda" },
-          { id: "e", text: "Elefante" }
+          { id: "a", text: "Nuestro Padre Jesús de la Salud y María Santísima de las Angustias" },
+          { id: "b", text: "Nuestro Padre Jesús de las Penas y María Santísima de la Estrella" },
+          { id: "c", text: "Nuestro Padre Jesús del Gran Poder y María Santísima del Mayor Dolor y Traspaso" },
+          { id: "d", text: "Nuestro Padre Jesús del Silencio y María Santísima de la Amargura" },
+          { id: "e", text: "Nuestro Padre Jesús Cautivo y María Santísima de la Esperanza" }
         ],
-        correctOption: "d"
+        correctOption: "b"
       },
       {
         id: 4,
-        question: "¿En qué año se lanzó el primer iPhone?",
+        question: "¿Qué flor se utiliza tradicionalmente en los pasos de la Virgen?",
         options: [
-          { id: "a", text: "2005" },
-          { id: "b", text: "2006" },
-          { id: "c", text: "2007" },
-          { id: "d", text: "2008" },
-          { id: "e", text: "2009" }
+          { id: "a", text: "Rosas" },
+          { id: "b", text: "Lirios" },
+          { id: "c", text: "Claveles" },
+          { id: "d", text: "Girasoles" },
+          { id: "e", text: "Margaritas" }
         ],
         correctOption: "c"
       },
       {
         id: 5,
-        question: "¿Cuál es el país más grande del mundo por superficie?",
+        question: "¿Cuál es la primera hermandad en hacer estación de penitencia en la Semana Santa de Sevilla?",
         options: [
-          { id: "a", text: "China" },
-          { id: "b", text: "Estados Unidos" },
-          { id: "c", text: "Canadá" },
-          { id: "d", text: "Brasil" },
-          { id: "e", text: "Rusia" }
+          { id: "a", text: "La Paz" },
+          { id: "b", text: "La Borriquita" },
+          { id: "c", text: "El Amor" },
+          { id: "d", text: "La Hiniesta" },
+          { id: "e", text: "La Amargura" }
         ],
-        correctOption: "e"
+        correctOption: "b"
       }
     ]
   }
