@@ -8,6 +8,7 @@ interface GameResult {
   id: string;
   correctAnswers: number;
   totalAnswers: number;
+  date: Date; // Added the missing date property
 }
 
 interface SuccessRatioCardProps {
