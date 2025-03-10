@@ -1,10 +1,29 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+interface GameResult {
+  id: string;
+  gameId: string;
+  gameTitle: string;
+  date: Date;
+  position: number;
+  entryFee: number;
+  correctAnswers: number;
+  totalAnswers: number;
+}
+
+interface UserStats {
+  gamesPlayed: GameResult[];
+  totalSpent: number;
+  correctAnswers: number;
+  totalAnswers: number;
+}
+
 interface User {
   id: string;
   name: string;
   email: string;
+  stats: UserStats;
 }
 
 interface AuthContextType {
@@ -12,6 +31,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   logout: () => void;
   getUserProfile: () => User | null;
+  updateUserStats: (gameResult: GameResult) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +46,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
+        
+        // Convert date strings back to Date objects for game results
+        if (parsedUser.stats && parsedUser.stats.gamesPlayed) {
+          parsedUser.stats.gamesPlayed = parsedUser.stats.gamesPlayed.map((game: any) => ({
+            ...game,
+            date: new Date(game.date)
+          }));
+        }
+        
         setCurrentUser(parsedUser);
         setIsAuthenticated(true);
       } catch (error) {
@@ -34,6 +63,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
   }, []);
+
+  const updateUserStats = (gameResult: GameResult) => {
+    if (!currentUser) return;
+
+    const updatedUser = {
+      ...currentUser,
+      stats: {
+        gamesPlayed: [...currentUser.stats.gamesPlayed, gameResult],
+        totalSpent: currentUser.stats.totalSpent + gameResult.entryFee,
+        correctAnswers: currentUser.stats.correctAnswers + gameResult.correctAnswers,
+        totalAnswers: currentUser.stats.totalAnswers + gameResult.totalAnswers
+      }
+    };
+
+    setCurrentUser(updatedUser);
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+  };
 
   const logout = () => {
     localStorage.removeItem('currentUser');
@@ -53,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated,
         logout,
         getUserProfile,
+        updateUserStats,
       }}
     >
       {children}

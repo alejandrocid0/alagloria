@@ -72,6 +72,13 @@ const Navbar = () => {
                   <div className="text-gloria-purple font-medium">
                     Hola, {currentUser?.name}
                   </div>
+                  <Link
+                    to="/dashboard"
+                    className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
+                  >
+                    <User size={16} className="inline mr-2" />
+                    <span>Dashboard</span>
+                  </Link>
                   <button
                     onClick={logout}
                     className="flex items-center space-x-1 px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
@@ -135,6 +142,14 @@ const Navbar = () => {
                       <User size={16} className="mr-2" />
                       {currentUser?.name}
                     </div>
+                    <Link 
+                      to="/dashboard"
+                      className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                      onClick={closeMenu}
+                    >
+                      <User size={16} className="mr-2" />
+                      Dashboard
+                    </Link>
                     <button 
                       onClick={() => {
                         closeMenu();
