@@ -13,6 +13,7 @@ import Signup from "./pages/Signup";
 import JoinGame from "./pages/JoinGame";
 import GamePlay from "./pages/GamePlay";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/join/:gameId" element={<JoinGame />} />
             <Route path="/game/:gameId" element={<GamePlay />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

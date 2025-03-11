@@ -27,11 +27,13 @@ interface UserProfile {
   name: string;
   email: string;
   stats: UserStats;
+  isAdmin: boolean;
 }
 
 interface AuthContextType {
   currentUser: UserProfile | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   session: Session | null;
   logout: () => Promise<void>;
   getUserProfile: () => UserProfile | null;
@@ -47,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -61,6 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await fetchUserProfile(session.user.id);
         } else {
           setCurrentUser(null);
+          setIsAdmin(false);
         }
         
         setLoading(false);
@@ -100,6 +104,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Error fetching profile:", profileError);
         throw profileError;
       }
+
+      // Check if user is an admin
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      const userIsAdmin = !adminError && adminData;
+      setIsAdmin(!!userIsAdmin);
+      console.log("Admin check:", userIsAdmin ? "User is admin" : "User is not admin");
 
       // Fetch game results
       const { data: gameResults, error: gameResultsError } = await supabase
@@ -141,7 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           totalSpent,
           correctAnswers,
           totalAnswers
-        }
+        },
+        isAdmin: !!userIsAdmin
       });
 
       setLoading(false);
@@ -273,6 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         currentUser,
         isAuthenticated,
+        isAdmin,
         session,
         logout,
         getUserProfile,

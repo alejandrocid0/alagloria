@@ -10,15 +10,23 @@ import SuccessRatioCard from '@/components/dashboard/SuccessRatioCard';
 import StatsOverviewCard from '@/components/dashboard/StatsOverviewCard';
 
 const Dashboard = () => {
-  const { currentUser, isAuthenticated, loading } = useAuth();
+  const { currentUser, isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated or to admin dashboard if admin
   React.useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      navigate('/login', { state: { redirectTo: '/dashboard' } });
+    if (!loading) {
+      if (!isAuthenticated) {
+        navigate('/login', { state: { redirectTo: '/dashboard' } });
+        return;
+      }
+      
+      if (isAdmin) {
+        navigate('/admin');
+        return;
+      }
     }
-  }, [isAuthenticated, navigate, loading]);
+  }, [isAuthenticated, isAdmin, navigate, loading]);
 
   if (loading || !currentUser) {
     return (

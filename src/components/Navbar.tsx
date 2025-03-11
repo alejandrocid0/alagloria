@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,7 +9,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, currentUser, logout, loading } = useAuth();
+  const { isAuthenticated, isAdmin, currentUser, logout, loading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -72,6 +72,15 @@ const Navbar = () => {
                   <div className="text-gloria-purple font-medium">
                     Hola, {currentUser?.name}
                   </div>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
+                    >
+                      <Settings size={16} className="inline mr-2" />
+                      <span>Administración</span>
+                    </Link>
+                  )}
                   <Link
                     to="/dashboard"
                     className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
@@ -142,6 +151,16 @@ const Navbar = () => {
                       <User size={16} className="mr-2" />
                       {currentUser?.name}
                     </div>
+                    {isAdmin && (
+                      <Link 
+                        to="/admin"
+                        className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                        onClick={closeMenu}
+                      >
+                        <Settings size={16} className="mr-2" />
+                        Administración
+                      </Link>
+                    )}
                     <Link 
                       to="/dashboard"
                       className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
