@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Save } from 'lucide-react';
@@ -63,7 +63,8 @@ const GameManagement = () => {
     },
   });
   
-  const { fields: questionsFields, append: appendQuestion, remove: removeQuestion } = form.useFieldArray({
+  const { fields: questionsFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control: form.control,
     name: "questions",
   });
 

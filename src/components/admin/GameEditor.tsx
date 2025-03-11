@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
@@ -157,7 +156,8 @@ const GameEditor: React.FC<GameEditorProps> = ({ game, onClose }) => {
     fetchGameDetails();
   }, [game.id, game.date, game.title, game.description, form]);
 
-  const { fields: questionsFields, append: appendQuestion, remove: removeQuestion } = form.useFieldArray({
+  const { fields: questionsFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control: form.control,
     name: "questions",
   });
 

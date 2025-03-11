@@ -54,6 +54,7 @@ const AdminDashboard = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="games-list">Lista de Partidas</TabsTrigger>
             <TabsTrigger value="create-game">Crear Partida</TabsTrigger>
+            <TabsTrigger value="statistics">Estadísticas</TabsTrigger>
           </TabsList>
           
           <TabsContent value="games-list">
@@ -62,6 +63,13 @@ const AdminDashboard = () => {
           
           <TabsContent value="create-game">
             <GameManagement />
+          </TabsContent>
+          
+          <TabsContent value="statistics">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Estadísticas de Partidas</h2>
+              <p className="text-gray-500">Esta función estará disponible próximamente.</p>
+            </div>
           </TabsContent>
         </Tabs>
       </main>
