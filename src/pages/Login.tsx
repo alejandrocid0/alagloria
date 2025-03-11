@@ -31,9 +31,11 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/games');
+      // Redirigir a la página solicitada o al dashboard por defecto
+      const redirectTo = location.state?.redirectTo || '/dashboard';
+      navigate(redirectTo);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,8 +79,9 @@ const Login = () => {
         description: "Has iniciado sesión correctamente",
       });
       
-      // Redirect to games page
-      navigate('/games');
+      // Redirect to intended page or dashboard
+      const redirectTo = location.state?.redirectTo || '/dashboard';
+      navigate(redirectTo);
     } catch (error) {
       console.error('Error during login:', error);
       toast({

@@ -2,55 +2,66 @@
 import { supabase } from '@/lib/supabase';
 
 /**
- * This utility function can be used to create an admin user.
- * Replace 'your-email@example.com' with the email you want to make an admin.
- * This should be run only once in development or through a secure admin interface.
+ * Esta función asigna el rol de administrador a un usuario con el correo electrónico especificado.
+ * IMPORTANTE: Esta función debe ser ejecutada solo una vez y desde la consola del navegador
+ * por un usuario con acceso al código de la aplicación.
+ * 
+ * @param email El correo electrónico del usuario a convertir en administrador
+ * @returns Un mensaje indicando si la operación fue exitosa o falló
  */
-export const createAdmin = async (adminEmail: string) => {
+export const createAdmin = async (email: string): Promise<string> => {
   try {
-    // First, find the user by email
+    // Verificar si el usuario existe
     const { data: userData, error: userError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('email', adminEmail)
+      .eq('email', email)
       .single();
-    
-    if (userError) {
-      throw new Error(`User not found with email: ${adminEmail}`);
+
+    if (userError || !userData) {
+      console.error('Error al buscar usuario:', userError);
+      return `Error: No se encontró un usuario con el correo ${email}. El usuario debe registrarse primero.`;
     }
-    
-    // Check if user is already an admin
-    const { data: existingAdmin, error: checkError } = await supabase
+
+    // Verificar si ya es administrador
+    const { data: existingAdmin, error: adminCheckError } = await supabase
       .from('admin_roles')
       .select('*')
       .eq('user_id', userData.id)
       .single();
-    
-    if (!checkError && existingAdmin) {
-      console.log(`User ${adminEmail} is already an admin.`);
-      return;
+
+    if (!adminCheckError && existingAdmin) {
+      return `El usuario con correo ${email} ya es administrador.`;
     }
-    
-    // Add the user to admin_roles table
-    const { data, error } = await supabase
+
+    // Asignar rol de administrador
+    const { error: insertError } = await supabase
       .from('admin_roles')
       .insert({
         user_id: userData.id
-      })
-      .select();
-    
-    if (error) {
-      throw error;
+      });
+
+    if (insertError) {
+      console.error('Error al asignar rol de administrador:', insertError);
+      return `Error al asignar rol de administrador: ${insertError.message}`;
     }
-    
-    console.log(`User ${adminEmail} is now an admin!`);
-    return data;
+
+    return `¡Éxito! El usuario con correo ${email} ahora es administrador.`;
   } catch (error) {
-    console.error('Error making user admin:', error);
-    throw error;
+    console.error('Error inesperado:', error);
+    return `Error inesperado: ${error instanceof Error ? error.message : String(error)}`;
   }
 };
 
-// You can run this function directly from the browser console:
-// import { createAdmin } from './utils/admin/createAdmin';
-// createAdmin('your-email@example.com');
+/**
+ * INSTRUCCIONES PARA CREAR UN ADMINISTRADOR:
+ * 
+ * 1. Primero, regístrese como un usuario normal en la aplicación
+ * 2. Abra la consola del navegador (F12 o clic derecho -> Inspeccionar -> Consola)
+ * 3. Ejecute el siguiente código, reemplazando 'tucorreo@ejemplo.com' con su correo:
+ * 
+ * import { createAdmin } from './src/utils/admin/createAdmin';
+ * createAdmin('tucorreo@ejemplo.com').then(console.log);
+ * 
+ * 4. Cierre sesión y vuelva a iniciar sesión para que los cambios surtan efecto
+ */

@@ -113,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       const userIsAdmin = !adminError && adminData;
+      console.log("Admin check result:", userIsAdmin, adminData);
       setIsAdmin(!!userIsAdmin);
       console.log("Admin check:", userIsAdmin ? "User is admin" : "User is not admin");
 

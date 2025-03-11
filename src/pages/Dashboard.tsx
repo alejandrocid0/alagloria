@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -14,7 +14,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   // Redirect to login if not authenticated or to admin dashboard if admin
-  React.useEffect(() => {
+  useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
         navigate('/login', { state: { redirectTo: '/dashboard' } });
