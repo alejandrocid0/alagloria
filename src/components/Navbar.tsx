@@ -9,7 +9,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, currentUser, logout } = useAuth();
+  const { isAuthenticated, currentUser, logout, loading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,23 +67,23 @@ const Navbar = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              {isAuthenticated ? (
+              {!loading && isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <div className="text-gloria-purple font-medium">
                     Hola, {currentUser?.name}
                   </div>
                   <Link
                     to="/dashboard"
-                    className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
+                    className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
                   >
                     <User size={16} className="inline mr-2" />
-                    <span>Dashboard</span>
+                    <span>Mi Perfil</span>
                   </Link>
                   <button
                     onClick={logout}
                     className="flex items-center space-x-1 px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
                   >
-                    <LogOut size={16} />
+                    <LogOut size={16} className="mr-2" />
                     <span>Salir</span>
                   </button>
                 </div>
@@ -136,7 +136,7 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-2">
-                {isAuthenticated ? (
+                {!loading && isAuthenticated ? (
                   <>
                     <div className="py-2 px-4 text-gloria-purple font-medium flex items-center">
                       <User size={16} className="mr-2" />
@@ -148,7 +148,7 @@ const Navbar = () => {
                       onClick={closeMenu}
                     >
                       <User size={16} className="mr-2" />
-                      Dashboard
+                      Mi Perfil
                     </Link>
                     <button 
                       onClick={() => {

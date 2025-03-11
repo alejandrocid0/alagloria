@@ -10,17 +10,17 @@ import SuccessRatioCard from '@/components/dashboard/SuccessRatioCard';
 import StatsOverviewCard from '@/components/dashboard/StatsOverviewCard';
 
 const Dashboard = () => {
-  const { currentUser, isAuthenticated } = useAuth();
+  const { currentUser, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
   // Redirect to login if not authenticated
   React.useEffect(() => {
-    if (!isAuthenticated) {
+    if (!loading && !isAuthenticated) {
       navigate('/login', { state: { redirectTo: '/dashboard' } });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, loading]);
 
-  if (!currentUser) {
+  if (loading || !currentUser) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
@@ -39,7 +39,7 @@ const Dashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8 mt-20">
         <h1 className="text-3xl font-serif font-bold text-gloria-purple mb-8">
           Dashboard de {currentUser.name}
         </h1>
