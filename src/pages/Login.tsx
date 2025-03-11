@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -11,11 +11,22 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, isAuthenticated } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Mostrar mensaje si viene del registro
+  useEffect(() => {
+    if (location.state?.message) {
+      toast({
+        title: "Información",
+        description: location.state.message
+      });
+    }
+  }, [location.state]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -47,6 +58,8 @@ const Login = () => {
         
         if (error.message.includes("Invalid login")) {
           errorMessage = "Correo electrónico o contraseña incorrectos";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Tu correo electrónico no ha sido confirmado. Por favor, revisa tu bandeja de entrada.";
         } else if (error.message) {
           errorMessage = error.message;
         }

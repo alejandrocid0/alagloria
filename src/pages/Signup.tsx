@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -139,10 +140,16 @@ const Signup = () => {
       
       toast({
         title: "¡Registro completado!",
-        description: "Tu cuenta ha sido creada correctamente",
+        description: "Tu cuenta ha sido creada correctamente. Puedes iniciar sesión ahora.",
       });
       
-      navigate('/games');
+      // Navegamos a login para que el usuario inicie sesión de inmediato
+      navigate('/login', { 
+        state: { 
+          registeredEmail: formData.email,
+          message: "Tu cuenta ha sido creada. Por favor, inicia sesión para continuar." 
+        } 
+      });
     } catch (error) {
       console.error('Error during signup:', error);
       toast({
@@ -461,4 +468,3 @@ const Signup = () => {
 };
 
 export default Signup;
-

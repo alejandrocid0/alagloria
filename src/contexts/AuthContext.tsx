@@ -53,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
         setSession(session);
         setIsAuthenticated(!!session);
         
@@ -68,14 +69,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check:", session?.user?.id);
       setSession(session);
       setIsAuthenticated(!!session);
       
       if (session) {
         fetchUserProfile(session.user.id);
+      } else {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => {
@@ -86,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile and game results from Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching profile for user:", userId);
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -94,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (profileError) {
+        console.error("Error fetching profile:", profileError);
         throw profileError;
       }
 
@@ -104,11 +108,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', userId);
 
       if (gameResultsError) {
+        console.error("Error fetching game results:", gameResultsError);
         throw gameResultsError;
       }
 
+      console.log("Fetched profile:", profileData);
+      console.log("Fetched game results:", gameResults);
+
       // Transform game results to GameResult type
-      const formattedGameResults: GameResult[] = gameResults.map((result) => ({
+      const formattedGameResults: GameResult[] = gameResults ? gameResults.map((result) => ({
         id: result.id,
         gameId: result.game_id,
         gameTitle: result.game_title,
@@ -117,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         entryFee: result.entry_fee,
         correctAnswers: result.correct_answers,
         totalAnswers: result.total_answers
-      }));
+      })) : [];
 
       // Calculate stats
       const totalSpent = formattedGameResults.reduce((sum, game) => sum + game.entryFee, 0);
@@ -135,6 +143,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           totalAnswers
         }
       });
+
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       toast({
@@ -142,25 +152,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudieron cargar los datos del usuario",
         variant: "destructive"
       });
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
+      console.log("Signing up user:", email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name
-          }
+          },
+          emailRedirectTo: window.location.origin + '/login'
         }
       });
 
       if (error) {
+        console.error("Sign up error:", error);
         return { user: null, error };
       }
 
+      console.log("Sign up successful:", data.user);
       return { user: data.user, error: null };
     } catch (error) {
       console.error('Error during sign up:', error);
@@ -170,15 +185,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Signing in user:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
+        console.error("Sign in error:", error);
         return { user: null, error };
       }
 
+      console.log("Sign in successful:", data.user);
       return { user: data.user, error: null };
     } catch (error) {
       console.error('Error during sign in:', error);
