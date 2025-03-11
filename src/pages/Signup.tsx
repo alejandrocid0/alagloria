@@ -6,47 +6,11 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
-
-const createUser = async (userData: {
-  name: string;
-  email: string;
-  password: string;
-}) => {
-  try {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    if (users.some((user: any) => user.email === userData.email)) {
-      throw new Error('Este correo electrónico ya está registrado');
-    }
-    
-    const newUser = {
-      id: crypto.randomUUID(),
-      name: userData.name,
-      email: userData.email,
-      password: userData.password,
-      createdAt: new Date().toISOString()
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    localStorage.setItem('currentUser', JSON.stringify({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email
-    }));
-    
-    return newUser;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(error.message);
-    }
-    throw new Error('Error al crear el usuario');
-  }
-};
+import { useAuth } from '@/contexts/AuthContext';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -150,11 +114,28 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
-      await createUser({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password
-      });
+      const { user, error } = await signUp(
+        formData.email, 
+        formData.password, 
+        formData.name
+      );
+      
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast({
+            title: "Error",
+            description: "Este correo electrónico ya está registrado",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: error.message || "Ha ocurrido un error durante el registro",
+            variant: "destructive"
+          });
+        }
+        return;
+      }
       
       toast({
         title: "¡Registro completado!",
@@ -163,19 +144,12 @@ const Signup = () => {
       
       navigate('/games');
     } catch (error) {
-      if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Ha ocurrido un error durante el registro",
-          variant: "destructive"
-        });
-      }
+      console.error('Error during signup:', error);
+      toast({
+        title: "Error",
+        description: "Ha ocurrido un error durante el registro",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -487,3 +461,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

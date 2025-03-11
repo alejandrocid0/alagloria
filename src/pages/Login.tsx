@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
@@ -7,44 +7,22 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
-
-// Function to handle user login
-const loginUser = async (email: string, password: string) => {
-  try {
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Find user with matching email and password
-    const user = users.find((u: any) => 
-      u.email === email && u.password === password
-    );
-    
-    if (!user) {
-      throw new Error('Correo electrónico o contraseña incorrectos');
-    }
-    
-    // Set the current user in localStorage
-    localStorage.setItem('currentUser', JSON.stringify({
-      id: user.id,
-      name: user.name,
-      email: user.email
-    }));
-    
-    return user;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(error.message);
-    }
-    throw new Error('Error al iniciar sesión');
-  }
-};
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { signIn, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/games');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +40,24 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await loginUser(email, password);
+      const { user, error } = await signIn(email, password);
+      
+      if (error) {
+        let errorMessage = "Credenciales inválidas";
+        
+        if (error.message.includes("Invalid login")) {
+          errorMessage = "Correo electrónico o contraseña incorrectos";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return;
+      }
       
       toast({
         title: "¡Bienvenido de nuevo!",
@@ -72,19 +67,12 @@ const Login = () => {
       // Redirect to games page
       navigate('/games');
     } catch (error) {
-      if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Ha ocurrido un error durante el inicio de sesión",
-          variant: "destructive"
-        });
-      }
+      console.error('Error during login:', error);
+      toast({
+        title: "Error",
+        description: "Ha ocurrido un error durante el inicio de sesión",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
