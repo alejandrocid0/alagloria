@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, ImagePlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +48,7 @@ interface GameEditorProps {
     title: string;
     description: string;
     date: string;
+    image_url?: string;
   };
   onClose: () => void;
 }
@@ -72,6 +74,9 @@ const GameEditor: React.FC<GameEditorProps> = ({ game, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [options, setOptions] = useState<Option[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(game.image_url || null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const form = useForm<GameFormValues>({
     resolver: zodResolver(gameFormSchema),
@@ -156,6 +161,57 @@ const GameEditor: React.FC<GameEditorProps> = ({ game, onClose }) => {
     fetchGameDetails();
   }, [game.id, game.date, game.title, game.description, form]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (gameId: string): Promise<string | null> => {
+    if (!imageFile) return null;
+    
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${gameId}.${fileExt}`;
+      const filePath = `game-images/${fileName}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('game-images')
+        .upload(filePath, imageFile, {
+          cacheControl: '3600',
+          upsert: true,
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent);
+          }
+        });
+      
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('game-images')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo subir la imagen",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const { fields: questionsFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
     control: form.control,
     name: "questions",
@@ -195,15 +251,28 @@ const GameEditor: React.FC<GameEditorProps> = ({ game, onClose }) => {
       // Combine date and time for game date
       const gameDateTime = new Date(`${data.gameDate}T${data.gameTime}`);
       
-      // 1. Update game
+      // 1. Upload image if provided
+      let imageUrl = null;
+      if (imageFile) {
+        imageUrl = await uploadImage(game.id);
+      }
+      
+      // 2. Update game
+      const updateData: any = {
+        title: data.title,
+        description: data.description,
+        date: gameDateTime.toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Add image URL if available
+      if (imageUrl) {
+        updateData.image_url = imageUrl;
+      }
+      
       const { error: gameError } = await supabase
         .from('games')
-        .update({
-          title: data.title,
-          description: data.description,
-          date: gameDateTime.toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', game.id);
       
       if (gameError) {
@@ -391,6 +460,50 @@ const GameEditor: React.FC<GameEditorProps> = ({ game, onClose }) => {
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-2">
+                  <FormLabel>Imagen de la partida</FormLabel>
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <label className="cursor-pointer">
+                        <div className="flex items-center justify-center w-full h-10 px-4 py-2 text-sm font-medium text-white bg-gloria-purple rounded-md hover:bg-gloria-purple/90">
+                          <ImagePlus className="w-4 h-4 mr-2" />
+                          <span>{imagePreview ? "Cambiar imagen" : "Seleccionar imagen"}</span>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={handleImageChange}
+                          />
+                        </div>
+                      </label>
+                      {imageFile && (
+                        <span className="text-sm text-gray-500">
+                          {imageFile.name}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {imagePreview && (
+                      <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={imagePreview} 
+                          alt="Vista previa" 
+                          className="w-full h-40 object-cover"
+                        />
+                      </div>
+                    )}
+                    
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-gloria-purple h-2.5 rounded-full" 
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-6">

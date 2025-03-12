@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    console.log("Setting up auth state listener");
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -112,7 +113,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userIsAdmin = !adminError && adminData;
       console.log("Admin check result:", userIsAdmin, adminData);
       setIsAdmin(!!userIsAdmin);
-      console.log("Admin check:", userIsAdmin ? "User is admin" : "User is not admin");
 
       // Fetch game results
       const { data: gameResults, error: gameResultsError } = await supabase
@@ -124,9 +124,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Error fetching game results:", gameResultsError);
         throw gameResultsError;
       }
-
-      console.log("Fetched profile:", profileData);
-      console.log("Fetched game results:", gameResults);
 
       // Transform game results to GameResult type
       const formattedGameResults: GameResult[] = gameResults ? gameResults.map((result) => ({

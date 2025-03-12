@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -80,7 +81,7 @@ const Login = () => {
         description: "Has iniciado sesión correctamente",
       });
       
-      // La redirección se maneja en el useEffect
+      // No hacemos redirección manual, se maneja en el useEffect
     } catch (error) {
       console.error('Error during login:', error);
       toast({

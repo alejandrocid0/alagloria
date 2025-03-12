@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, ImagePlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,9 @@ type GameFormValues = z.infer<typeof gameFormSchema>;
 const GameManagement = () => {
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   const form = useForm<GameFormValues>({
     resolver: zodResolver(gameFormSchema),
@@ -92,6 +95,57 @@ const GameManagement = () => {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (gameId: string): Promise<string | null> => {
+    if (!imageFile) return null;
+    
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${gameId}.${fileExt}`;
+      const filePath = `game-images/${fileName}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('game-images')
+        .upload(filePath, imageFile, {
+          cacheControl: '3600',
+          upsert: true,
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent);
+          }
+        });
+      
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('game-images')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo subir la imagen",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const onSubmit = async (data: GameFormValues) => {
     if (!currentUser) return;
     
@@ -119,7 +173,22 @@ const GameManagement = () => {
         throw new Error(`Error al crear la partida: ${gameError.message}`);
       }
       
-      // 2. Insert questions
+      // 2. Upload image if provided and update game with image URL
+      if (imageFile) {
+        const imageUrl = await uploadImage(gameData.id);
+        if (imageUrl) {
+          const { error: updateError } = await supabase
+            .from('games')
+            .update({ image_url: imageUrl })
+            .eq('id', gameData.id);
+          
+          if (updateError) {
+            console.error('Error updating game with image URL:', updateError);
+          }
+        }
+      }
+      
+      // 3. Insert questions
       for (let i = 0; i < data.questions.length; i++) {
         const question = data.questions[i];
         
@@ -138,7 +207,7 @@ const GameManagement = () => {
           throw new Error(`Error al crear la pregunta ${i+1}: ${questionError.message}`);
         }
         
-        // 3. Insert options for each question
+        // 4. Insert options for each question
         for (let j = 0; j < question.options.length; j++) {
           const option = question.options[j];
           
@@ -162,8 +231,11 @@ const GameManagement = () => {
         description: "La partida ha sido creada correctamente",
       });
       
-      // Reset form
+      // Reset form and image preview
       form.reset();
+      setImageFile(null);
+      setImagePreview(null);
+      setUploadProgress(0);
       
     } catch (error) {
       console.error("Error submitting game:", error);
@@ -221,6 +293,50 @@ const GameManagement = () => {
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-2">
+                  <FormLabel>Imagen de la partida</FormLabel>
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <label className="cursor-pointer">
+                        <div className="flex items-center justify-center w-full h-10 px-4 py-2 text-sm font-medium text-white bg-gloria-purple rounded-md hover:bg-gloria-purple/90">
+                          <ImagePlus className="w-4 h-4 mr-2" />
+                          <span>Seleccionar imagen</span>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={handleImageChange}
+                          />
+                        </div>
+                      </label>
+                      {imageFile && (
+                        <span className="text-sm text-gray-500">
+                          {imageFile.name}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {imagePreview && (
+                      <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={imagePreview} 
+                          alt="Vista previa" 
+                          className="w-full h-40 object-cover"
+                        />
+                      </div>
+                    )}
+                    
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-gloria-purple h-2.5 rounded-full" 
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-6">
