@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, isAuthenticated, isAdmin } = useAuth();
+  const { signIn, isAuthenticated, isAdmin, loading } = useAuth();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,11 +20,11 @@ const Login = () => {
 
   // Redirección si ya está autenticado
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!loading && isAuthenticated) {
       const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
       navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, isAdmin, navigate, location.state]);
+  }, [isAuthenticated, isAdmin, navigate, location.state, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +66,24 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  // Si está cargando el estado de autenticación, muestra un indicador de carga
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-gloria-cream bg-opacity-30">
+          <div className="animate-pulse text-gloria-purple">Cargando...</div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  // Si ya está autenticado, no muestra nada mientras redirecciona
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <>
