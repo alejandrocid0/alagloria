@@ -53,7 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log("Setting up auth state listener");
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
@@ -70,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Initial session check:", session?.user?.id);
       setSession(session);
@@ -90,42 +88,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log("Fetching profile for user:", userId);
-      // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-        throw profileError;
-      }
+      if (profileError) throw profileError;
 
-      // Check if user is an admin
-      const { data: adminData, error: adminError } = await supabase
+      const { data: adminData } = await supabase
         .from('admin_roles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      const userIsAdmin = !adminError && adminData;
-      console.log("Admin check result:", userIsAdmin, adminData);
-      setIsAdmin(!!userIsAdmin);
-
-      // Fetch game results
-      const { data: gameResults, error: gameResultsError } = await supabase
+      const { data: gameResults } = await supabase
         .from('game_results')
         .select('*')
         .eq('user_id', userId);
 
-      if (gameResultsError) {
-        console.error("Error fetching game results:", gameResultsError);
-        throw gameResultsError;
-      }
-
-      // Transform game results to GameResult type
       const formattedGameResults: GameResult[] = gameResults ? gameResults.map((result) => ({
         id: result.id,
         gameId: result.game_id,
@@ -137,24 +118,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalAnswers: result.total_answers
       })) : [];
 
-      // Calculate stats
       const totalSpent = formattedGameResults.reduce((sum, game) => sum + game.entryFee, 0);
       const correctAnswers = formattedGameResults.reduce((sum, game) => sum + game.correctAnswers, 0);
       const totalAnswers = formattedGameResults.reduce((sum, game) => sum + game.totalAnswers, 0);
 
-      setCurrentUser({
-        id: profileData.id,
-        name: profileData.name,
-        email: profileData.email,
-        stats: {
-          gamesPlayed: formattedGameResults,
-          totalSpent,
-          correctAnswers,
-          totalAnswers
-        },
-        isAdmin: !!userIsAdmin
-      });
-
+      if (profileData) {
+        setCurrentUser({
+          id: profileData.id,
+          name: profileData.name,
+          email: profileData.email,
+          stats: {
+            gamesPlayed: formattedGameResults,
+            totalSpent,
+            correctAnswers,
+            totalAnswers
+          },
+          isAdmin: !!adminData
+        });
+        setIsAdmin(!!adminData);
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -219,7 +202,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUser) return;
 
     try {
-      // Insert the game result into Supabase
       const { error } = await supabase
         .from('game_results')
         .insert({
@@ -237,7 +219,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      // Update the local state
       const updatedUser = {
         ...currentUser,
         stats: {
