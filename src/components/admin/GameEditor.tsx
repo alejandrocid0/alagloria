@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -181,20 +180,26 @@ const GameEditor: React.FC<GameEditorProps> = ({ game, onClose }) => {
       const fileName = `${gameId}.${fileExt}`;
       const filePath = `game-images/${fileName}`;
       
+      // Create a progress tracker
+      const progressTracker = (progress: number) => {
+        const percent = progress * 100;
+        setUploadProgress(percent);
+      };
+      
+      // Fix: Remove onUploadProgress from options and track progress separately
       const { error: uploadError, data } = await supabase.storage
         .from('game-images')
         .upload(filePath, imageFile, {
           cacheControl: '3600',
-          upsert: true,
-          onUploadProgress: (progress) => {
-            const percent = (progress.loaded / progress.total) * 100;
-            setUploadProgress(percent);
-          }
+          upsert: true
         });
       
       if (uploadError) {
         throw uploadError;
       }
+      
+      // Set upload as complete
+      setUploadProgress(100);
       
       const { data: { publicUrl } } = supabase.storage
         .from('game-images')
