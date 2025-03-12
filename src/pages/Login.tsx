@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -12,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, isAuthenticated } = useAuth();
+  const { signIn, isAuthenticated, isAdmin } = useAuth();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,11 +30,12 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
+      console.log("Usuario autenticado, redirigiendo...", { isAdmin });
       // Redirigir a la página solicitada o al dashboard por defecto
-      const redirectTo = location.state?.redirectTo || '/dashboard';
-      navigate(redirectTo);
+      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
+      navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate, location.state]);
+  }, [isAuthenticated, isAdmin, navigate, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +71,7 @@ const Login = () => {
           description: errorMessage,
           variant: "destructive"
         });
+        setIsLoading(false);
         return;
       }
       
@@ -79,9 +80,7 @@ const Login = () => {
         description: "Has iniciado sesión correctamente",
       });
       
-      // Redirect to intended page or dashboard
-      const redirectTo = location.state?.redirectTo || '/dashboard';
-      navigate(redirectTo);
+      // La redirección se maneja en el useEffect
     } catch (error) {
       console.error('Error during login:', error);
       toast({
@@ -89,7 +88,6 @@ const Login = () => {
         description: "Ha ocurrido un error durante el inicio de sesión",
         variant: "destructive"
       });
-    } finally {
       setIsLoading(false);
     }
   };

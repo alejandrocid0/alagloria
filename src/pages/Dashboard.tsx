@@ -17,11 +17,13 @@ const Dashboard = () => {
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
+        console.log("No autenticado, redirigiendo a login");
         navigate('/login', { state: { redirectTo: '/dashboard' } });
         return;
       }
       
       if (isAdmin) {
+        console.log("Usuario es admin, redirigiendo a panel de administración");
         navigate('/admin');
         return;
       }
