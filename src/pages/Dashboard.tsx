@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -12,12 +12,14 @@ import StatsOverviewCard from '@/components/dashboard/StatsOverviewCard';
 const Dashboard = () => {
   const { currentUser, isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     // Solo redirigir cuando estemos seguros del estado de autenticación
     if (!loading) {
       if (!isAuthenticated) {
         console.log("No autenticado, redirigiendo a login");
+        setIsRedirecting(true);
         navigate('/login', { 
           state: { redirectTo: '/dashboard' },
           replace: true 
@@ -27,31 +29,29 @@ const Dashboard = () => {
       
       if (isAdmin) {
         console.log("Usuario es admin, redirigiendo a panel de administración");
+        setIsRedirecting(true);
         navigate('/admin', { replace: true });
         return;
       }
     }
   }, [isAuthenticated, isAdmin, navigate, loading]);
 
-  // Muestra un estado de carga mientras se verifica la autenticación
-  if (loading) {
+  // Muestra un estado de carga mientras se verifica la autenticación o se está redirigiendo
+  if (loading || isRedirecting || !isAuthenticated || !currentUser) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-pulse bg-gloria-purple/20 h-8 w-64 rounded-md mb-4 mx-auto"></div>
-            <div className="animate-pulse bg-gloria-purple/10 h-4 w-48 rounded-md mx-auto"></div>
+            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gloria-purple">
+              {loading ? "Cargando datos..." : "Redirigiendo..."}
+            </p>
           </div>
         </div>
         <Footer />
       </div>
     );
-  }
-
-  // Si no está autenticado o no hay usuario, no renderiza nada mientras redirecciona
-  if (!isAuthenticated || !currentUser) {
-    return null;
   }
 
   return (

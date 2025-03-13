@@ -107,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Simplificamos las consultas y las hacemos más eficientes
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -115,17 +116,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) throw profileError;
 
+      // Consultamos si es admin
       const { data: adminData } = await supabase
         .from('admin_roles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
+      // Consultamos los resultados de juegos
       const { data: gameResults } = await supabase
         .from('game_results')
         .select('*')
         .eq('user_id', userId);
 
+      // Formateamos los resultados
       const formattedGameResults: GameResult[] = gameResults ? gameResults.map((result) => ({
         id: result.id,
         gameId: result.game_id,
@@ -137,12 +141,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalAnswers: result.total_answers
       })) : [];
 
+      // Calculamos estadísticas
       const totalSpent = formattedGameResults.reduce((sum, game) => sum + game.entryFee, 0);
       const correctAnswers = formattedGameResults.reduce((sum, game) => sum + game.correctAnswers, 0);
       const totalAnswers = formattedGameResults.reduce((sum, game) => sum + game.totalAnswers, 0);
 
       if (profileData) {
-        setCurrentUser({
+        const userProfile = {
           id: profileData.id,
           name: profileData.name,
           email: profileData.email,
@@ -153,9 +158,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             totalAnswers
           },
           isAdmin: !!adminData
-        });
+        };
+        
+        setCurrentUser(userProfile);
         setIsAdmin(!!adminData);
       }
+      
+      // Importante: Siempre establecemos loading a false al finalizar
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       toast({
@@ -163,6 +173,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudieron cargar los datos del usuario",
         variant: "destructive"
       });
+      // Importante: Asegurarnos de establecer loading a false incluso en caso de error
+      setLoading(false);
     }
   };
 
@@ -220,9 +232,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { user: data.user, error: null };
     } catch (error) {
       console.error('Error during sign in:', error);
-      return { user: null, error: error as AuthError };
-    } finally {
       setLoading(false);
+      return { user: null, error: error as AuthError };
     }
   };
 
@@ -275,6 +286,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(null);
       setIsAuthenticated(false);
       setIsAdmin(false);
+      setLoading(false);
       window.location.href = '/';
     } catch (error) {
       console.error('Error logging out:', error);
@@ -283,7 +295,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudo cerrar la sesión correctamente",
         variant: "destructive"
       });
-    } finally {
       setLoading(false);
     }
   };

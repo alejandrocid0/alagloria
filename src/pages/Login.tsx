@@ -5,7 +5,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import Button from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -21,6 +23,7 @@ const Login = () => {
   // Redirección si ya está autenticado
   useEffect(() => {
     if (!loading && isAuthenticated) {
+      console.log("Usuario ya autenticado, redirigiendo...");
       const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
       navigate(redirectTo, { replace: true });
     }
@@ -28,6 +31,8 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validación de campos
     if (!email || !password) {
       toast({
         title: "Error",
@@ -37,27 +42,43 @@ const Login = () => {
       return;
     }
 
+    // Evitar múltiples envíos
+    if (isLoading) return;
+    
     setIsLoading(true);
+    console.log("Intentando iniciar sesión...");
+    
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
+        console.error("Error de inicio de sesión:", error);
         let errorMessage = "Credenciales inválidas";
+        
         if (error.message.includes("Invalid login")) {
           errorMessage = "Correo electrónico o contraseña incorrectos";
         } else if (error.message.includes("Email not confirmed")) {
           errorMessage = "Tu correo electrónico no ha sido confirmado. Por favor, revisa tu bandeja de entrada.";
         }
+        
         toast({
-          title: "Error",
+          title: "Error de inicio de sesión",
           description: errorMessage,
           variant: "destructive"
         });
+        
         setIsLoading(false);
         return;
       }
       
-      // No need to navigate here - the useEffect will handle redirection once isAuthenticated changes
+      // Si llegamos aquí, el inicio de sesión fue exitoso
+      console.log("Inicio de sesión exitoso");
+      toast({
+        title: "¡Bienvenido!",
+        description: "Has iniciado sesión correctamente"
+      });
+      
+      // La redirección la maneja el useEffect
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
       toast({
@@ -75,7 +96,10 @@ const Login = () => {
       <>
         <Navbar />
         <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-gloria-cream bg-opacity-30">
-          <div className="animate-pulse text-gloria-purple">Cargando...</div>
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gloria-purple">Verificando sesión...</p>
+          </div>
         </div>
         <Footer />
       </>
@@ -84,7 +108,18 @@ const Login = () => {
 
   // Si ya está autenticado, no muestra nada mientras redirecciona
   if (isAuthenticated) {
-    return null;
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-gloria-cream bg-opacity-30">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gloria-purple">Iniciando sesión...</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
   }
 
   return (
@@ -108,18 +143,18 @@ const Login = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <div className="space-y-2">
+                <Label htmlFor="email">
                   Correo Electrónico
-                </label>
+                </Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-gray-400" />
                   </div>
-                  <input
+                  <Input
                     id="email"
                     type="email"
-                    className="gloria-input pl-10 w-full"
+                    className="pl-10"
                     placeholder="tucorreo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -128,11 +163,11 @@ const Login = () => {
                 </div>
               </div>
               
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="password">
                     Contraseña
-                  </label>
+                  </Label>
                   <Link to="/forgot-password" className="text-xs text-gloria-purple hover:text-gloria-gold transition-colors">
                     ¿Olvidaste tu contraseña?
                   </Link>
@@ -141,10 +176,10 @@ const Login = () => {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
-                  <input
+                  <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    className="gloria-input pl-10 pr-10 w-full"
+                    className="pl-10 pr-10"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -167,12 +202,15 @@ const Login = () => {
               
               <Button
                 type="submit"
-                variant="primary"
-                size="lg"
-                className="w-full"
-                isLoading={isLoading}
+                className="w-full bg-gloria-purple hover:bg-gloria-purple/90 text-white"
+                disabled={isLoading}
               >
-                Iniciar Sesión
+                {isLoading ? (
+                  <>
+                    <span className="animate-spin mr-2">⟳</span>
+                    Iniciando sesión...
+                  </>
+                ) : "Iniciar Sesión"}
               </Button>
             </form>
             
