@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -55,10 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("Setting up auth state listener");
     
-    // Verificación inicial del estado de autenticación
     const initializeAuth = async () => {
-      setLoading(true);
-      
       try {
         const { data: { session } } = await supabase.auth.getSession();
         console.log("Initial session check:", session?.user?.id);
@@ -82,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     initializeAuth();
     
-    // Configurar listener para cambios en el estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
@@ -97,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(false);
           setIsAdmin(false);
         }
+        setLoading(false);
       }
     );
 
@@ -107,7 +103,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Simplificamos las consultas y las hacemos más eficientes
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -116,20 +111,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) throw profileError;
 
-      // Consultamos si es admin
       const { data: adminData } = await supabase
         .from('admin_roles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
-      // Consultamos los resultados de juegos
       const { data: gameResults } = await supabase
         .from('game_results')
         .select('*')
         .eq('user_id', userId);
 
-      // Formateamos los resultados
       const formattedGameResults: GameResult[] = gameResults ? gameResults.map((result) => ({
         id: result.id,
         gameId: result.game_id,
@@ -141,7 +133,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalAnswers: result.total_answers
       })) : [];
 
-      // Calculamos estadísticas
       const totalSpent = formattedGameResults.reduce((sum, game) => sum + game.entryFee, 0);
       const correctAnswers = formattedGameResults.reduce((sum, game) => sum + game.correctAnswers, 0);
       const totalAnswers = formattedGameResults.reduce((sum, game) => sum + game.totalAnswers, 0);
@@ -164,7 +155,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAdmin(!!adminData);
       }
       
-      // Importante: Siempre establecemos loading a false al finalizar
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -173,14 +163,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudieron cargar los datos del usuario",
         variant: "destructive"
       });
-      // Importante: Asegurarnos de establecer loading a false incluso en caso de error
       setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
+      setLoading(true);
       console.log("Signing up user:", email);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -202,13 +193,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error during sign up:', error);
       return { user: null, error: error as AuthError };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log("Signing in user:", email);
       setLoading(true);
+      console.log("Signing in user:", email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -217,7 +210,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error("Sign in error:", error);
-        setLoading(false);
         return { user: null, error };
       }
 
@@ -232,8 +224,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { user: data.user, error: null };
     } catch (error) {
       console.error('Error during sign in:', error);
-      setLoading(false);
       return { user: null, error: error as AuthError };
+    } finally {
+      setLoading(false);
     }
   };
 

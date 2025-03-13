@@ -18,12 +18,11 @@ const Login = () => {
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirección si ya está autenticado
   useEffect(() => {
-    if (!loading && isAuthenticated) {
-      console.log("Usuario ya autenticado, redirigiendo...");
+    if (isAuthenticated && !loading) {
+      console.log("Usuario autenticado, redirigiendo...");
       const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
       navigate(redirectTo, { replace: true });
     }
@@ -32,7 +31,6 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validación de campos
     if (!email || !password) {
       toast({
         title: "Error",
@@ -42,10 +40,9 @@ const Login = () => {
       return;
     }
 
-    // Evitar múltiples envíos
-    if (isLoading) return;
+    if (isSubmitting) return;
     
-    setIsLoading(true);
+    setIsSubmitting(true);
     console.log("Intentando iniciar sesión...");
     
     try {
@@ -67,18 +64,15 @@ const Login = () => {
           variant: "destructive"
         });
         
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
       
-      // Si llegamos aquí, el inicio de sesión fue exitoso
       console.log("Inicio de sesión exitoso");
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente"
       });
-      
-      // La redirección la maneja el useEffect
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
       toast({
@@ -86,12 +80,13 @@ const Login = () => {
         description: "Ha ocurrido un error durante el inicio de sesión",
         variant: "destructive"
       });
-      setIsLoading(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Si está cargando el estado de autenticación, muestra un indicador de carga
-  if (loading) {
+  // Solo mostrar el spinner cuando estemos verificando la sesión inicial
+  if (loading && !isSubmitting) {
     return (
       <>
         <Navbar />
@@ -114,7 +109,7 @@ const Login = () => {
         <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-gloria-cream bg-opacity-30">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gloria-purple">Iniciando sesión...</p>
+            <p className="text-gloria-purple">Redirigiendo...</p>
           </div>
         </div>
         <Footer />
@@ -158,7 +153,7 @@ const Login = () => {
                     placeholder="tucorreo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -183,13 +178,13 @@ const Login = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                   <button
                     type="button"
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5 text-gray-400" />
@@ -203,9 +198,9 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full bg-gloria-purple hover:bg-gloria-purple/90 text-white"
-                disabled={isLoading}
+                disabled={isSubmitting}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <>
                     <span className="animate-spin mr-2">⟳</span>
                     Iniciando sesión...

@@ -15,7 +15,6 @@ const Dashboard = () => {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // Solo redirigir cuando estemos seguros del estado de autenticación
     if (!loading) {
       if (!isAuthenticated) {
         console.log("No autenticado, redirigiendo a login");
@@ -36,7 +35,6 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, isAdmin, navigate, loading]);
 
-  // Muestra un estado de carga mientras se verifica la autenticación o se está redirigiendo
   if (loading || isRedirecting || !isAuthenticated || !currentUser) {
     return (
       <div className="min-h-screen flex flex-col">
