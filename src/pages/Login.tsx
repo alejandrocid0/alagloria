@@ -56,6 +56,8 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
+      
+      // No need to navigate here - the useEffect will handle redirection once isAuthenticated changes
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
       toast({
@@ -121,6 +123,7 @@ const Login = () => {
                     placeholder="tucorreo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -145,11 +148,13 @@ const Login = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5 text-gray-400" />

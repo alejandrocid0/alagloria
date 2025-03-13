@@ -14,8 +14,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Solo redirigir cuando estemos seguros del estado de autenticación
     if (!loading) {
       if (!isAuthenticated) {
+        console.log("No autenticado, redirigiendo a login");
         navigate('/login', { 
           state: { redirectTo: '/dashboard' },
           replace: true 
@@ -24,6 +26,7 @@ const Dashboard = () => {
       }
       
       if (isAdmin) {
+        console.log("Usuario es admin, redirigiendo a panel de administración");
         navigate('/admin', { replace: true });
         return;
       }
@@ -31,7 +34,7 @@ const Dashboard = () => {
   }, [isAuthenticated, isAdmin, navigate, loading]);
 
   // Muestra un estado de carga mientras se verifica la autenticación
-  if (loading || !currentUser) {
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
@@ -46,8 +49,8 @@ const Dashboard = () => {
     );
   }
 
-  // Si no está autenticado, no renderiza nada mientras redirecciona
-  if (!isAuthenticated) {
+  // Si no está autenticado o no hay usuario, no renderiza nada mientras redirecciona
+  if (!isAuthenticated || !currentUser) {
     return null;
   }
 

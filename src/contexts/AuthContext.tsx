@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -53,34 +54,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log("Setting up auth state listener");
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id);
-        setSession(session);
-        setIsAuthenticated(!!session);
+    
+    // Verificación inicial del estado de autenticación
+    const initializeAuth = async () => {
+      setLoading(true);
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Initial session check:", session?.user?.id);
         
         if (session) {
+          setSession(session);
+          setIsAuthenticated(true);
           await fetchUserProfile(session.user.id);
         } else {
           setCurrentUser(null);
+          setIsAuthenticated(false);
           setIsAdmin(false);
-          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initializeAuth();
+    
+    // Configurar listener para cambios en el estado de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
+        
+        if (session) {
+          setSession(session);
+          setIsAuthenticated(true);
+          await fetchUserProfile(session.user.id);
+        } else {
+          setSession(null);
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setIsAdmin(false);
         }
       }
     );
-
-    // Verificación inicial del estado de autenticación
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session check:", session?.user?.id);
-      setSession(session);
-      setIsAuthenticated(!!session);
-      
-      if (session) {
-        fetchUserProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
 
     return () => {
       subscription.unsubscribe();
@@ -138,8 +156,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         setIsAdmin(!!adminData);
       }
-      
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       toast({
@@ -147,7 +163,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudieron cargar los datos del usuario",
         variant: "destructive"
       });
-      setLoading(false);
     }
   };
 
@@ -181,6 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       console.log("Signing in user:", email);
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -188,14 +205,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error("Sign in error:", error);
+        setLoading(false);
         return { user: null, error };
       }
 
       console.log("Sign in successful:", data.user);
+      setSession(data.session);
+      setIsAuthenticated(true);
+      
+      if (data.user) {
+        await fetchUserProfile(data.user.id);
+      }
+      
       return { user: data.user, error: null };
     } catch (error) {
       console.error('Error during sign in:', error);
       return { user: null, error: error as AuthError };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -243,9 +270,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      setLoading(true);
       await supabase.auth.signOut();
       setCurrentUser(null);
       setIsAuthenticated(false);
+      setIsAdmin(false);
       window.location.href = '/';
     } catch (error) {
       console.error('Error logging out:', error);
@@ -254,6 +283,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudo cerrar la sesión correctamente",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
