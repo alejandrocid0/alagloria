@@ -20,9 +20,9 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      console.log("Usuario autenticado, redirigiendo...");
       const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
       navigate(redirectTo, { replace: true });
     }
@@ -31,6 +31,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validación básica
     if (!email || !password) {
       toast({
         title: "Error",
@@ -43,13 +44,11 @@ const Login = () => {
     if (isSubmitting) return;
     
     setIsSubmitting(true);
-    console.log("Intentando iniciar sesión...");
     
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
-        console.error("Error de inicio de sesión:", error);
         let errorMessage = "Credenciales inválidas";
         
         if (error.message.includes("Invalid login")) {
@@ -68,7 +67,6 @@ const Login = () => {
         return;
       }
       
-      console.log("Inicio de sesión exitoso");
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente"
@@ -85,7 +83,7 @@ const Login = () => {
     }
   };
 
-  // Solo mostrar el spinner cuando estemos verificando la sesión inicial
+  // Mostrar una pantalla de carga mientras verificamos la sesión inicial
   if (loading && !isSubmitting) {
     return (
       <>
@@ -94,22 +92,6 @@ const Login = () => {
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-gloria-purple">Verificando sesión...</p>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
-
-  // Si ya está autenticado, no muestra nada mientras redirecciona
-  if (isAuthenticated) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-gloria-cream bg-opacity-30">
-          <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gloria-purple">Redirigiendo...</p>
           </div>
         </div>
         <Footer />
