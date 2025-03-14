@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -9,48 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, isAuthenticated, isAdmin, loading } = useAuth();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localLoading, setLocalLoading] = useState(true);
-
-  // Verificar el estado de autenticación al cargar el componente
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Obtener la sesión actual directamente de Supabase
-        const { data } = await supabase.auth.getSession();
-        
-        // Si hay una sesión activa, redirigir
-        if (data.session) {
-          const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
-          navigate(redirectTo, { replace: true });
-        }
-      } catch (error) {
-        console.error('Error al verificar la sesión:', error);
-      } finally {
-        setLocalLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [navigate, location.state, isAdmin]);
-
-  // Redirigir si está autenticado después de iniciar sesión
-  useEffect(() => {
-    if (isAuthenticated && !loading) {
-      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
-      navigate(redirectTo, { replace: true });
-    }
-  }, [isAuthenticated, isAdmin, navigate, location.state, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +37,7 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      // Iniciar sesión directamente con Supabase en caso de que haya problema con el contexto
+      // Iniciar sesión con Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -95,15 +62,32 @@ const Login = () => {
         return;
       }
       
-      // Si la autenticación es exitosa pero por alguna razón el contexto no se actualiza
-      if (data.session && !isAuthenticated) {
-        const redirectTo = location.state?.redirectTo || '/dashboard';
+      // Si la autenticación es exitosa
+      if (data.session) {
+        // Verificar si el usuario es administrador
+        let isAdmin = false;
+        
+        try {
+          const { data: adminData } = await supabase
+            .from('admin_roles')
+            .select('*')
+            .eq('user_id', data.session.user.id)
+            .maybeSingle();
+            
+          isAdmin = !!adminData;
+        } catch (error) {
+          console.error("Error al verificar rol de administrador:", error);
+        }
+        
+        // Determinar la página de redirección
+        const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
+        
         toast({
           title: "¡Bienvenido!",
           description: "Has iniciado sesión correctamente"
         });
         
-        // Redirigir directamente
+        // Redirigir al usuario
         navigate(redirectTo, { replace: true });
       }
     } catch (error) {
@@ -117,22 +101,6 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
-
-  // Mostrar una pantalla de carga mientras verificamos la sesión inicial
-  if (localLoading) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-gloria-cream bg-opacity-30">
-          <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gloria-purple">Verificando sesión...</p>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>

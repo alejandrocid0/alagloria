@@ -1,38 +1,48 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import SignupProgressIndicator from './SignupProgressIndicator';
 import SignupStepOne from './SignupStepOne';
 import SignupStepTwo from './SignupStepTwo';
-import SignupProgressIndicator from './SignupProgressIndicator';
-import { validateStep1, validateStep2 } from './utils/validation';
+import { validateEmail, validatePassword, validateName } from './utils/validation';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { signUp } = useAuth();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [isTermsAccepted, setIsTermsAccepted] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleNextStep = () => {
-    if (validateStep1(formData)) {
-      setStep(2);
+    // Validar el primer paso
+    if (step === 1) {
+      if (!validateName(name)) {
+        toast({
+          title: "Error de validación",
+          description: "Por favor, ingresa un nombre válido",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!validateEmail(email)) {
+        toast({
+          title: "Error de validación",
+          description: "Por favor, ingresa un correo electrónico válido",
+          variant: "destructive"
+        });
+        return;
+      }
     }
+
+    setStep(2);
   };
 
   const handlePrevStep = () => {
@@ -41,114 +51,125 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateStep2(formData, isTermsAccepted)) {
+
+    // Validar el segundo paso
+    if (!validatePassword(password)) {
+      toast({
+        title: "Error de validación",
+        description: "La contraseña debe tener al menos 8 caracteres",
+        variant: "destructive"
+      });
       return;
     }
 
-    setIsLoading(true);
-    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Error de validación",
+        description: "Las contraseñas no coinciden",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
     try {
-      const { user, error } = await signUp(
-        formData.email, 
-        formData.password, 
-        formData.name
-      );
-      
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast({
-            title: "Error",
-            description: "Este correo electrónico ya está registrado",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: error.message || "Ha ocurrido un error durante el registro",
-            variant: "destructive"
-          });
+      // Crear la cuenta de usuario
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name
+          },
+          emailRedirectTo: window.location.origin + '/login'
         }
+      });
+
+      if (error) {
+        let errorMessage = "Ha ocurrido un error durante el registro";
+
+        if (error.message.includes("Email already registered")) {
+          errorMessage = "El correo electrónico ya está registrado";
+        }
+
+        toast({
+          title: "Error de registro",
+          description: errorMessage,
+          variant: "destructive"
+        });
+
+        setIsSubmitting(false);
         return;
       }
-      
+
+      // Registro exitoso
       toast({
-        title: "¡Registro completado!",
-        description: "Tu cuenta ha sido creada correctamente. Puedes iniciar sesión ahora.",
+        title: "¡Registro exitoso!",
+        description: "Por favor, verifica tu correo electrónico para confirmar tu cuenta"
       });
-      
-      // Navegamos a login para que el usuario inicie sesión de inmediato
-      navigate('/login', { 
-        state: { 
-          registeredEmail: formData.email,
-          message: "Tu cuenta ha sido creada. Por favor, inicia sesión para continuar." 
-        } 
-      });
+
+      // Redireccionar a la página de inicio de sesión con el correo electrónico
+      navigate('/login', { state: { registeredEmail: email } });
     } catch (error) {
-      console.error('Error during signup:', error);
+      console.error('Error durante el registro:', error);
       toast({
         title: "Error",
         description: "Ha ocurrido un error durante el registro",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <>
       <Navbar />
-      
       <div className="min-h-screen pt-24 pb-16 bg-gloria-cream bg-opacity-30">
         <div className="container mx-auto px-4 max-w-md">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-xl shadow-lg p-8 md:p-10"
+            className="bg-white rounded-xl shadow-lg p-8"
           >
-            <div className="text-center mb-8">
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-gloria-purple mb-2">
-                Crear Cuenta
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-serif font-bold text-gloria-purple mb-2">
+                Crear una cuenta
               </h1>
               <p className="text-gray-600">
-                Únete a la comunidad de A la Gloria
-              </p>
-              
-              <SignupProgressIndicator currentStep={step} />
-            </div>
-            
-            {step === 1 ? (
-              <SignupStepOne 
-                formData={formData} 
-                handleChange={handleChange} 
-                handleNextStep={handleNextStep} 
-              />
-            ) : (
-              <SignupStepTwo 
-                formData={formData} 
-                handleChange={handleChange}
-                handleSubmit={handleSubmit}
-                handlePrevStep={handlePrevStep}
-                isLoading={isLoading}
-                isTermsAccepted={isTermsAccepted}
-                setIsTermsAccepted={setIsTermsAccepted}
-              />
-            )}
-            
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-600">
-                ¿Ya tienes una cuenta?{' '}
-                <Link to="/login" className="text-gloria-purple hover:text-gloria-gold transition-colors font-medium">
-                  Inicia Sesión
-                </Link>
+                Únete a A la Gloria y participa en juegos
               </p>
             </div>
+
+            <SignupProgressIndicator currentStep={step} />
+
+            <form onSubmit={step === 2 ? handleSubmit : handleNextStep} className="mt-6">
+              {step === 1 ? (
+                <SignupStepOne
+                  name={name}
+                  setName={setName}
+                  email={email}
+                  setEmail={setEmail}
+                  onNext={handleNextStep}
+                />
+              ) : (
+                <SignupStepTwo
+                  password={password}
+                  setPassword={setPassword}
+                  confirmPassword={confirmPassword}
+                  setConfirmPassword={setConfirmPassword}
+                  onPrev={handlePrevStep}
+                  isSubmitting={isSubmitting}
+                />
+              )}
+            </form>
           </motion.div>
         </div>
       </div>
-      
       <Footer />
     </>
   );
