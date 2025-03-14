@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
+  const { signIn } = useAuth(); // Utilizamos directamente el contexto de Auth
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
@@ -37,11 +38,8 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      // Iniciar sesión con Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Utilizamos el método signIn del contexto de autenticación
+      const { user, error } = await signIn(email, password);
       
       if (error) {
         let errorMessage = "Credenciales inválidas";
@@ -62,34 +60,15 @@ const Login = () => {
         return;
       }
       
-      // Si la autenticación es exitosa
-      if (data.session) {
-        // Verificar si el usuario es administrador
-        let isAdmin = false;
-        
-        try {
-          const { data: adminData } = await supabase
-            .from('admin_roles')
-            .select('*')
-            .eq('user_id', data.session.user.id)
-            .maybeSingle();
-            
-          isAdmin = !!adminData;
-        } catch (error) {
-          console.error("Error al verificar rol de administrador:", error);
-        }
-        
-        // Determinar la página de redirección
-        const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
-        
-        toast({
-          title: "¡Bienvenido!",
-          description: "Has iniciado sesión correctamente"
-        });
-        
-        // Redirigir al usuario
-        navigate(redirectTo, { replace: true });
-      }
+      // Si la autenticación es exitosa, ya no necesitamos hacer nada más
+      // porque el contexto de autenticación se encargará de redirigir
+      // automáticamente según isAdmin
+      toast({
+        title: "¡Bienvenido!",
+        description: "Has iniciado sesión correctamente"
+      });
+      
+      // La redirección ahora es manejada por el contexto de autenticación
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
       toast({
