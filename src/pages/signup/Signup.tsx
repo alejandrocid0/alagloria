@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SignupProgressIndicator from './SignupProgressIndicator';
 import SignupStepOne from './SignupStepOne';
 import SignupStepTwo from './SignupStepTwo';
-import { isValidEmail, validateStep1, validateStep2 } from './utils/validation';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -23,24 +22,22 @@ const Signup = () => {
 
   const handleNextStep = () => {
     // Validar el primer paso
-    if (step === 1) {
-      if (!name.trim()) {
-        toast({
-          title: "Error de validación",
-          description: "Por favor, ingresa un nombre válido",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (!name.trim()) {
+      toast({
+        title: "Error de validación",
+        description: "Por favor, ingresa un nombre válido",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      if (!isValidEmail(email)) {
-        toast({
-          title: "Error de validación",
-          description: "Por favor, ingresa un correo electrónico válido",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      toast({
+        title: "Error de validación",
+        description: "Por favor, ingresa un correo electrónico válido",
+        variant: "destructive"
+      });
+      return;
     }
 
     setStep(2);
@@ -86,7 +83,7 @@ const Signup = () => {
     setIsSubmitting(true);
 
     try {
-      // Crear la cuenta de usuario
+      // Crear la cuenta de usuario directamente con Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

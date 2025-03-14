@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -9,10 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const { signIn, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
@@ -20,14 +19,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Verificar si el usuario ya está autenticado y redirigir automáticamente
-  useEffect(() => {
-    if (isAuthenticated) {
-      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
-      navigate(redirectTo, { replace: true });
-    }
-  }, [isAuthenticated, isAdmin, navigate, location.state]);
-
+  // Manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -46,8 +38,11 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      // Utilizamos el método signIn del contexto de autenticación
-      const { user, error } = await signIn(email, password);
+      // Iniciar sesión con Supabase directamente
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
       if (error) {
         let errorMessage = "Credenciales inválidas";
@@ -68,12 +63,24 @@ const Login = () => {
         return;
       }
       
+      // Verificar si el usuario es admin
+      const { data: adminData } = await supabase
+        .from('admin_roles')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+      
+      const isAdmin = !!adminData;
+      
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente"
       });
       
-      // La redirección es manejada ahora por el efecto useEffect
+      // Redirigir según el rol del usuario
+      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
+      navigate(redirectTo, { replace: true });
+      
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
       toast({

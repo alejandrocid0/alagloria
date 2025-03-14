@@ -2,13 +2,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from 'lucide-react';
-import Button from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+interface FormData {
+  password: string;
+  confirmPassword: string;
+}
 
 interface SignupStepTwoProps {
-  formData: {
-    password: string;
-    confirmPassword: string;
-  };
+  formData: FormData;
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handlePrevStep: () => void;
   isLoading: boolean;
@@ -52,19 +56,19 @@ const SignupStepTwo = ({
 
   return (
     <>
-      <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium text-gray-700">
+      <div className="space-y-2">
+        <Label htmlFor="password">
           Contraseña
-        </label>
+        </Label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Lock className="h-5 w-5 text-gray-400" />
           </div>
-          <input
+          <Input
             id="password"
             name="password"
             type={showPassword ? "text" : "password"}
-            className="gloria-input pl-10 pr-10 w-full"
+            className="pl-10 pr-10"
             placeholder="••••••••"
             value={formData.password}
             onChange={handleChange}
@@ -95,19 +99,19 @@ const SignupStepTwo = ({
         )}
       </div>
       
-      <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+      <div className="space-y-2 mt-4">
+        <Label htmlFor="confirmPassword">
           Confirmar Contraseña
-        </label>
+        </Label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Lock className="h-5 w-5 text-gray-400" />
           </div>
-          <input
+          <Input
             id="confirmPassword"
             name="confirmPassword"
             type={showConfirmPassword ? "text" : "password"}
-            className="gloria-input pl-10 pr-10 w-full"
+            className="pl-10 pr-10"
             placeholder="••••••••"
             value={formData.confirmPassword}
             onChange={handleChange}
@@ -142,7 +146,7 @@ const SignupStepTwo = ({
         )}
       </div>
       
-      <div className="flex items-start space-x-3">
+      <div className="flex items-start space-x-3 mt-4">
         <input
           id="terms"
           name="terms"
@@ -163,11 +167,10 @@ const SignupStepTwo = ({
         </label>
       </div>
       
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 mt-4">
         <Button
           type="button"
           variant="outline"
-          size="lg"
           className="w-1/3"
           onClick={handlePrevStep}
         >
@@ -175,12 +178,15 @@ const SignupStepTwo = ({
         </Button>
         <Button
           type="submit"
-          variant="primary"
-          size="lg"
-          className="w-2/3"
-          isLoading={isLoading}
+          className="w-2/3 bg-gloria-purple hover:bg-gloria-purple/90 text-white"
+          disabled={isLoading}
         >
-          Crear Cuenta
+          {isLoading ? (
+            <>
+              <span className="animate-spin mr-2">⟳</span>
+              Creando cuenta...
+            </>
+          ) : "Crear Cuenta"}
         </Button>
       </div>
     </>

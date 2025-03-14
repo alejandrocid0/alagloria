@@ -1,15 +1,16 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Mail, User } from 'lucide-react';
-import Button from '@/components/Button';
-import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+interface FormData {
+  name: string;
+  email: string;
+}
 
 interface SignupStepOneProps {
-  formData: {
-    name: string;
-    email: string;
-  };
+  formData: FormData;
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleNextStep: () => void;
 }
@@ -17,19 +18,19 @@ interface SignupStepOneProps {
 const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOneProps) => {
   return (
     <>
-      <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-medium text-gray-700">
+      <div className="space-y-2">
+        <Label htmlFor="name">
           Nombre
-        </label>
+        </Label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <User className="h-5 w-5 text-gray-400" />
           </div>
-          <input
+          <Input
             id="name"
             name="name"
             type="text"
-            className="gloria-input pl-10 w-full"
+            className="pl-10"
             placeholder="Tu nombre"
             value={formData.name}
             onChange={handleChange}
@@ -37,19 +38,19 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
         </div>
       </div>
       
-      <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+      <div className="space-y-2">
+        <Label htmlFor="email">
           Correo Electrónico
-        </label>
+        </Label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Mail className="h-5 w-5 text-gray-400" />
           </div>
-          <input
+          <Input
             id="email"
             name="email"
             type="email"
-            className="gloria-input pl-10 w-full"
+            className="pl-10"
             placeholder="tucorreo@ejemplo.com"
             value={formData.email}
             onChange={handleChange}
@@ -59,9 +60,7 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
       
       <Button
         type="button"
-        variant="primary"
-        size="lg"
-        className="w-full"
+        className="w-full bg-gloria-purple hover:bg-gloria-purple/90 text-white mt-4"
         onClick={handleNextStep}
       >
         Continuar
@@ -81,13 +80,9 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
       <Button
         type="button"
         variant="outline"
-        size="lg"
         className="w-full flex justify-center items-center space-x-2"
         onClick={() => {
-          toast({
-            title: "Google Signup",
-            description: "Esta función estará disponible pronto",
-          });
+          // Esta funcionalidad se implementará más adelante
         }}
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24">
