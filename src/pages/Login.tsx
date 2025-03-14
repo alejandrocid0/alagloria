@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -12,13 +12,21 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
-  const { signIn } = useAuth(); // Utilizamos directamente el contexto de Auth
+  const { signIn, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Verificar si el usuario ya está autenticado y redirigir automáticamente
+  useEffect(() => {
+    if (isAuthenticated) {
+      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, navigate, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,15 +68,12 @@ const Login = () => {
         return;
       }
       
-      // Si la autenticación es exitosa, ya no necesitamos hacer nada más
-      // porque el contexto de autenticación se encargará de redirigir
-      // automáticamente según isAdmin
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente"
       });
       
-      // La redirección ahora es manejada por el contexto de autenticación
+      // La redirección es manejada ahora por el efecto useEffect
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
       toast({
