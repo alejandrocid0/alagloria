@@ -10,7 +10,6 @@ interface SignupStepTwoProps {
     confirmPassword: string;
   };
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleSubmit: (e: React.FormEvent) => void;
   handlePrevStep: () => void;
   isLoading: boolean;
   isTermsAccepted: boolean;
@@ -20,7 +19,6 @@ interface SignupStepTwoProps {
 const SignupStepTwo = ({ 
   formData, 
   handleChange, 
-  handleSubmit, 
   handlePrevStep, 
   isLoading, 
   isTermsAccepted, 
@@ -53,7 +51,7 @@ const SignupStepTwo = ({
   const { strength, text, color } = passwordStrength();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
       <div className="space-y-1">
         <label htmlFor="password" className="text-sm font-medium text-gray-700">
           Contraseña
@@ -185,7 +183,7 @@ const SignupStepTwo = ({
           Crear Cuenta
         </Button>
       </div>
-    </form>
+    </>
   );
 };
 

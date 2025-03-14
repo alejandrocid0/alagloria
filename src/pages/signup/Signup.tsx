@@ -9,7 +9,7 @@ import Footer from '@/components/Footer';
 import SignupProgressIndicator from './SignupProgressIndicator';
 import SignupStepOne from './SignupStepOne';
 import SignupStepTwo from './SignupStepTwo';
-import { validateEmail, validatePassword, validateName } from './utils/validation';
+import { isValidEmail, validateStep1, validateStep2 } from './utils/validation';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -19,11 +19,12 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTermsAccepted, setIsTermsAccepted] = useState(false);
 
   const handleNextStep = () => {
     // Validar el primer paso
     if (step === 1) {
-      if (!validateName(name)) {
+      if (!name.trim()) {
         toast({
           title: "Error de validación",
           description: "Por favor, ingresa un nombre válido",
@@ -32,7 +33,7 @@ const Signup = () => {
         return;
       }
 
-      if (!validateEmail(email)) {
+      if (!isValidEmail(email)) {
         toast({
           title: "Error de validación",
           description: "Por favor, ingresa un correo electrónico válido",
@@ -53,7 +54,7 @@ const Signup = () => {
     e.preventDefault();
 
     // Validar el segundo paso
-    if (!validatePassword(password)) {
+    if (password.length < 8) {
       toast({
         title: "Error de validación",
         description: "La contraseña debe tener al menos 8 caracteres",
@@ -66,6 +67,15 @@ const Signup = () => {
       toast({
         title: "Error de validación",
         description: "Las contraseñas no coinciden",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isTermsAccepted) {
+      toast({
+        title: "Error de validación",
+        description: "Debes aceptar los términos y condiciones",
         variant: "destructive"
       });
       return;
@@ -150,20 +160,26 @@ const Signup = () => {
             <form onSubmit={step === 2 ? handleSubmit : handleNextStep} className="mt-6">
               {step === 1 ? (
                 <SignupStepOne
-                  name={name}
-                  setName={setName}
-                  email={email}
-                  setEmail={setEmail}
-                  onNext={handleNextStep}
+                  formData={{ name, email }}
+                  handleChange={(e) => {
+                    const { name, value } = e.target;
+                    if (name === 'name') setName(value);
+                    if (name === 'email') setEmail(value);
+                  }}
+                  handleNextStep={handleNextStep}
                 />
               ) : (
                 <SignupStepTwo
-                  password={password}
-                  setPassword={setPassword}
-                  confirmPassword={confirmPassword}
-                  setConfirmPassword={setConfirmPassword}
-                  onPrev={handlePrevStep}
-                  isSubmitting={isSubmitting}
+                  formData={{ password, confirmPassword }}
+                  handleChange={(e) => {
+                    const { name, value } = e.target;
+                    if (name === 'password') setPassword(value);
+                    if (name === 'confirmPassword') setConfirmPassword(value);
+                  }}
+                  handlePrevStep={handlePrevStep}
+                  isLoading={isSubmitting}
+                  isTermsAccepted={isTermsAccepted}
+                  setIsTermsAccepted={setIsTermsAccepted}
                 />
               )}
             </form>
