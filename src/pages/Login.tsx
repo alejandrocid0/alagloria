@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -19,8 +20,31 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localLoading, setLocalLoading] = useState(true);
 
-  // Redirigir si ya está autenticado
+  // Verificar el estado de autenticación al cargar el componente
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Obtener la sesión actual directamente de Supabase
+        const { data } = await supabase.auth.getSession();
+        
+        // Si hay una sesión activa, redirigir
+        if (data.session) {
+          const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
+          navigate(redirectTo, { replace: true });
+        }
+      } catch (error) {
+        console.error('Error al verificar la sesión:', error);
+      } finally {
+        setLocalLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [navigate, location.state, isAdmin]);
+
+  // Redirigir si está autenticado después de iniciar sesión
   useEffect(() => {
     if (isAuthenticated && !loading) {
       const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
@@ -46,7 +70,11 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      const { error } = await signIn(email, password);
+      // Iniciar sesión directamente con Supabase en caso de que haya problema con el contexto
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
       if (error) {
         let errorMessage = "Credenciales inválidas";
@@ -67,10 +95,17 @@ const Login = () => {
         return;
       }
       
-      toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión correctamente"
-      });
+      // Si la autenticación es exitosa pero por alguna razón el contexto no se actualiza
+      if (data.session && !isAuthenticated) {
+        const redirectTo = location.state?.redirectTo || '/dashboard';
+        toast({
+          title: "¡Bienvenido!",
+          description: "Has iniciado sesión correctamente"
+        });
+        
+        // Redirigir directamente
+        navigate(redirectTo, { replace: true });
+      }
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
       toast({
@@ -84,7 +119,7 @@ const Login = () => {
   };
 
   // Mostrar una pantalla de carga mientras verificamos la sesión inicial
-  if (loading && !isSubmitting) {
+  if (localLoading) {
     return (
       <>
         <Navbar />
