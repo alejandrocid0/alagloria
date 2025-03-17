@@ -1,11 +1,10 @@
-
 import { Calendar, Users, Clock, Award, Play } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Button from './Button';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 import { toast } from '@/hooks/use-toast';
 
 interface GameCardProps {
