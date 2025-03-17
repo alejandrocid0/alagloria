@@ -6,30 +6,50 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-interface FormData {
-  password: string;
-  confirmPassword: string;
-}
-
 interface SignupStepTwoProps {
-  formData: FormData;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handlePrevStep: () => void;
-  isLoading: boolean;
-  isTermsAccepted: boolean;
-  setIsTermsAccepted: (value: boolean) => void;
+  onBack: () => void;
+  onComplete: (data: { password: string; confirmPassword: string }) => Promise<void>;
+  isSubmitting: boolean;
 }
 
-const SignupStepTwo = ({ 
-  formData, 
-  handleChange, 
-  handlePrevStep, 
-  isLoading, 
-  isTermsAccepted, 
-  setIsTermsAccepted 
-}: SignupStepTwoProps) => {
+const SignupStepTwo = ({ onBack, onComplete, isSubmitting }: SignupStepTwoProps) => {
+  const [formData, setFormData] = useState({
+    password: '',
+    confirmPassword: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isTermsAccepted, setIsTermsAccepted] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    // Basic validation
+    if (!formData.password) {
+      alert('Por favor ingrese una contraseña');
+      return;
+    }
+    
+    if (formData.password.length < 8) {
+      alert('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      alert('Las contraseñas no coinciden');
+      return;
+    }
+    
+    if (!isTermsAccepted) {
+      alert('Debe aceptar los términos y condiciones');
+      return;
+    }
+    
+    await onComplete(formData);
+  };
 
   const passwordStrength = () => {
     const { password } = formData;
@@ -172,16 +192,17 @@ const SignupStepTwo = ({
           type="button"
           variant="outline"
           className="w-1/3"
-          onClick={handlePrevStep}
+          onClick={onBack}
         >
           Atrás
         </Button>
         <Button
-          type="submit"
+          type="button"
           className="w-2/3 bg-gloria-purple hover:bg-gloria-purple/90 text-white"
-          disabled={isLoading}
+          disabled={isSubmitting}
+          onClick={handleSubmit}
         >
-          {isLoading ? (
+          {isSubmitting ? (
             <>
               <span className="animate-spin mr-2">⟳</span>
               Creando cuenta...

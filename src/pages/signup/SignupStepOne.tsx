@@ -1,21 +1,51 @@
 
+import { useState } from 'react';
 import { Mail, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-interface FormData {
-  name: string;
-  email: string;
-}
-
 interface SignupStepOneProps {
-  formData: FormData;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleNextStep: () => void;
+  initialData: {
+    name: string;
+    email: string;
+  };
+  onNext: (data: { name: string; email: string }) => void;
 }
 
-const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOneProps) => {
+const SignupStepOne = ({ initialData, onNext }: SignupStepOneProps) => {
+  const [formData, setFormData] = useState({
+    name: initialData.name || '',
+    email: initialData.email || ''
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleNextStep = () => {
+    // Basic validation
+    if (!formData.name.trim()) {
+      alert('Por favor ingrese su nombre');
+      return;
+    }
+    
+    if (!formData.email.trim()) {
+      alert('Por favor ingrese su correo electrónico');
+      return;
+    }
+    
+    // Email regex validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Por favor ingrese un correo electrónico válido');
+      return;
+    }
+    
+    onNext(formData);
+  };
+
   return (
     <>
       <div className="space-y-2">
