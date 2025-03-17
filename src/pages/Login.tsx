@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/auth';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signIn, isAuthenticated, isAdmin, loading } = useAuth();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,31 +23,12 @@ const Login = () => {
 
   // Verificar si el usuario ya está autenticado al cargar la página
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        
-        if (data.session) {
-          // Verificar si el usuario es admin
-          const { data: adminData } = await supabase
-            .from('admin_roles')
-            .select('*')
-            .eq('user_id', data.session.user.id)
-            .maybeSingle();
-          
-          const isAdmin = !!adminData;
-          const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
-          
-          // Redirigir al usuario si ya está autenticado
-          navigate(redirectTo, { replace: true });
-        }
-      } catch (error) {
-        console.error('Error al verificar el estado de autenticación:', error);
-      }
-    };
-
-    checkAuthStatus();
-  }, [navigate, location.state]);
+    if (!loading && isAuthenticated) {
+      // Verificar si hay una ruta de redirección, si no, usar la ruta según el rol
+      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, navigate, loading, location.state]);
 
   // Manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,11 +51,7 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      // Iniciar sesión con Supabase directamente
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { error } = await signIn(email, password);
       
       if (error) {
         let errorMessage = "Credenciales inválidas";
@@ -95,23 +73,12 @@ const Login = () => {
         return;
       }
       
-      // Verificar si el usuario es admin
-      const { data: adminData } = await supabase
-        .from('admin_roles')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
-      
-      const isAdmin = !!adminData;
-      
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente"
       });
       
-      // Redirigir según el rol del usuario
-      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
-      navigate(redirectTo, { replace: true });
+      // La redirección será manejada por el useEffect que observa isAuthenticated
       
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Award, Clock, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -43,43 +43,51 @@ const Index = () => {
     prizes: 0
   });
 
+  const initialized = useRef(false);
+
   useEffect(() => {
-    const calculateRealStats = () => {
-      const joinedGames = JSON.parse(localStorage.getItem('joinedGames') || '{}');
-      
-      let totalParticipants = 0;
-      let totalPrizes = 0;
-      
-      upcomingGames.forEach(game => {
-        const gameParticipants = joinedGames[game.id]?.participants || 0;
+    if (!initialized.current) {
+      const calculateRealStats = () => {
+        const joinedGames = JSON.parse(localStorage.getItem('joinedGames') || '{}');
         
-        totalParticipants += gameParticipants;
+        let totalParticipants = 0;
+        let totalPrizes = 0;
+        let updatedGames = [...upcomingGames];
         
-        totalPrizes += (gameParticipants * game.prizePool) / game.maxParticipants;
-      });
+        updatedGames = updatedGames.map(game => {
+          const gameParticipants = joinedGames[game.id]?.participants || 0;
+          totalParticipants += gameParticipants;
+          totalPrizes += (gameParticipants * game.prizePool) / game.maxParticipants;
+          
+          return {
+            ...game,
+            participants: gameParticipants
+          };
+        });
+        
+        setStats({
+          users: totalParticipants,
+          games: Object.keys(joinedGames).length || 0,
+          prizes: totalPrizes
+        });
+        
+        setUpcomingGames(updatedGames);
+      };
       
-      setStats({
-        users: totalParticipants,
-        games: Object.keys(joinedGames).length || 0,
-        prizes: totalPrizes
-      });
+      calculateRealStats();
       
-      setUpcomingGames(prevGames => 
-        prevGames.map(game => ({
-          ...game,
-          participants: joinedGames[game.id]?.participants || 0
-        }))
-      );
-    };
-    
-    calculateRealStats();
-    
-    window.addEventListener('storage', calculateRealStats);
-    
-    return () => {
-      window.removeEventListener('storage', calculateRealStats);
-    };
-  }, [upcomingGames]);
+      const handleStorageChange = () => {
+        calculateRealStats();
+      };
+      
+      window.addEventListener('storage', handleStorageChange);
+      initialized.current = true;
+      
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
