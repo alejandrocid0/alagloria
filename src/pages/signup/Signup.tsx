@@ -25,15 +25,24 @@ const Signup = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error al obtener la sesión:", error);
+          return;
+        }
         
         if (data.session) {
           // Verificar si el usuario es admin
-          const { data: adminData } = await supabase
+          const { data: adminData, error: adminError } = await supabase
             .from('admin_roles')
             .select('*')
             .eq('user_id', data.session.user.id)
             .maybeSingle();
+          
+          if (adminError) {
+            console.error("Error al verificar si el usuario es admin:", adminError);
+          }
           
           const isAdmin = !!adminData;
           

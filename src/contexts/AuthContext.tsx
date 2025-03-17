@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface GameResult {
@@ -52,57 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Función para inicializar la sesión al cargar la página
-    const initializeAuth = async () => {
-      try {
-        // Obtenemos la sesión actual (si existe)
-        const { data } = await supabase.auth.getSession();
-        
-        if (data.session) {
-          setSession(data.session);
-          setIsAuthenticated(true);
-          await fetchUserProfile(data.session.user.id);
-        } else {
-          setCurrentUser(null);
-          setIsAuthenticated(false);
-          setIsAdmin(false);
-        }
-      } catch (error) {
-        console.error("Error al inicializar la autenticación:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Inicializamos la autenticación
-    initializeAuth();
-
-    // Configuramos el listener para cambios en la autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Estado de autenticación cambiado:", event, session?.user?.id);
-        
-        if (session) {
-          setSession(session);
-          setIsAuthenticated(true);
-          await fetchUserProfile(session.user.id);
-        } else {
-          setSession(null);
-          setCurrentUser(null);
-          setIsAuthenticated(false);
-          setIsAdmin(false);
-        }
-        setLoading(false);
-      }
-    );
-
-    // Limpiamos la suscripción al desmontar
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
   // Función para obtener el perfil del usuario
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -116,17 +65,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileError) throw profileError;
 
       // Verificamos si el usuario es administrador
-      const { data: adminData } = await supabase
+      const { data: adminData, error: adminError } = await supabase
         .from('admin_roles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
+      if (adminError) {
+        console.error('Error al verificar rol de administrador:', adminError);
+      }
+
       // Obtenemos los resultados de los juegos del usuario
-      const { data: gameResults } = await supabase
+      const { data: gameResults, error: gameError } = await supabase
         .from('game_results')
         .select('*')
         .eq('user_id', userId);
+
+      if (gameError) {
+        console.error('Error al obtener resultados de juegos:', gameError);
+      }
 
       // Formateamos los resultados de los juegos
       const formattedGameResults: GameResult[] = gameResults ? gameResults.map((result) => ({
@@ -173,6 +130,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
   };
+
+  useEffect(() => {
+    // Función para inicializar la sesión al cargar la página
+    const initializeAuth = async () => {
+      try {
+        setLoading(true);
+        // Obtenemos la sesión actual (si existe)
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error al obtener la sesión:", error);
+          return;
+        }
+        
+        if (data.session) {
+          setSession(data.session);
+          setIsAuthenticated(true);
+          await fetchUserProfile(data.session.user.id);
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error("Error al inicializar la autenticación:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Inicializamos la autenticación
+    initializeAuth();
+
+    // Configuramos el listener para cambios en la autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log("Estado de autenticación cambiado:", event, newSession?.user?.id);
+        
+        if (newSession) {
+          setSession(newSession);
+          setIsAuthenticated(true);
+          await fetchUserProfile(newSession.user.id);
+        } else {
+          setSession(null);
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setIsAdmin(false);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Limpiamos la suscripción al desmontar
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Función para registrar un nuevo usuario
   const signUp = async (email: string, password: string, name: string) => {
