@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -18,13 +18,44 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Verificar si el usuario ya está autenticado al cargar la página
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session) {
+          // Verificar si el usuario es admin
+          const { data: adminData } = await supabase
+            .from('admin_roles')
+            .select('*')
+            .eq('user_id', data.session.user.id)
+            .maybeSingle();
+          
+          const isAdmin = !!adminData;
+          const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
+          
+          // Redirigir al usuario si ya está autenticado
+          navigate(redirectTo, { replace: true });
+        }
+      } catch (error) {
+        console.error('Error al verificar el estado de autenticación:', error);
+      }
+    };
+
+    checkAuthStatus();
+  }, [navigate, location.state]);
 
   // Manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     
     // Validación básica
     if (!email || !password) {
+      setAuthError("Por favor, completa todos los campos");
       toast({
         title: "Error",
         description: "Por favor, completa todos los campos",
@@ -53,6 +84,7 @@ const Login = () => {
           errorMessage = "Tu correo electrónico no ha sido confirmado. Por favor, revisa tu bandeja de entrada.";
         }
         
+        setAuthError(errorMessage);
         toast({
           title: "Error de inicio de sesión",
           description: errorMessage,
@@ -83,6 +115,7 @@ const Login = () => {
       
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);
+      setAuthError("Ha ocurrido un error inesperado durante el inicio de sesión");
       toast({
         title: "Error",
         description: "Ha ocurrido un error durante el inicio de sesión",
@@ -113,6 +146,12 @@ const Login = () => {
               </p>
             </div>
             
+            {authError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                {authError}
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">
@@ -120,7 +159,7 @@ const Login = () => {
                 </Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
+                    <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <Input
                     id="email"
@@ -130,6 +169,8 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isSubmitting}
+                    aria-label="Correo electrónico"
+                    required
                   />
                 </div>
               </div>
@@ -145,7 +186,7 @@ const Login = () => {
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
+                    <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <Input
                     id="password"
@@ -155,17 +196,20 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isSubmitting}
+                    aria-label="Contraseña"
+                    required
                   />
                   <button
                     type="button"
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isSubmitting}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400" />
+                      <EyeOff className="h-5 w-5 text-gray-400" aria-hidden="true" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400" />
+                      <Eye className="h-5 w-5 text-gray-400" aria-hidden="true" />
                     )}
                   </button>
                 </div>
@@ -175,10 +219,11 @@ const Login = () => {
                 type="submit"
                 className="w-full bg-gloria-purple hover:bg-gloria-purple/90 text-white"
                 disabled={isSubmitting}
+                aria-label={isSubmitting ? "Iniciando sesión" : "Iniciar sesión"}
               >
                 {isSubmitting ? (
                   <>
-                    <span className="animate-spin mr-2">⟳</span>
+                    <span className="animate-spin mr-2" aria-hidden="true">⟳</span>
                     Iniciando sesión...
                   </>
                 ) : "Iniciar Sesión"}

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -19,10 +19,41 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Verificar si el usuario ya está autenticado al cargar la página
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session) {
+          // Verificar si el usuario es admin
+          const { data: adminData } = await supabase
+            .from('admin_roles')
+            .select('*')
+            .eq('user_id', data.session.user.id)
+            .maybeSingle();
+          
+          const isAdmin = !!adminData;
+          
+          // Redirigir al usuario si ya está autenticado
+          navigate(isAdmin ? '/admin' : '/dashboard', { replace: true });
+        }
+      } catch (error) {
+        console.error('Error al verificar el estado de autenticación:', error);
+      }
+    };
+
+    checkAuthStatus();
+  }, [navigate]);
 
   const handleNextStep = () => {
+    setAuthError(null);
+    
     // Validar el primer paso
     if (!name.trim()) {
+      setAuthError("Por favor, ingresa un nombre válido");
       toast({
         title: "Error de validación",
         description: "Por favor, ingresa un nombre válido",
@@ -32,6 +63,7 @@ const Signup = () => {
     }
 
     if (!/\S+@\S+\.\S+/.test(email)) {
+      setAuthError("Por favor, ingresa un correo electrónico válido");
       toast({
         title: "Error de validación",
         description: "Por favor, ingresa un correo electrónico válido",
@@ -44,14 +76,17 @@ const Signup = () => {
   };
 
   const handlePrevStep = () => {
+    setAuthError(null);
     setStep(1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
 
     // Validar el segundo paso
     if (password.length < 8) {
+      setAuthError("La contraseña debe tener al menos 8 caracteres");
       toast({
         title: "Error de validación",
         description: "La contraseña debe tener al menos 8 caracteres",
@@ -61,6 +96,7 @@ const Signup = () => {
     }
 
     if (password !== confirmPassword) {
+      setAuthError("Las contraseñas no coinciden");
       toast({
         title: "Error de validación",
         description: "Las contraseñas no coinciden",
@@ -70,6 +106,7 @@ const Signup = () => {
     }
 
     if (!isTermsAccepted) {
+      setAuthError("Debes aceptar los términos y condiciones");
       toast({
         title: "Error de validación",
         description: "Debes aceptar los términos y condiciones",
@@ -102,6 +139,7 @@ const Signup = () => {
           errorMessage = "El correo electrónico ya está registrado";
         }
 
+        setAuthError(errorMessage);
         toast({
           title: "Error de registro",
           description: errorMessage,
@@ -122,6 +160,7 @@ const Signup = () => {
       navigate('/login', { state: { registeredEmail: email } });
     } catch (error) {
       console.error('Error durante el registro:', error);
+      setAuthError("Ha ocurrido un error inesperado durante el registro");
       toast({
         title: "Error",
         description: "Ha ocurrido un error durante el registro",
@@ -153,6 +192,12 @@ const Signup = () => {
             </div>
 
             <SignupProgressIndicator currentStep={step} />
+            
+            {authError && (
+              <div className="mt-4 mb-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                {authError}
+              </div>
+            )}
 
             <form onSubmit={step === 2 ? handleSubmit : handleNextStep} className="mt-6">
               {step === 1 ? (

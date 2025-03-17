@@ -24,7 +24,7 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
         </Label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <User className="h-5 w-5 text-gray-400" />
+            <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
           </div>
           <Input
             id="name"
@@ -34,6 +34,8 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
             placeholder="Tu nombre"
             value={formData.name}
             onChange={handleChange}
+            aria-label="Nombre"
+            required
           />
         </div>
       </div>
@@ -44,7 +46,7 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
         </Label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Mail className="h-5 w-5 text-gray-400" />
+            <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
           </div>
           <Input
             id="email"
@@ -54,6 +56,8 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
             placeholder="tucorreo@ejemplo.com"
             value={formData.email}
             onChange={handleChange}
+            aria-label="Correo electrónico"
+            required
           />
         </div>
       </div>
@@ -62,6 +66,7 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
         type="button"
         className="w-full bg-gloria-purple hover:bg-gloria-purple/90 text-white mt-4"
         onClick={handleNextStep}
+        aria-label="Continuar al siguiente paso"
       >
         Continuar
       </Button>
@@ -81,11 +86,12 @@ const SignupStepOne = ({ formData, handleChange, handleNextStep }: SignupStepOne
         type="button"
         variant="outline"
         className="w-full flex justify-center items-center space-x-2"
+        aria-label="Registrarse con Google"
         onClick={() => {
           // Esta funcionalidad se implementará más adelante
         }}
       >
-        <svg className="h-5 w-5" viewBox="0 0 24 24">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
             fill="#4285F4"
