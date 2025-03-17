@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { useAuth } from '@/contexts/auth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -28,15 +28,11 @@ const Login = () => {
         
         if (data.session) {
           // Verificar si el usuario es admin
-          const { data: adminData, error: adminError } = await supabase
+          const { data: adminData } = await supabase
             .from('admin_roles')
             .select('*')
             .eq('user_id', data.session.user.id)
             .maybeSingle();
-          
-          if (adminError) {
-            console.error('Error al verificar si el usuario es admin:', adminError);
-          }
           
           const isAdmin = !!adminData;
           const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
@@ -73,7 +69,7 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      // Iniciar sesión con Supabase
+      // Iniciar sesión con Supabase directamente
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -100,15 +96,11 @@ const Login = () => {
       }
       
       // Verificar si el usuario es admin
-      const { data: adminData, error: adminError } = await supabase
+      const { data: adminData } = await supabase
         .from('admin_roles')
         .select('*')
         .eq('user_id', data.user.id)
         .maybeSingle();
-      
-      if (adminError) {
-        console.error('Error al verificar si el usuario es admin:', adminError);
-      }
       
       const isAdmin = !!adminData;
       
@@ -188,7 +180,7 @@ const Login = () => {
                   <Label htmlFor="password">
                     Contraseña
                   </Label>
-                  <Link to="/forgot-password" className="text-xs text-gloria-purple hover:text-gloria-gold transition-colors" aria-label="Recuperar contraseña">
+                  <Link to="/forgot-password" className="text-xs text-gloria-purple hover:text-gloria-gold transition-colors">
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
@@ -241,7 +233,7 @@ const Login = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 ¿No tienes una cuenta?{' '}
-                <Link to="/signup" className="text-gloria-purple hover:text-gloria-gold transition-colors font-medium" aria-label="Ir a página de registro">
+                <Link to="/signup" className="text-gloria-purple hover:text-gloria-gold transition-colors font-medium">
                   Regístrate
                 </Link>
               </p>

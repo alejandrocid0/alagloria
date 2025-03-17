@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SignupProgressIndicator from './SignupProgressIndicator';
@@ -13,7 +12,6 @@ import SignupStepTwo from './SignupStepTwo';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth(); // Corregir aquí: cambiar user por currentUser
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,27 +21,19 @@ const Signup = () => {
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Verificar si el usuario ya está autenticado al cargar la página
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error al obtener la sesión:", error);
-          return;
-        }
+        const { data } = await supabase.auth.getSession();
         
         if (data.session) {
           // Verificar si el usuario es admin
-          const { data: adminData, error: adminError } = await supabase
+          const { data: adminData } = await supabase
             .from('admin_roles')
             .select('*')
             .eq('user_id', data.session.user.id)
             .maybeSingle();
-          
-          if (adminError) {
-            console.error("Error al verificar si el usuario es admin:", adminError);
-          }
           
           const isAdmin = !!adminData;
           

@@ -8,7 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getQuizById } from '@/services/quizService';
 import { QuizQuestion } from '@/types/quiz';
-import { useAuth } from '@/contexts/auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 const initialPlayers: { id: number; name: string; points: number; avatar: string }[] = [];
 

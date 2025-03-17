@@ -1,4 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
+
+import { supabase } from '@/lib/supabase';
 
 /**
  * Esta función asigna el rol de administrador a un usuario con el correo electrónico especificado.
