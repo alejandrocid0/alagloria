@@ -3,46 +3,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { AuthContextType, UserProfile, GameResult } from './types';
+import { fetchUserProfile } from './utils';
 
-interface GameResult {
-  id: string;
-  gameId: string;
-  gameTitle: string;
-  date: Date;
-  position: number;
-  entryFee: number;
-  correctAnswers: number;
-  totalAnswers: number;
-}
-
-interface UserStats {
-  gamesPlayed: GameResult[];
-  totalSpent: number;
-  correctAnswers: number;
-  totalAnswers: number;
-}
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  stats: UserStats;
-  isAdmin: boolean;
-}
-
-interface AuthContextType {
-  currentUser: UserProfile | null;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  session: Session | null;
-  logout: () => Promise<void>;
-  getUserProfile: () => UserProfile | null;
-  updateUserStats: (gameResult: GameResult) => void;
-  signUp: (email: string, password: string, name: string) => Promise<{ user: User | null; error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ user: User | null; error: AuthError | null }>;
-  loading: boolean;
-}
-
+// Create Auth Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,91 +16,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Función para obtener el perfil del usuario
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      // Obtenemos el perfil del usuario
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-
-      // Verificamos si el usuario es administrador
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_roles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (adminError) {
-        console.error('Error al verificar rol de administrador:', adminError);
-      }
-
-      // Obtenemos los resultados de los juegos del usuario
-      const { data: gameResults, error: gameError } = await supabase
-        .from('game_results')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (gameError) {
-        console.error('Error al obtener resultados de juegos:', gameError);
-      }
-
-      // Formateamos los resultados de los juegos
-      const formattedGameResults: GameResult[] = gameResults ? gameResults.map((result) => ({
-        id: result.id,
-        gameId: result.game_id,
-        gameTitle: result.game_title,
-        date: new Date(result.date),
-        position: result.position,
-        entryFee: result.entry_fee,
-        correctAnswers: result.correct_answers,
-        totalAnswers: result.total_answers
-      })) : [];
-
-      // Calculamos las estadísticas del usuario
-      const totalSpent = formattedGameResults.reduce((sum, game) => sum + game.entryFee, 0);
-      const correctAnswers = formattedGameResults.reduce((sum, game) => sum + game.correctAnswers, 0);
-      const totalAnswers = formattedGameResults.reduce((sum, game) => sum + game.totalAnswers, 0);
-
-      if (profileData) {
-        // Creamos el perfil del usuario
-        const userProfile = {
-          id: profileData.id,
-          name: profileData.name,
-          email: profileData.email,
-          stats: {
-            gamesPlayed: formattedGameResults,
-            totalSpent,
-            correctAnswers,
-            totalAnswers
-          },
-          isAdmin: !!adminData
-        };
-        
-        setCurrentUser(userProfile);
-        setIsAdmin(!!adminData);
-      }
-      
-    } catch (error) {
-      console.error('Error al obtener el perfil del usuario:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los datos del usuario",
-        variant: "destructive"
-      });
-    }
-  };
-
+  // Initialize auth state
   useEffect(() => {
-    // Función para inicializar la sesión al cargar la página
     const initializeAuth = async () => {
       try {
         setLoading(true);
-        // Obtenemos la sesión actual (si existe)
+        // Get current session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -147,7 +32,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.session) {
           setSession(data.session);
           setIsAuthenticated(true);
-          await fetchUserProfile(data.session.user.id);
+          const userProfile = await fetchUserProfile(data.session.user.id);
+          if (userProfile) {
+            setCurrentUser(userProfile);
+            setIsAdmin(userProfile.isAdmin);
+          }
         } else {
           setCurrentUser(null);
           setIsAuthenticated(false);
@@ -160,10 +49,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Inicializamos la autenticación
+    // Initialize auth
     initializeAuth();
 
-    // Configuramos el listener para cambios en la autenticación
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Estado de autenticación cambiado:", event, newSession?.user?.id);
@@ -171,7 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (newSession) {
           setSession(newSession);
           setIsAuthenticated(true);
-          await fetchUserProfile(newSession.user.id);
+          const userProfile = await fetchUserProfile(newSession.user.id);
+          if (userProfile) {
+            setCurrentUser(userProfile);
+            setIsAdmin(userProfile.isAdmin);
+          }
         } else {
           setSession(null);
           setCurrentUser(null);
@@ -182,13 +75,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Limpiamos la suscripción al desmontar
+    // Clean up subscription
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // Función para registrar un nuevo usuario
+  // Sign up function
   const signUp = async (email: string, password: string, name: string) => {
     try {
       setLoading(true);
@@ -216,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Función para iniciar sesión
+  // Sign in function
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -234,7 +127,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(true);
       
       if (data.user) {
-        await fetchUserProfile(data.user.id);
+        const userProfile = await fetchUserProfile(data.user.id);
+        if (userProfile) {
+          setCurrentUser(userProfile);
+          setIsAdmin(userProfile.isAdmin);
+        }
       }
       
       return { user: data.user, error: null };
@@ -245,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Función para actualizar las estadísticas del usuario
+  // Update user stats
   const updateUserStats = async (gameResult: GameResult) => {
     if (!currentUser) return;
 
@@ -288,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Función para cerrar sesión
+  // Logout function
   const logout = async () => {
     try {
       setLoading(true);
@@ -309,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Función para obtener el perfil del usuario
+  // Get user profile
   const getUserProfile = (): UserProfile | null => {
     return currentUser;
   };
@@ -334,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

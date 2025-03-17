@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/auth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SignupProgressIndicator from './SignupProgressIndicator';
@@ -12,6 +12,7 @@ import SignupStepTwo from './SignupStepTwo';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -21,7 +22,6 @@ const Signup = () => {
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Verificar si el usuario ya está autenticado al cargar la página
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
