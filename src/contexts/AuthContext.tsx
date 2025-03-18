@@ -2,29 +2,23 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-
-type AuthContextType = {
-  session: Session | null;
-  user: User | null;
-  profile: any | null;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  loading: boolean;
-  isAuthenticated: boolean;
-  currentUser: User | null;
-};
+import { AuthContextType, Profile } from './auth/types';
+import { useAuthActions } from './auth/useAuthActions';
+import { useProfile } from './auth/useProfile';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  
   const isAuthenticated = !!user;
   const currentUser = user;
+  
+  const { fetchProfile } = useProfile();
+  const { signUp, signIn, signOut } = useAuthActions(setLoading, setProfile);
 
   useEffect(() => {
     // Initialize with the current session
@@ -34,7 +28,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         // Intentamos obtener el perfil, pero no esperamos demasiado tiempo
-        fetchProfile(session.user.id)
+        fetchProfile(session.user.id, session.user)
+          .then(profileData => {
+            if (profileData) {
+              setProfile(profileData);
+            }
+          })
           .catch(err => {
             console.error('Error fetching profile on init:', err);
             // Si hay error al obtener perfil, no bloqueamos la UI
@@ -56,7 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           try {
-            await fetchProfile(session.user.id);
+            const profileData = await fetchProfile(session.user.id, session.user);
+            if (profileData) {
+              setProfile(profileData);
+            }
           } catch (err) {
             console.error('Error fetching profile on auth change:', err);
             // Si hay error al obtener perfil, no bloqueamos la UI
@@ -73,166 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
-
-  // Get user profile
-  const fetchProfile = async (userId: string) => {
-    try {
-      // Establecemos un tiempo límite para la obtención del perfil
-      const profilePromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-        
-      // Si en 3 segundos no hay respuesta, continuamos de todos modos
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
-      });
-      
-      // Race entre la obtención del perfil y el timeout
-      const { data, error } = await Promise.race([
-        profilePromise,
-        timeoutPromise.then(() => ({ data: null, error: new Error('Timeout') }))
-      ]) as any;
-
-      if (error && error.message !== 'Timeout') {
-        console.warn('Non-timeout error getting profile:', error);
-        return null;
-      }
-
-      console.log('Profile fetched:', data);
-      if (data) {
-        setProfile(data);
-      } else {
-        // Si no hay datos, creamos un perfil básico basado en el email
-        const basicProfile = {
-          id: userId,
-          name: user?.email?.split('@')[0] || 'Usuario',
-          email: user?.email
-        };
-        setProfile(basicProfile);
-      }
-      return data;
-    } catch (error) {
-      console.warn('Unexpected error getting profile:', error);
-      // Creamos un perfil básico para no bloquear la UI
-      const basicProfile = {
-        id: userId,
-        name: user?.email?.split('@')[0] || 'Usuario',
-        email: user?.email
-      };
-      setProfile(basicProfile);
-      return null;
-    }
-  };
-
-  // User registration
-  const signUp = async (email: string, password: string, name: string) => {
-    try {
-      setLoading(true);
-      console.log('Attempting to sign up user:', email, name);
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name },
-          emailRedirectTo: `${window.location.origin}/login`,
-        },
-      });
-
-      console.log('Sign up response:', data, error);
-
-      if (error) {
-        console.error('Error in registration:', error);
-        toast({
-          title: 'Error en el registro',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return { error };
-      }
-
-      toast({
-        title: 'Registro exitoso',
-        description: 'Revisa tu correo para confirmar tu cuenta',
-      });
-      
-      return { error: null };
-    } catch (error: any) {
-      console.error('Unexpected error in registration:', error);
-      toast({
-        title: 'Error en el registro',
-        description: error.message,
-        variant: 'destructive',
-      });
-      return { error };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Login
-  const signIn = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      console.log('Attempting to sign in user:', email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      console.log('Sign in response:', data, error);
-
-      if (error) {
-        console.error('Error signing in:', error);
-        toast({
-          title: 'Error al iniciar sesión',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return { error };
-      }
-
-      toast({
-        title: '¡Bienvenido!',
-        description: 'Has iniciado sesión correctamente',
-      });
-      
-      return { error: null };
-    } catch (error: any) {
-      console.error('Unexpected error signing in:', error);
-      toast({
-        title: 'Error al iniciar sesión',
-        description: error.message,
-        variant: 'destructive',
-      });
-      return { error };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sign out
-  const signOut = async () => {
-    try {
-      console.log('Attempting to sign out user');
-      await supabase.auth.signOut();
-      console.log('User signed out successfully');
-      toast({
-        title: 'Sesión cerrada',
-        description: 'Has cerrado sesión correctamente',
-      });
-    } catch (error: any) {
-      console.error('Error closing session:', error);
-      toast({
-        title: 'Error al cerrar sesión',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
 
   const value = {
     session,
