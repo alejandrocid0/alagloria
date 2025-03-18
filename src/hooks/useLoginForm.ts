@@ -1,11 +1,10 @@
 
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth';
 
 export function useLoginForm() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { signIn } = useAuth();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
@@ -61,7 +60,7 @@ export function useLoginForm() {
         description: "Has iniciado sesión correctamente"
       });
       
-      // La redirección será manejada por el useEffect en el componente Login
+      // La redirección será manejada por useRedirectAuthenticated
       
     } catch (error) {
       console.error('Error durante el inicio de sesión:', error);

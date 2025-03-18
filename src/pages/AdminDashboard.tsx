@@ -2,33 +2,33 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import GameManagement from '@/components/admin/GameManagement';
 import GamesList from '@/components/admin/GamesList';
 
 const AdminDashboard = () => {
-  const { isAdmin, isAuthenticated, loading } = useAuth();
+  const { isAdmin, isAuthenticated, loading, authChecked } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading) {
+    if (authChecked && !loading) {
       if (!isAuthenticated) {
         console.log("No autenticado, redirigiendo a login");
-        navigate('/login', { state: { redirectTo: '/admin' } });
+        navigate('/login', { state: { redirectTo: '/admin' }, replace: true });
         return;
       }
       
       if (!isAdmin) {
         console.log("Usuario no es admin, redirigiendo a dashboard");
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
         return;
       }
     }
-  }, [isAdmin, isAuthenticated, navigate, loading]);
+  }, [isAdmin, isAuthenticated, navigate, loading, authChecked]);
 
-  if (loading) {
+  if (loading || !authChecked) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />

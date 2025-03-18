@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import GameHistoryCard from '@/components/dashboard/GameHistoryCard';
@@ -10,12 +10,12 @@ import SuccessRatioCard from '@/components/dashboard/SuccessRatioCard';
 import StatsOverviewCard from '@/components/dashboard/StatsOverviewCard';
 
 const Dashboard = () => {
-  const { currentUser, isAuthenticated, isAdmin, loading } = useAuth();
+  const { currentUser, isAuthenticated, isAdmin, loading, authChecked } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    if (authChecked && !loading) {
       if (!isAuthenticated) {
         console.log("No autenticado, redirigiendo a login");
         setIsRedirecting(true);
@@ -33,9 +33,9 @@ const Dashboard = () => {
         return;
       }
     }
-  }, [isAuthenticated, isAdmin, navigate, loading]);
+  }, [isAuthenticated, isAdmin, navigate, loading, authChecked]);
 
-  if (loading || isRedirecting || !isAuthenticated || !currentUser) {
+  if (loading || !authChecked || isRedirecting || !isAuthenticated || !currentUser) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />

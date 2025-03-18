@@ -8,12 +8,13 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   session: Session | null;
+  loading: boolean;
+  authChecked: boolean;
   logout: () => Promise<void>;
   getUserProfile: () => UserProfile | null;
   updateUserStats: (gameResult: any) => void;
   signUp: (email: string, password: string, name: string) => Promise<{ user: any | null; error: any | null }>;
   signIn: (email: string, password: string) => Promise<{ user: any | null; error: any | null }>;
-  loading: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

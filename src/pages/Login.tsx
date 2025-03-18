@@ -23,9 +23,9 @@ const Login = () => {
     handleSubmit 
   } = useLoginForm();
 
-  const { loading } = useRedirectAuthenticated();
+  const { loading, authChecked } = useRedirectAuthenticated();
 
-  if (loading) {
+  if (loading || !authChecked) {
     return (
       <>
         <Navbar />

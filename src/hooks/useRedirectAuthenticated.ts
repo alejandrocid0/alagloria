@@ -6,15 +6,16 @@ import { useAuth } from '@/contexts/auth';
 export function useRedirectAuthenticated() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading, authChecked } = useAuth();
   const [redirectProcessed, setRedirectProcessed] = useState(false);
 
   useEffect(() => {
     // Solo ejecutamos la redirección si:
-    // 1. No estamos cargando
-    // 2. El usuario está autenticado 
-    // 3. No hemos procesado la redirección previamente
-    if (!loading && isAuthenticated && !redirectProcessed) {
+    // 1. Se ha completado la verificación de autenticación
+    // 2. No estamos cargando
+    // 3. El usuario está autenticado 
+    // 4. No hemos procesado la redirección previamente
+    if (authChecked && !loading && isAuthenticated && !redirectProcessed) {
       console.log("Redirigiendo usuario autenticado...");
       setRedirectProcessed(true); // Marcamos que ya procesamos la redirección
       
@@ -22,7 +23,7 @@ export function useRedirectAuthenticated() {
       const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
       navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, isAdmin, navigate, loading, location.state, redirectProcessed]);
+  }, [isAuthenticated, isAdmin, navigate, loading, location.state, redirectProcessed, authChecked]);
 
-  return { isAuthenticated, loading, redirectProcessed };
+  return { isAuthenticated, loading, redirectProcessed, authChecked };
 }
