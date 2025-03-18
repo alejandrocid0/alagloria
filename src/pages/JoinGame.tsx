@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -13,7 +12,7 @@ const JoinGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
-  const { isAuthenticated, currentUser } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [gameData, setGameData] = useState({
     id: gameId,
@@ -31,7 +30,6 @@ const JoinGame = () => {
     ]
   });
   
-  // Check if user is logged in
   useEffect(() => {
     if (!isAuthenticated) {
       toast({
@@ -42,7 +40,6 @@ const JoinGame = () => {
       navigate("/login", { state: { redirectTo: `/join/${gameId}` } });
     }
     
-    // Load game participants from localStorage
     const gameParticipantsKey = `game_${gameId}_participants`;
     const storedParticipants = localStorage.getItem(gameParticipantsKey);
     const participants = storedParticipants ? parseInt(storedParticipants, 10) : 0;
@@ -64,23 +61,18 @@ const JoinGame = () => {
   const handleJoinGame = () => {
     setIsProcessing(true);
     
-    // Simulate payment processing
     setTimeout(() => {
-      // Update participants count in localStorage
       const gameParticipantsKey = `game_${gameId}_participants`;
       const currentParticipants = localStorage.getItem(gameParticipantsKey);
       const newParticipantCount = currentParticipants ? parseInt(currentParticipants, 10) + 1 : 1;
       
-      // Store updated count
       localStorage.setItem(gameParticipantsKey, newParticipantCount.toString());
       
-      // Store user's joined games
-      if (currentUser) {
-        const userGamesKey = `user_${currentUser.id}_games`;
+      if (user) {
+        const userGamesKey = `user_${user.id}_games`;
         const userGames = localStorage.getItem(userGamesKey) ? 
                         JSON.parse(localStorage.getItem(userGamesKey) || '[]') : [];
         
-        // Add this game if not already joined
         if (!userGames.includes(gameId)) {
           userGames.push(gameId);
           localStorage.setItem(userGamesKey, JSON.stringify(userGames));
@@ -97,11 +89,10 @@ const JoinGame = () => {
     }, 2000);
   };
   
-  // Check if user has already joined this game
   const hasUserJoined = () => {
-    if (!currentUser) return false;
+    if (!user) return false;
     
-    const userGamesKey = `user_${currentUser.id}_games`;
+    const userGamesKey = `user_${user.id}_games`;
     const userGames = localStorage.getItem(userGamesKey) ? 
                     JSON.parse(localStorage.getItem(userGamesKey) || '[]') : [];
     
@@ -121,7 +112,6 @@ const JoinGame = () => {
           >
             {!paymentComplete ? (
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                {/* Game Info */}
                 <div className="lg:col-span-3">
                   <div className="bg-white rounded-xl shadow-md overflow-hidden">
                     <div className="h-48 overflow-hidden relative">
@@ -220,7 +210,6 @@ const JoinGame = () => {
                   </div>
                 </div>
                 
-                {/* Payment Panel */}
                 <div className="lg:col-span-2">
                   <div className="bg-white rounded-xl shadow-md p-6 sticky top-24">
                     <h2 className="text-xl font-serif font-bold text-gloria-purple mb-6">

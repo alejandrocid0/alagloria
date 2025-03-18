@@ -17,7 +17,7 @@ type GameState = 'waiting' | 'question' | 'result' | 'leaderboard' | 'finished';
 const GamePlay = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [currentState, setCurrentState] = useState<GameState>('waiting');
   const [countdown, setCountdown] = useState(5);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -75,9 +75,9 @@ const GamePlay = () => {
         } else {
           const myPlayer = { 
             id: 2, 
-            name: currentUser?.name || "Yo", 
+            name: user?.user_metadata.name || "Yo", 
             points: 0, 
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name || "Player")}&background=EAC7C7&color=000` 
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.user_metadata.name || "Player")}&background=EAC7C7&color=000` 
           };
           
           setRanking([
@@ -108,7 +108,7 @@ const GamePlay = () => {
     } finally {
       setLoading(false);
     }
-  }, [gameId, navigate, currentUser]);
+  }, [gameId, navigate, user]);
   
   useEffect(() => {
     if (currentState === 'waiting') {

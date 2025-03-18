@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -7,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import GameEditor from './GameEditor';
 
 interface Game {
@@ -24,7 +23,7 @@ const GamesList = () => {
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
 
   const fetchGames = async () => {
     try {
@@ -80,7 +79,6 @@ const GamesList = () => {
         description: 'La partida ha sido eliminada correctamente',
       });
 
-      // Refresh games list
       fetchGames();
     } catch (error) {
       console.error('Error deleting game:', error);

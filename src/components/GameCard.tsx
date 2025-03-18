@@ -1,4 +1,3 @@
-
 import { Calendar, Users, Clock, Award, Play } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,7 +22,7 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
   const isPastGame = date < new Date();
   const percentageFilled = (participants / maxParticipants) * 100;
   const navigate = useNavigate();
-  const { currentUser, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [showDemoButton, setShowDemoButton] = useState(false);
   
   const formattedDate = date.toLocaleDateString('es-ES', {
@@ -54,7 +53,6 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
       return;
     }
     
-    // Navigate to the demo game
     navigate(`/game/demo-123`);
     
     toast({

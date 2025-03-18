@@ -12,6 +12,9 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  // Add these properties to fix the errors
+  isAuthenticated: boolean;
+  currentUser: User | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,9 +24,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  // Compute isAuthenticated based on user existence
+  const isAuthenticated = !!user;
+  // Use user as currentUser for compatibility
+  const currentUser = user;
 
   useEffect(() => {
-    // Inicializar con la sesión actual
+    // Initialize with the current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -33,10 +40,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
-    // Escuchar cambios en el estado de autenticación
+    // Listen for changes in the authentication state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Estado de autenticación cambiado:', event);
+        console.log('Authentication state changed:', event);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -55,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Obtener perfil del usuario
+  // Get user profile
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -65,19 +72,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error al obtener el perfil:', error);
+        console.error('Error getting profile:', error);
         return null;
       }
 
       setProfile(data);
       return data;
     } catch (error) {
-      console.error('Error inesperado al obtener el perfil:', error);
+      console.error('Unexpected error getting profile:', error);
       return null;
     }
   };
 
-  // Registro de usuario
+  // User registration
   const signUp = async (email: string, password: string, name: string) => {
     try {
       setLoading(true);
@@ -92,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         toast({
-          title: 'Error en el registro',
+          title: 'Error in registration',
           description: error.message,
           variant: 'destructive',
         });
@@ -100,14 +107,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       toast({
-        title: 'Registro exitoso',
-        description: 'Revisa tu correo para confirmar tu cuenta',
+        title: 'Successful registration',
+        description: 'Check your email to confirm your account',
       });
       
       return { error: null };
     } catch (error: any) {
       toast({
-        title: 'Error en el registro',
+        title: 'Error in registration',
         description: error.message,
         variant: 'destructive',
       });
@@ -117,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Inicio de sesión
+  // Login
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -128,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         toast({
-          title: 'Error al iniciar sesión',
+          title: 'Error signing in',
           description: error.message,
           variant: 'destructive',
         });
@@ -136,14 +143,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       toast({
-        title: '¡Bienvenido!',
-        description: 'Has iniciado sesión correctamente',
+        title: 'Welcome!',
+        description: 'You have successfully signed in',
       });
       
       return { error: null };
     } catch (error: any) {
       toast({
-        title: 'Error al iniciar sesión',
+        title: 'Error signing in',
         description: error.message,
         variant: 'destructive',
       });
@@ -153,17 +160,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Cierre de sesión
+  // Sign out
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
       toast({
-        title: 'Sesión cerrada',
-        description: 'Has cerrado sesión correctamente',
+        title: 'Session closed',
+        description: 'You have successfully signed out',
       });
     } catch (error: any) {
       toast({
-        title: 'Error al cerrar sesión',
+        title: 'Error closing session',
         description: error.message,
         variant: 'destructive',
       });
@@ -178,6 +185,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signOut,
     loading,
+    // Add these properties to fix the errors
+    isAuthenticated,
+    currentUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -186,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
