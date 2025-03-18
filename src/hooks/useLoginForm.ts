@@ -1,11 +1,12 @@
 
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth';
 
 export function useLoginForm() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { signIn } = useAuth();
   const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
@@ -31,11 +32,13 @@ export function useLoginForm() {
     if (isSubmitting) return;
     
     setIsSubmitting(true);
+    console.log("Login form submitted for:", email);
     
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
+        console.error("Login error:", error);
         let errorMessage = "Credenciales inválidas";
         
         if (error.message.includes("Invalid login")) {
@@ -55,15 +58,19 @@ export function useLoginForm() {
         return;
       }
       
+      console.log("Login successful");
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente"
       });
       
       // La redirección será manejada por useRedirectAuthenticated
+      // Pero para asegurarnos, añadimos una redirección manual
+      const redirectTo = location.state?.redirectTo || '/dashboard';
+      navigate(redirectTo, { replace: true });
       
     } catch (error) {
-      console.error('Error durante el inicio de sesión:', error);
+      console.error('Error inesperado durante el inicio de sesión:', error);
       setAuthError("Ha ocurrido un error inesperado durante el inicio de sesión");
       toast({
         title: "Error",

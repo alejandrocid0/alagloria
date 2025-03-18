@@ -1,6 +1,6 @@
 
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLoginForm } from '@/hooks/useLoginForm';
 import { useRedirectAuthenticated } from '@/hooks/useRedirectAuthenticated';
+import { useEffect } from 'react';
 
 const Login = () => {
   const { 
@@ -23,7 +24,15 @@ const Login = () => {
     handleSubmit 
   } = useLoginForm();
 
-  const { loading, authChecked } = useRedirectAuthenticated();
+  const { loading, authChecked, isAuthenticated } = useRedirectAuthenticated();
+  const navigate = useNavigate();
+
+  // Efecto adicional para detectar si el usuario ya está autenticado
+  useEffect(() => {
+    if (authChecked && isAuthenticated) {
+      console.log("User already authenticated, redirecting from Login page");
+    }
+  }, [authChecked, isAuthenticated, navigate]);
 
   if (loading || !authChecked) {
     return (
@@ -32,7 +41,7 @@ const Login = () => {
         <div className="min-h-screen pt-24 pb-16 bg-gloria-cream bg-opacity-30 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gloria-purple">Cargando...</p>
+            <p className="text-gloria-purple">Verificando estado de sesión...</p>
           </div>
         </div>
         <Footer />

@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
 import { AuthContext } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -8,15 +7,17 @@ import { UserProfile } from './types';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [authChecked, setAuthChecked] = useState<boolean>(false);
+  const [session, setSession] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Función para obtener el perfil del usuario
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching user profile for userId:", userId);
+      
       // Obtenemos el perfil del usuario
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -24,20 +25,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .maybeSingle();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        throw profileError;
+      }
+
+      console.log("Profile data:", profileData);
 
       // Verificamos si el usuario es administrador
-      const { data: adminData } = await supabase
+      const { data: adminData, error: adminError } = await supabase
         .from('admin_roles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
+      if (adminError) {
+        console.error("Error checking admin status:", adminError);
+      }
+
+      console.log("Admin data:", adminData);
+
       // Obtenemos los resultados de los juegos del usuario
-      const { data: gameResults } = await supabase
+      const { data: gameResults, error: gameResultsError } = await supabase
         .from('game_results')
         .select('*')
         .eq('user_id', userId);
+
+      if (gameResultsError) {
+        console.error("Error fetching game results:", gameResultsError);
+      }
+
+      console.log("Game results:", gameResults);
 
       // Formateamos los resultados de los juegos
       const formattedGameResults = gameResults ? gameResults.map((result) => ({
@@ -73,8 +91,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setCurrentUser(userProfile);
         setIsAdmin(!!adminData);
+        return userProfile;
       }
       
+      return null;
     } catch (error) {
       console.error('Error al obtener el perfil del usuario:', error);
       toast({
@@ -82,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudieron cargar los datos del usuario",
         variant: "destructive"
       });
+      return null;
     }
   };
 
@@ -102,11 +123,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        console.error("Signup error:", error);
         return { user: null, error };
       }
 
+      console.log("Signup success:", data);
       return { user: data.user, error: null };
     } catch (error: any) {
+      console.error("Unexpected signup error:", error);
       return { user: null, error };
     } finally {
       setLoading(false);
@@ -116,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Función para iniciar sesión
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Attempting sign in for:", email);
       setLoading(true);
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -124,18 +149,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        console.error("Sign in error:", error);
         return { user: null, error };
       }
 
+      console.log("Sign in success, session:", data.session);
       setSession(data.session);
       setIsAuthenticated(true);
       
       if (data.user) {
-        await fetchUserProfile(data.user.id);
+        const profile = await fetchUserProfile(data.user.id);
+        console.log("User profile after sign in:", profile);
       }
       
       return { user: data.user, error: null };
     } catch (error: any) {
+      console.error("Unexpected sign in error:", error);
       return { user: null, error };
     } finally {
       setLoading(false);
@@ -188,8 +217,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Función para cerrar sesión
   const logout = async () => {
     try {
+      console.log("Attempting to log out");
       setLoading(true);
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error logging out:", error);
+        throw error;
+      }
+      
+      console.log("Logout successful");
       setCurrentUser(null);
       setSession(null);
       setIsAuthenticated(false);
@@ -212,26 +249,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log("AuthProvider initialized, checking session");
+    
     // Función para inicializar la sesión al cargar la página
     const initializeAuth = async () => {
       try {
         // Obtenemos la sesión actual (si existe)
-        const { data } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting session:", error);
+          throw error;
+        }
+        
+        console.log("Current session:", data.session);
         
         if (data.session) {
           setSession(data.session);
           setIsAuthenticated(true);
           await fetchUserProfile(data.session.user.id);
         } else {
+          console.log("No active session found");
           setCurrentUser(null);
           setIsAuthenticated(false);
           setIsAdmin(false);
         }
       } catch (error) {
-        console.error("Error al inicializar la autenticación:", error);
+        console.error("Error initializing authentication:", error);
       } finally {
         setLoading(false);
         setAuthChecked(true);
+        console.log("Auth check completed");
       }
     };
 
@@ -241,7 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Configuramos el listener para cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Estado de autenticación cambiado:", event, session?.user?.id);
+        console.log("Auth state changed:", event, session?.user?.id);
         
         if (session) {
           setSession(session);
@@ -260,6 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Limpiamos la suscripción al desmontar
     return () => {
+      console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
   }, []);
