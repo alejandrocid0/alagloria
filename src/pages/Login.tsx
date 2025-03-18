@@ -20,15 +20,22 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [redirectProcessed, setRedirectProcessed] = useState(false);
 
   // Verificar si el usuario ya está autenticado al cargar la página
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    // Solo ejecutamos la redirección si:
+    // 1. No estamos cargando
+    // 2. El usuario está autenticado
+    // 3. No hemos procesado la redirección previamente
+    if (!loading && isAuthenticated && !redirectProcessed) {
+      setRedirectProcessed(true); // Marcamos que ya procesamos la redirección
+      
       // Verificar si hay una ruta de redirección, si no, usar la ruta según el rol
       const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
       navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, isAdmin, navigate, loading, location.state]);
+  }, [isAuthenticated, isAdmin, navigate, loading, location.state, redirectProcessed]);
 
   // Manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +85,7 @@ const Login = () => {
         description: "Has iniciado sesión correctamente"
       });
       
+      // No intentamos redireccionar aquí manualmente
       // La redirección será manejada por el useEffect que observa isAuthenticated
       
     } catch (error) {
