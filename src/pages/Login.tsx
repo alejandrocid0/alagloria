@@ -1,105 +1,44 @@
 
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/auth';
+import { useLoginForm } from '@/hooks/useLoginForm';
+import { useRedirectAuthenticated } from '@/hooks/useRedirectAuthenticated';
 
 const Login = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { signIn, isAuthenticated, isAdmin, loading } = useAuth();
-  const [email, setEmail] = useState(location.state?.registeredEmail || '');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [redirectProcessed, setRedirectProcessed] = useState(false);
+  const { 
+    email, 
+    setEmail, 
+    password, 
+    setPassword, 
+    showPassword, 
+    setShowPassword, 
+    isSubmitting, 
+    authError, 
+    handleSubmit 
+  } = useLoginForm();
 
-  // Verificar si el usuario ya está autenticado al cargar la página
-  useEffect(() => {
-    // Solo ejecutamos la redirección si:
-    // 1. No estamos cargando
-    // 2. El usuario está autenticado
-    // 3. No hemos procesado la redirección previamente
-    if (!loading && isAuthenticated && !redirectProcessed) {
-      setRedirectProcessed(true); // Marcamos que ya procesamos la redirección
-      
-      // Verificar si hay una ruta de redirección, si no, usar la ruta según el rol
-      const redirectTo = location.state?.redirectTo || (isAdmin ? '/admin' : '/dashboard');
-      navigate(redirectTo, { replace: true });
-    }
-  }, [isAuthenticated, isAdmin, navigate, loading, location.state, redirectProcessed]);
+  const { loading } = useRedirectAuthenticated();
 
-  // Manejar el envío del formulario
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    
-    // Validación básica
-    if (!email || !password) {
-      setAuthError("Por favor, completa todos los campos");
-      toast({
-        title: "Error",
-        description: "Por favor, completa todos los campos",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        let errorMessage = "Credenciales inválidas";
-        
-        if (error.message.includes("Invalid login")) {
-          errorMessage = "Correo electrónico o contraseña incorrectos";
-        } else if (error.message.includes("Email not confirmed")) {
-          errorMessage = "Tu correo electrónico no ha sido confirmado. Por favor, revisa tu bandeja de entrada.";
-        }
-        
-        setAuthError(errorMessage);
-        toast({
-          title: "Error de inicio de sesión",
-          description: errorMessage,
-          variant: "destructive"
-        });
-        
-        setIsSubmitting(false);
-        return;
-      }
-      
-      toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión correctamente"
-      });
-      
-      // No intentamos redireccionar aquí manualmente
-      // La redirección será manejada por el useEffect que observa isAuthenticated
-      
-    } catch (error) {
-      console.error('Error durante el inicio de sesión:', error);
-      setAuthError("Ha ocurrido un error inesperado durante el inicio de sesión");
-      toast({
-        title: "Error",
-        description: "Ha ocurrido un error durante el inicio de sesión",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-24 pb-16 bg-gloria-cream bg-opacity-30 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gloria-purple">Cargando...</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
