@@ -20,8 +20,8 @@ const Login = () => {
   const location = useLocation();
   const message = location.state?.message;
 
+  // Manejar la redirección si el usuario ya está autenticado
   useEffect(() => {
-    // Si el usuario ya está autenticado, redirigir al dashboard
     if (session) {
       navigate('/dashboard');
     }
@@ -32,14 +32,18 @@ const Login = () => {
     if (isSubmitting) return;
     
     setIsSubmitting(true);
-    const { error } = await signIn(email, password);
-    
-    if (!error) {
-      // La redirección se maneja por el efecto en useEffect
-      navigate('/dashboard');
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (!error) {
+        // Redirección explícita al dashboard después de un inicio de sesión exitoso
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error("Error durante el inicio de sesión:", err);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   return (

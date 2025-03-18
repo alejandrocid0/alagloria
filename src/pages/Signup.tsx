@@ -19,57 +19,67 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { signUp, session } = useAuth();
   const navigate = useNavigate();
 
+  // Manejar la redirección si el usuario ya está autenticado
   useEffect(() => {
-    // Si el usuario ya está autenticado, redirigir al dashboard
     if (session) {
       navigate('/dashboard');
     }
   }, [session, navigate]);
 
   const validateForm = () => {
+    setFormError(null);
+    
     if (!name || !email || !password || !confirmPassword) {
-      return "Por favor complete todos los campos";
+      setFormError("Por favor complete todos los campos");
+      return false;
     }
     
     if (password !== confirmPassword) {
-      return "Las contraseñas no coinciden";
+      setFormError("Las contraseñas no coinciden");
+      return false;
     }
     
     if (password.length < 8) {
-      return "La contraseña debe tener al menos 8 caracteres";
+      setFormError("La contraseña debe tener al menos 8 caracteres");
+      return false;
     }
     
     if (!acceptTerms) {
-      return "Debe aceptar los términos y condiciones";
+      setFormError("Debe aceptar los términos y condiciones");
+      return false;
     }
     
-    return null;
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const error = validateForm();
-    if (error) {
-      alert(error);
+    if (!validateForm()) {
       return;
     }
     
     if (isSubmitting) return;
     
     setIsSubmitting(true);
-    const { error: signUpError } = await signUp(email, password, name);
-    
-    if (!signUpError) {
-      navigate('/login', { 
-        state: { message: 'Registro exitoso. Por favor verifica tu correo electrónico.' } 
-      });
+    try {
+      const { error: signUpError } = await signUp(email, password, name);
+      
+      if (!signUpError) {
+        navigate('/login', { 
+          state: { message: 'Registro exitoso. Por favor verifica tu correo electrónico.' } 
+        });
+      }
+    } catch (err) {
+      console.error("Error durante el registro:", err);
+      setFormError("Ocurrió un error durante el registro. Por favor intente nuevamente.");
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   return (
@@ -91,6 +101,12 @@ const Signup = () => {
                 Únete a A la Gloria y demuestra tus conocimientos
               </p>
             </div>
+            
+            {formError && (
+              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md">
+                {formError}
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">

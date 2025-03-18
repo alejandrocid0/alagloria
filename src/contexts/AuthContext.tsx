@@ -32,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Initialize with the current session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -43,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for changes in the authentication state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Authentication state changed:', event);
+        console.log('Authentication state changed:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -76,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
+      console.log('Profile fetched:', data);
       setProfile(data);
       return data;
     } catch (error) {
@@ -88,7 +90,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, name: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({
+      console.log('Attempting to sign up user:', email, name);
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -97,9 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
 
+      console.log('Sign up response:', data, error);
+
       if (error) {
+        console.error('Error in registration:', error);
         toast({
-          title: 'Error in registration',
+          title: 'Error en el registro',
           description: error.message,
           variant: 'destructive',
         });
@@ -107,14 +114,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       toast({
-        title: 'Successful registration',
-        description: 'Check your email to confirm your account',
+        title: 'Registro exitoso',
+        description: 'Revisa tu correo para confirmar tu cuenta',
       });
       
       return { error: null };
     } catch (error: any) {
+      console.error('Unexpected error in registration:', error);
       toast({
-        title: 'Error in registration',
+        title: 'Error en el registro',
         description: error.message,
         variant: 'destructive',
       });
@@ -128,14 +136,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting to sign in user:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log('Sign in response:', data, error);
+
       if (error) {
+        console.error('Error signing in:', error);
         toast({
-          title: 'Error signing in',
+          title: 'Error al iniciar sesión',
           description: error.message,
           variant: 'destructive',
         });
@@ -143,14 +156,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       toast({
-        title: 'Welcome!',
-        description: 'You have successfully signed in',
+        title: '¡Bienvenido!',
+        description: 'Has iniciado sesión correctamente',
       });
       
       return { error: null };
     } catch (error: any) {
+      console.error('Unexpected error signing in:', error);
       toast({
-        title: 'Error signing in',
+        title: 'Error al iniciar sesión',
         description: error.message,
         variant: 'destructive',
       });
@@ -163,14 +177,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign out
   const signOut = async () => {
     try {
+      console.log('Attempting to sign out user');
       await supabase.auth.signOut();
+      console.log('User signed out successfully');
       toast({
-        title: 'Session closed',
-        description: 'You have successfully signed out',
+        title: 'Sesión cerrada',
+        description: 'Has cerrado sesión correctamente',
       });
     } catch (error: any) {
+      console.error('Error closing session:', error);
       toast({
-        title: 'Error closing session',
+        title: 'Error al cerrar sesión',
         description: error.message,
         variant: 'destructive',
       });
