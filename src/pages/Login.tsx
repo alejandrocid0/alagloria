@@ -1,53 +1,43 @@
 
-import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useLoginForm } from '@/hooks/useLoginForm';
-import { useRedirectAuthenticated } from '@/hooks/useRedirectAuthenticated';
-import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
 const Login = () => {
-  const { 
-    email, 
-    setEmail, 
-    password, 
-    setPassword, 
-    showPassword, 
-    setShowPassword, 
-    isSubmitting, 
-    authError, 
-    handleSubmit 
-  } = useLoginForm();
-
-  const { loading, authChecked, isAuthenticated } = useRedirectAuthenticated();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, session } = useAuth();
   const navigate = useNavigate();
 
-  // Efecto adicional para detectar si el usuario ya está autenticado
-  useEffect(() => {
-    if (authChecked && isAuthenticated) {
-      console.log("User already authenticated, redirecting from Login page");
-    }
-  }, [authChecked, isAuthenticated, navigate]);
-
-  if (loading || !authChecked) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen pt-24 pb-16 bg-gloria-cream bg-opacity-30 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gloria-purple">Verificando estado de sesión...</p>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
+  // Si el usuario ya está autenticado, redirigir al dashboard
+  if (session) {
+    navigate('/dashboard');
+    return null;
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    const { error } = await signIn(email, password);
+    
+    if (!error) {
+      // La redirección se maneja por el efecto en AuthContext
+      navigate('/dashboard');
+    }
+    
+    setIsSubmitting(false);
+  };
 
   return (
     <>
@@ -69,12 +59,6 @@ const Login = () => {
               </p>
             </div>
             
-            {authError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-                {authError}
-              </div>
-            )}
-            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">
@@ -92,7 +76,6 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isSubmitting}
-                    aria-label="Correo electrónico"
                     required
                   />
                 </div>
@@ -119,7 +102,6 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isSubmitting}
-                    aria-label="Contraseña"
                     required
                   />
                   <button
@@ -127,7 +109,6 @@ const Login = () => {
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isSubmitting}
-                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5 text-gray-400" aria-hidden="true" />
@@ -142,11 +123,10 @@ const Login = () => {
                 type="submit"
                 className="w-full bg-gloria-purple hover:bg-gloria-purple/90 text-white"
                 disabled={isSubmitting}
-                aria-label={isSubmitting ? "Iniciando sesión" : "Iniciar sesión"}
               >
                 {isSubmitting ? (
                   <>
-                    <span className="animate-spin mr-2" aria-hidden="true">⟳</span>
+                    <span className="animate-spin mr-2">⟳</span>
                     Iniciando sesión...
                   </>
                 ) : "Iniciar Sesión"}

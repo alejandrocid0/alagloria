@@ -1,46 +1,46 @@
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from '@/contexts/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import GameManagement from '@/components/admin/GameManagement';
 import GamesList from '@/components/admin/GamesList';
 
 const AdminDashboard = () => {
-  const { isAdmin, isAuthenticated, loading, authChecked } = useAuth();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = profile?.is_admin || false;
 
   useEffect(() => {
-    if (authChecked && !loading) {
-      if (!isAuthenticated) {
-        console.log("No autenticado, redirigiendo a login");
-        navigate('/login', { state: { redirectTo: '/admin' }, replace: true });
-        return;
-      }
-      
-      if (!isAdmin) {
-        console.log("Usuario no es admin, redirigiendo a dashboard");
-        navigate('/dashboard', { replace: true });
-        return;
+    // Redireccionar si no está autenticado o no es admin
+    if (!loading) {
+      if (!user) {
+        navigate('/login', { state: { redirectTo: '/admin' } });
+      } else if (!isAdmin) {
+        navigate('/dashboard');
       }
     }
-  }, [isAdmin, isAuthenticated, navigate, loading, authChecked]);
+  }, [user, isAdmin, loading, navigate]);
 
-  if (loading || !authChecked) {
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-pulse bg-gloria-purple/20 h-8 w-64 rounded-md mb-4 mx-auto"></div>
-            <div className="animate-pulse bg-gloria-purple/10 h-4 w-48 rounded-md mx-auto"></div>
+            <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gloria-purple">Verificando permisos...</p>
           </div>
         </div>
         <Footer />
       </div>
     );
+  }
+
+  if (!user || !isAdmin) {
+    return null; // La redirección se maneja en el efecto
   }
 
   return (

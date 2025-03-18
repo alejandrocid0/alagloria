@@ -1,94 +1,87 @@
 
-import React, { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import GameHistoryCard from '@/components/dashboard/GameHistoryCard';
-import SpendingCard from '@/components/dashboard/SpendingCard';
-import SuccessRatioCard from '@/components/dashboard/SuccessRatioCard';
-import StatsOverviewCard from '@/components/dashboard/StatsOverviewCard';
 
+// Componente placeholder para el dashboard
 const Dashboard = () => {
-  const { currentUser, isAuthenticated, isAdmin, loading, authChecked } = useAuth();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    if (authChecked && !loading) {
-      if (!isAuthenticated) {
-        console.log("No autenticado, redirigiendo a login");
-        setIsRedirecting(true);
-        navigate('/login', { 
-          state: { redirectTo: '/dashboard' },
-          replace: true 
-        });
-        return;
-      }
-      
-      if (isAdmin) {
-        console.log("Usuario es admin, redirigiendo a panel de administración");
-        setIsRedirecting(true);
-        navigate('/admin', { replace: true });
-        return;
-      }
+    // Redireccionar si no está autenticado
+    if (!loading && !user) {
+      navigate('/login', { state: { redirectTo: '/dashboard' } });
     }
-  }, [isAuthenticated, isAdmin, navigate, loading, authChecked]);
+  }, [user, loading, navigate]);
 
-  if (loading || !authChecked || isRedirecting || !isAuthenticated || !currentUser) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <>
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-gloria-purple border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gloria-purple">
-              {loading ? "Cargando datos..." : "Redirigiendo..."}
-            </p>
+            <p className="text-gloria-purple">Cargando tu perfil...</p>
           </div>
         </div>
         <Footer />
-      </div>
+      </>
     );
   }
 
+  if (!user || !profile) {
+    return null; // La redirección se maneja en el efecto
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <>
       <Navbar />
-      
-      <main className="flex-1 container mx-auto px-4 py-8 mt-20">
-        <h1 className="text-3xl font-serif font-bold text-gloria-purple mb-8">
-          Dashboard de {currentUser.name}
-        </h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatsOverviewCard 
-            user={currentUser} 
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <GameHistoryCard 
-            gameHistory={currentUser.stats.gamesPlayed} 
-          />
+      <div className="min-h-screen pt-24 pb-16 bg-gloria-cream bg-opacity-30">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-serif font-bold text-gloria-purple mb-8">
+            Perfil de {profile.name}
+          </h1>
           
-          <div className="space-y-8">
-            <SpendingCard 
-              totalSpent={currentUser.stats.totalSpent}
-              gameHistory={currentUser.stats.gamesPlayed}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Información del usuario */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-4 text-gloria-purple">Información Personal</h2>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500">Nombre</p>
+                  <p className="font-medium">{profile.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Correo electrónico</p>
+                  <p className="font-medium">{profile.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Miembro desde</p>
+                  <p className="font-medium">
+                    {new Date(profile.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
             
-            <SuccessRatioCard 
-              correctAnswers={currentUser.stats.correctAnswers}
-              totalAnswers={currentUser.stats.totalAnswers}
-              gameHistory={currentUser.stats.gamesPlayed}
-            />
+            {/* Historial de juegos */}
+            <div className="bg-white p-6 rounded-lg shadow-md col-span-2">
+              <h2 className="text-xl font-bold mb-4 text-gloria-purple">Historial de Partidas</h2>
+              <div className="text-center py-8 text-gray-500">
+                <p>Aún no has participado en ninguna partida.</p>
+                <p className="mt-2">
+                  ¡Participa en los juegos y demuestra tus conocimientos!
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
-      
+      </div>
       <Footer />
-    </div>
+    </>
   );
 };
 

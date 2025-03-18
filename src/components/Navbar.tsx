@@ -3,13 +3,16 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, isAdmin, currentUser, logout, loading } = useAuth();
+  const { user, profile, signOut, loading } = useAuth();
+  
+  const isAuthenticated = !!user;
+  const isAdmin = profile?.is_admin || false;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +25,11 @@ const Navbar = () => {
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    closeMenu();
+  };
 
   const navLinks = [
     { title: 'Inicio', path: '/' },
@@ -70,7 +78,7 @@ const Navbar = () => {
               {!loading && isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <div className="text-gloria-purple font-medium">
-                    Hola, {currentUser?.name}
+                    Hola, {profile?.name}
                   </div>
                   {isAdmin && (
                     <Link
@@ -89,7 +97,7 @@ const Navbar = () => {
                     <span>Mi Perfil</span>
                   </Link>
                   <button
-                    onClick={logout}
+                    onClick={handleSignOut}
                     className="flex items-center space-x-1 px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
                   >
                     <LogOut size={16} className="mr-2" />
@@ -149,7 +157,7 @@ const Navbar = () => {
                   <>
                     <div className="py-2 px-4 text-gloria-purple font-medium flex items-center">
                       <User size={16} className="mr-2" />
-                      {currentUser?.name}
+                      {profile?.name}
                     </div>
                     {isAdmin && (
                       <Link 
@@ -170,10 +178,7 @@ const Navbar = () => {
                       Mi Perfil
                     </Link>
                     <button 
-                      onClick={() => {
-                        closeMenu();
-                        logout();
-                      }}
+                      onClick={handleSignOut}
                       className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
                     >
                       <LogOut size={16} className="mr-2" />
