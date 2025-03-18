@@ -12,7 +12,6 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
-  // Add these properties to fix the errors
   isAuthenticated: boolean;
   currentUser: User | null;
 };
@@ -24,32 +23,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  // Compute isAuthenticated based on user existence
   const isAuthenticated = !!user;
-  // Use user as currentUser for compatibility
   const currentUser = user;
 
   useEffect(() => {
     // Initialize with the current session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
-        fetchProfile(session.user.id);
+        // Intentamos obtener el perfil, pero no esperamos demasiado tiempo
+        fetchProfile(session.user.id)
+          .catch(err => {
+            console.error('Error fetching profile on init:', err);
+            // Si hay error al obtener perfil, no bloqueamos la UI
+          })
+          .finally(() => {
+            // Incluso si hay error al obtener el perfil, terminamos la carga
+            setLoading(false);
+          });
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Listen for changes in the authentication state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Authentication state changed:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          try {
+            await fetchProfile(session.user.id);
+          } catch (err) {
+            console.error('Error fetching profile on auth change:', err);
+            // Si hay error al obtener perfil, no bloqueamos la UI
+          }
         } else {
           setProfile(null);
         }
@@ -66,22 +77,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Get user profile
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Establecemos un tiempo límite para la obtención del perfil
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+        
+      // Si en 3 segundos no hay respuesta, continuamos de todos modos
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+      });
+      
+      // Race entre la obtención del perfil y el timeout
+      const { data, error } = await Promise.race([
+        profilePromise,
+        timeoutPromise.then(() => ({ data: null, error: new Error('Timeout') }))
+      ]) as any;
 
-      if (error) {
-        console.error('Error getting profile:', error);
+      if (error && error.message !== 'Timeout') {
+        console.warn('Non-timeout error getting profile:', error);
         return null;
       }
 
       console.log('Profile fetched:', data);
-      setProfile(data);
+      if (data) {
+        setProfile(data);
+      } else {
+        // Si no hay datos, creamos un perfil básico basado en el email
+        const basicProfile = {
+          id: userId,
+          name: user?.email?.split('@')[0] || 'Usuario',
+          email: user?.email
+        };
+        setProfile(basicProfile);
+      }
       return data;
     } catch (error) {
-      console.error('Unexpected error getting profile:', error);
+      console.warn('Unexpected error getting profile:', error);
+      // Creamos un perfil básico para no bloquear la UI
+      const basicProfile = {
+        id: userId,
+        name: user?.email?.split('@')[0] || 'Usuario',
+        email: user?.email
+      };
+      setProfile(basicProfile);
       return null;
     }
   };
@@ -202,7 +242,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signOut,
     loading,
-    // Add these properties to fix the errors
     isAuthenticated,
     currentUser,
   };

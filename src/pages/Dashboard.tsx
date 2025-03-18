@@ -1,23 +1,36 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
-// Componente placeholder para el dashboard
 const Dashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
+  const [localLoading, setLocalLoading] = useState(true);
 
   useEffect(() => {
     // Redireccionar si no está autenticado
     if (!loading && !user) {
       navigate('/login', { state: { redirectTo: '/dashboard' } });
+    } else if (!loading) {
+      // Si ya no está cargando, actualizamos el estado local
+      setLocalLoading(false);
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  // Establecemos un tiempo máximo de espera para mostrar la página del dashboard
+  useEffect(() => {
+    // Si después de 2 segundos aún está cargando, mostramos el dashboard de todos modos
+    const timer = setTimeout(() => {
+      setLocalLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (localLoading && loading) {
     return (
       <>
         <Navbar />
@@ -32,17 +45,14 @@ const Dashboard = () => {
     );
   }
 
-  if (!user || !profile) {
-    return null; // La redirección se maneja en el efecto
-  }
-
+  // Incluso si no tenemos todos los datos del perfil, mostramos la página con la información disponible
   return (
     <>
       <Navbar />
       <div className="min-h-screen pt-24 pb-16 bg-gloria-cream bg-opacity-30">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-serif font-bold text-gloria-purple mb-8">
-            Perfil de {profile.name}
+            {profile?.name ? `Perfil de ${profile.name}` : 'Tu Perfil'}
           </h1>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -52,18 +62,20 @@ const Dashboard = () => {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-500">Nombre</p>
-                  <p className="font-medium">{profile.name}</p>
+                  <p className="font-medium">{profile?.name || user?.email?.split('@')[0] || 'Usuario'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Correo electrónico</p>
-                  <p className="font-medium">{profile.email}</p>
+                  <p className="font-medium">{user?.email || profile?.email || 'No disponible'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Miembro desde</p>
-                  <p className="font-medium">
-                    {new Date(profile.created_at).toLocaleDateString()}
-                  </p>
-                </div>
+                {profile?.created_at && (
+                  <div>
+                    <p className="text-sm text-gray-500">Miembro desde</p>
+                    <p className="font-medium">
+                      {new Date(profile.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             
