@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
@@ -22,11 +22,12 @@ const Signup = () => {
   const { signUp, session } = useAuth();
   const navigate = useNavigate();
 
-  // Si el usuario ya está autenticado, redirigir al dashboard
-  if (session) {
-    navigate('/dashboard');
-    return null;
-  }
+  useEffect(() => {
+    // Si el usuario ya está autenticado, redirigir al dashboard
+    if (session) {
+      navigate('/dashboard');
+    }
+  }, [session, navigate]);
 
   const validateForm = () => {
     if (!name || !email || !password || !confirmPassword) {

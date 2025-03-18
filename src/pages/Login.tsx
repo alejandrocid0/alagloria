@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,12 +17,15 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const message = location.state?.message;
 
-  // Si el usuario ya está autenticado, redirigir al dashboard
-  if (session) {
-    navigate('/dashboard');
-    return null;
-  }
+  useEffect(() => {
+    // Si el usuario ya está autenticado, redirigir al dashboard
+    if (session) {
+      navigate('/dashboard');
+    }
+  }, [session, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +35,7 @@ const Login = () => {
     const { error } = await signIn(email, password);
     
     if (!error) {
-      // La redirección se maneja por el efecto en AuthContext
+      // La redirección se maneja por el efecto en useEffect
       navigate('/dashboard');
     }
     
@@ -58,6 +61,12 @@ const Login = () => {
                 Bienvenido de nuevo a A la Gloria
               </p>
             </div>
+            
+            {message && (
+              <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md">
+                {message}
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
