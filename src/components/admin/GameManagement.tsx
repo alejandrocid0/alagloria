@@ -1,17 +1,16 @@
-
 import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Save, ImagePlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 
 // Define schema for options
 const optionSchema = z.object({
@@ -115,13 +114,11 @@ const GameManagement = () => {
       const fileName = `${gameId}.${fileExt}`;
       const filePath = `game-images/${fileName}`;
       
-      // Create a progress tracker
       const progressTracker = (progress: number) => {
         const percent = progress * 100;
         setUploadProgress(percent);
       };
       
-      // Fix: Remove onUploadProgress from options and track progress separately
       const { error: uploadError, data } = await supabase.storage
         .from('game-images')
         .upload(filePath, imageFile, {
@@ -133,7 +130,6 @@ const GameManagement = () => {
         throw uploadError;
       }
       
-      // Set upload as complete
       setUploadProgress(100);
       
       const { data: { publicUrl } } = supabase.storage
@@ -160,10 +156,8 @@ const GameManagement = () => {
     try {
       console.log("Submitting game:", data);
       
-      // Combine date and time for game date
       const gameDateTime = new Date(`${data.gameDate}T${data.gameTime}`);
       
-      // 1. Insert game
       const { data: gameData, error: gameError } = await supabase
         .from('games')
         .insert({
@@ -179,7 +173,6 @@ const GameManagement = () => {
         throw new Error(`Error al crear la partida: ${gameError.message}`);
       }
       
-      // 2. Upload image if provided and update game with image URL
       if (imageFile) {
         const imageUrl = await uploadImage(gameData.id);
         if (imageUrl) {
@@ -194,7 +187,6 @@ const GameManagement = () => {
         }
       }
       
-      // 3. Insert questions
       for (let i = 0; i < data.questions.length; i++) {
         const question = data.questions[i];
         
@@ -213,7 +205,6 @@ const GameManagement = () => {
           throw new Error(`Error al crear la pregunta ${i+1}: ${questionError.message}`);
         }
         
-        // 4. Insert options for each question
         for (let j = 0; j < question.options.length; j++) {
           const option = question.options[j];
           
@@ -237,7 +228,6 @@ const GameManagement = () => {
         description: "La partida ha sido creada correctamente",
       });
       
-      // Reset form and image preview
       form.reset();
       setImageFile(null);
       setImagePreview(null);
