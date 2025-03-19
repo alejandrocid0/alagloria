@@ -4,87 +4,109 @@ import { Filter, Search } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import GameCard from '@/components/GameCard';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const Games = () => {
-  const [games, setGames] = useState([
-    {
-      id: '1',
-      title: 'Especial Semana Santa 2023',
-      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1554394985-1b222cdcc912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: '2',
-      title: 'Trivia La Macarena',
-      date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1588638261318-9569c316c152?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: '3',
-      title: 'Hermandades Domingo de Ramos',
-      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1553524790-5872ab69e309?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: '4',
-      title: 'Curiosidades de la Semana Santa',
-      date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: '5',
-      title: 'Música y Marchas Procesionales',
-      date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1575147834960-bf3a3b2d2c0f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: '6',
-      title: 'Historia de la Semana Santa',
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // Past game
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1523676060187-f55189a71f5e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    }
-  ]);
-
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'upcoming', 'full', 'past'
 
   useEffect(() => {
-    const loadGameParticipants = () => {
-      const updatedGames = games.map(game => {
-        const gameParticipantsKey = `game_${game.id}_participants`;
-        const storedParticipants = localStorage.getItem(gameParticipantsKey);
-        
-        const participants = storedParticipants ? parseInt(storedParticipants, 10) : 0;
-        
-        return {
-          ...game,
-          participants
-        };
-      });
-      
-      setGames(updatedGames);
-    };
-    
-    loadGameParticipants();
+    fetchGames();
   }, []);
+
+  const fetchGames = async () => {
+    try {
+      setLoading(true);
+      const { data: gamesData, error } = await supabase
+        .from('games')
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      const formattedGames = gamesData.map(game => ({
+        id: game.id,
+        title: game.title,
+        date: new Date(game.date),
+        participants: Math.floor(Math.random() * 50),
+        maxParticipants: 100,
+        prizePool: 100,
+        image: game.image_url || undefined
+      }));
+
+      setGames(formattedGames);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      toast({
+        title: "Error al cargar partidas",
+        description: "No se pudieron cargar las partidas. Por favor, inténtalo de nuevo más tarde.",
+        variant: "destructive"
+      });
+      setGames([
+        {
+          id: '1',
+          title: 'Especial Semana Santa 2023',
+          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          participants: 0,
+          maxParticipants: 100,
+          prizePool: 100,
+          image: 'https://images.unsplash.com/photo-1554394985-1b222cdcc912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+        },
+        {
+          id: '2',
+          title: 'Trivia La Macarena',
+          date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+          participants: 0,
+          maxParticipants: 100,
+          prizePool: 100,
+          image: 'https://images.unsplash.com/photo-1588638261318-9569c316c152?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+        },
+        {
+          id: '3',
+          title: 'Hermandades Domingo de Ramos',
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          participants: 0,
+          maxParticipants: 100,
+          prizePool: 100,
+          image: 'https://images.unsplash.com/photo-1553524790-5872ab69e309?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+        },
+        {
+          id: '4',
+          title: 'Curiosidades de la Semana Santa',
+          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+          participants: 0,
+          maxParticipants: 100,
+          prizePool: 100,
+          image: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+        },
+        {
+          id: '5',
+          title: 'Música y Marchas Procesionales',
+          date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+          participants: 0,
+          maxParticipants: 100,
+          prizePool: 100,
+          image: 'https://images.unsplash.com/photo-1575147834960-bf3a3b2d2c0f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+        },
+        {
+          id: '6',
+          title: 'Historia de la Semana Santa',
+          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          participants: 0,
+          maxParticipants: 100,
+          prizePool: 100,
+          image: 'https://images.unsplash.com/photo-1523676060187-f55189a71f5e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredGames = games.filter(game => {
     const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -173,7 +195,23 @@ const Games = () => {
             </div>
           </div>
           
-          {filteredGames.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(3)].map((_, index) => (
+                <div key={index} className="glass-panel overflow-hidden animate-pulse">
+                  <div className="h-40 bg-gloria-purple/20"></div>
+                  <div className="p-6 space-y-4">
+                    <div className="h-6 bg-gloria-purple/30 rounded"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredGames.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-xl text-gray-500">No se encontraron partidas con los filtros actuales.</p>
               <button
