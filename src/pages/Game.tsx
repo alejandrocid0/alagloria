@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Award, AlertTriangle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import QuestionCard from '@/components/QuestionCard';
+import QuestionCard from '@/components/question/QuestionCard';
 import LeaderboardPanel from '@/components/game/LeaderboardPanel';
 import GameCompletedPanel from '@/components/game/GameCompletedPanel';
 import useGameState from '@/hooks/useGameState';
