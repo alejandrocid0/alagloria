@@ -20,6 +20,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { fetchProfile } = useProfile();
   const { signUp, signIn, signOut } = useAuthActions(setLoading, setProfile);
 
+  // Función para cargar el perfil de usuario
+  const loadUserProfile = async (userId: string, userObj: User) => {
+    try {
+      const profileData = await fetchProfile(userId, userObj);
+      if (profileData) {
+        console.log('Perfil cargado con éxito:', profileData);
+        setProfile(profileData);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Initialize with the current session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -28,20 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         // Intentamos obtener el perfil, pero no esperamos demasiado tiempo
-        fetchProfile(session.user.id, session.user)
-          .then(profileData => {
-            if (profileData) {
-              setProfile(profileData);
-            }
-          })
-          .catch(err => {
-            console.error('Error fetching profile on init:', err);
-            // Si hay error al obtener perfil, no bloqueamos la UI
-          })
-          .finally(() => {
-            // Incluso si hay error al obtener el perfil, terminamos la carga
-            setLoading(false);
-          });
+        loadUserProfile(session.user.id, session.user);
       } else {
         setLoading(false);
       }
@@ -50,24 +52,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for changes in the authentication state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          try {
-            const profileData = await fetchProfile(session.user.id, session.user);
-            if (profileData) {
-              setProfile(profileData);
-            }
-          } catch (err) {
-            console.error('Error fetching profile on auth change:', err);
-            // Si hay error al obtener perfil, no bloqueamos la UI
-          }
+          await loadUserProfile(session.user.id, session.user);
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
