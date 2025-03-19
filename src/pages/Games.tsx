@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Filter, Search } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import GameCard from '@/components/GameCard';
+import GameCard, { GameCardProps } from '@/components/GameCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import LoadingState from '@/components/gameplay/LoadingState';
@@ -15,9 +15,9 @@ interface Game {
   title: string;
   date: Date;
   description: string | null;
-  participants?: number;
-  maxParticipants?: number;
-  prizePool?: number;
+  participants: number; // Changed from optional to required
+  maxParticipants: number; // Changed from optional to required
+  prizePool: number; // Changed from optional to required
   image: string | undefined;
 }
 
@@ -56,9 +56,9 @@ const Games = () => {
         title: game.title,
         date: new Date(game.date),
         description: game.description,
-        participants: Math.floor(Math.random() * 50), // Simulación para la vista
-        maxParticipants: 100,
-        prizePool: 100,
+        participants: Math.floor(Math.random() * 50), // Ensure this is always provided
+        maxParticipants: 100, // Ensure this is always provided
+        prizePool: 100, // Ensure this is always provided
         image: game.image_url || undefined
       }));
 
@@ -213,7 +213,15 @@ const Games = () => {
             >
               {filteredGames.map((game) => (
                 <motion.div key={game.id} variants={itemVariants}>
-                  <GameCard {...game} />
+                  <GameCard
+                    id={game.id}
+                    title={game.title}
+                    date={game.date}
+                    participants={game.participants}
+                    maxParticipants={game.maxParticipants}
+                    prizePool={game.prizePool}
+                    image={game.image}
+                  />
                 </motion.div>
               ))}
             </motion.div>

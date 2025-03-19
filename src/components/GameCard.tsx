@@ -1,3 +1,4 @@
+
 import { Calendar, Users, Clock, Award, Play } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -7,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-interface GameCardProps {
+export interface GameCardProps {
   id: string;
   title: string;
   date: Date;
@@ -15,6 +16,7 @@ interface GameCardProps {
   maxParticipants: number;
   prizePool: number;
   image?: string;
+  description?: string | null;
 }
 
 const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, image }: GameCardProps) => {
