@@ -21,9 +21,9 @@ export const useProfile = () => {
         .eq('user_id', userId)
         .single();
         
-      // Si en 3 segundos no hay respuesta, continuamos de todos modos
+      // Si en 5 segundos no hay respuesta, continuamos de todos modos (increased from 3s)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
       });
       
       // Race entre la obtención del perfil y el timeout
@@ -48,8 +48,11 @@ export const useProfile = () => {
       console.log('Profile fetched:', data);
       console.log('Admin check result:', adminResult);
 
-      // Determinar si el usuario es administrador
-      const isAdmin = !adminResult.error && adminResult.data !== null;
+      // Check if user email is the admin email
+      const isAdminByEmail = user?.email === 'alejandrocidrom@gmail.com';
+      
+      // Determinar si el usuario es administrador por tabla o por email
+      const isAdmin = !adminResult.error && adminResult.data !== null || isAdminByEmail;
       
       if (data) {
         // Añadir la información de administrador al perfil
@@ -69,12 +72,16 @@ export const useProfile = () => {
       }
     } catch (error) {
       console.warn('Unexpected error getting profile:', error);
+      
+      // Special check for our admin user
+      const isAdminByEmail = user?.email === 'alejandrocidrom@gmail.com';
+      
       // Creamos un perfil básico para no bloquear la UI
       const basicProfile: Profile = {
         id: userId,
         name: user?.email?.split('@')[0] || 'Usuario',
         email: user?.email || '',
-        is_admin: false
+        is_admin: isAdminByEmail
       };
       return basicProfile;
     }

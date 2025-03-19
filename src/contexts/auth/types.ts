@@ -2,7 +2,7 @@
 import { Session, User } from '@supabase/supabase-js';
 
 // Re-export the User type
-export { User };
+export type { User };
 
 export type Profile = {
   id: string;
