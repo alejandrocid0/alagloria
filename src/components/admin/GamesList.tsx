@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ interface Game {
   date: string;
   created_at: string;
   updated_at: string;
+  image_url: string | null;
 }
 
 const GamesList = () => {
@@ -99,6 +100,17 @@ const GamesList = () => {
     return <GameEditor game={selectedGame} onClose={handleCloseEditor} />;
   }
 
+  const formatGameDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd 'de' MMMM 'de' yyyy 'a las' HH:mm", {
+        locale: es,
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Fecha inválida';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -130,14 +142,12 @@ const GamesList = () => {
                       {game.title}
                     </h3>
                     <p className="text-sm text-gray-500 truncate">
-                      {game.description}
+                      {game.description || 'Sin descripción'}
                     </p>
-                    <p className="text-sm font-medium mt-2">
-                      Fecha:{' '}
-                      {format(new Date(game.date), "dd 'de' MMMM 'de' yyyy 'a las' HH:mm", {
-                        locale: es,
-                      })}
-                    </p>
+                    <div className="flex items-center mt-2 text-sm">
+                      <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                      <span>{formatGameDate(game.date)}</span>
+                    </div>
                   </div>
                   <div className="flex mt-4 md:mt-0 space-x-2">
                     <Button
