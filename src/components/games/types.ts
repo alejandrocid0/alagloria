@@ -10,4 +10,9 @@ export interface Game {
   image: string | undefined;
   category: string;
   creatorName?: string;
+  prizeDistribution?: Array<{
+    position: number;
+    percentage: number;
+    amount: number;
+  }>;
 }

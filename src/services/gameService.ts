@@ -152,7 +152,7 @@ export const gameService = {
       throw new Error(`Error al contar participantes: ${error.message}`);
     }
     
-    // Ensure we convert to number, not string
-    return data ? parseInt(data[0]?.count as string || '0') : 0;
+    // Convert count to number properly
+    return data && data[0] ? parseInt(String(data[0].count)) : 0;
   }
 };
