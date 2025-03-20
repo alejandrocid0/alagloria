@@ -19,6 +19,7 @@ export const gameService = {
       .single();
     
     if (gameError) {
+      console.error('Error creating game:', gameError);
       throw new Error(`Error al crear la partida: ${gameError.message}`);
     }
     
@@ -50,6 +51,7 @@ export const gameService = {
       .single();
     
     if (questionError) {
+      console.error('Error creating question:', questionError);
       throw new Error(`Error al crear la pregunta ${position}: ${questionError.message}`);
     }
     
@@ -67,7 +69,22 @@ export const gameService = {
       });
     
     if (optionError) {
+      console.error('Error creating option:', optionError);
       throw new Error(`Error al crear la opción ${optionId}: ${optionError.message}`);
     }
+  },
+  
+  async fetchGames() {
+    const { data: gamesData, error } = await supabase
+      .from('games')
+      .select('*')
+      .order('date', { ascending: true });
+    
+    if (error) {
+      console.error('Error fetching games:', error);
+      throw new Error(`Error al cargar partidas: ${error.message}`);
+    }
+    
+    return gamesData || [];
   }
 };

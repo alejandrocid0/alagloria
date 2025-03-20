@@ -8,7 +8,7 @@ import { useGameImage } from '@/hooks/useGameImage';
 import { GameFormValues } from '../schemas/gameFormSchema';
 
 export function useGameCreation() {
-  const { currentUser } = useAuth();
+  const { user, currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { 
@@ -22,32 +22,38 @@ export function useGameCreation() {
   } = useGameImage();
 
   const handleSubmit = async (data: GameFormValues) => {
-    if (!currentUser) {
+    const userId = user?.id || currentUser?.id;
+    if (!userId) {
       toast({
         title: "Error",
         description: "Debes iniciar sesión para crear una partida",
         variant: "destructive",
       });
-      return;
+      return false;
     }
     
     setIsSubmitting(true);
     
     try {
       console.log("Submitting game:", data);
+      console.log("User ID:", userId);
       
       // Create the game
-      const gameData = await gameService.createGame(data, currentUser.id);
+      const gameData = await gameService.createGame(data, userId);
+      console.log("Game created successfully:", gameData);
       
       // Upload image if provided
       if (imageFile) {
+        console.log("Uploading image for game:", gameData.id);
         const imageUrl = await uploadImage(gameData.id);
         if (imageUrl) {
           await gameService.updateGameImage(gameData.id, imageUrl);
+          console.log("Image updated successfully");
         }
       }
       
       // Create questions and options
+      console.log("Creating questions:", data.questions.length);
       for (let i = 0; i < data.questions.length; i++) {
         const question = data.questions[i];
         
@@ -57,8 +63,10 @@ export function useGameCreation() {
           question.correctOption,
           i + 1
         );
+        console.log("Question created:", questionData);
         
         // Create options for each question
+        console.log("Creating options for question:", questionData.id);
         for (let j = 0; j < question.options.length; j++) {
           const option = question.options[j];
           
