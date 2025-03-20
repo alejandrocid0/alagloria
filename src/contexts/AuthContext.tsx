@@ -18,7 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentUser = user;
   
   const { fetchProfile } = useProfile();
-  const { signUp, signIn, signOut } = useAuthActions(setLoading, setProfile);
+  const { signUp, signIn, signOut, resetPassword, updatePassword } = useAuthActions(setLoading, setProfile);
 
   // Función para cargar el perfil de usuario
   const loadUserProfile = async (userId: string, userObj: User) => {
@@ -77,6 +77,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signIn,
     signOut,
+    resetPassword,
+    updatePassword,
     loading,
     isAuthenticated,
     currentUser,

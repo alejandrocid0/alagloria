@@ -10,6 +10,8 @@ import Games from "./pages/Games";
 import HowToPlay from "./pages/HowToPlay";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import JoinGame from "./pages/JoinGame";
 import Game from "./pages/Game";
 import Dashboard from "./pages/Dashboard";
@@ -31,6 +33,8 @@ const App = () => (
             <Route path="/how-to-play" element={<HowToPlay />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/join/:gameId" element={<JoinGame />} />
             <Route path="/game/:gameId" element={<Game />} />
             <Route path="/dashboard" element={<Dashboard />} />
