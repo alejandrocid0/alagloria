@@ -8,9 +8,11 @@ import GameDetails from '@/components/join-game/GameDetails';
 import JoinGameForm from '@/components/join-game/JoinGameForm';
 import SuccessMessage from '@/components/join-game/SuccessMessage';
 import { useJoinGame } from '@/hooks/useJoinGame';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const JoinGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
+  const isMobile = useIsMobile();
   const { 
     gameData, 
     loading, 
@@ -25,9 +27,9 @@ const JoinGame = () => {
     return (
       <>
         <Navbar />
-        <div className="pt-24 pb-16 bg-gray-50 min-h-screen">
+        <div className="pt-20 md:pt-24 pb-16 bg-gray-50 min-h-screen">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="flex justify-center items-center min-h-[400px]">
+            <div className="flex justify-center items-center min-h-[300px] md:min-h-[400px]">
               <LoadingState message="Cargando información de la partida..." />
             </div>
           </div>
@@ -43,7 +45,7 @@ const JoinGame = () => {
     <>
       <Navbar />
       
-      <div className="pt-24 pb-16 bg-gray-50 min-h-screen">
+      <div className="pt-20 md:pt-24 pb-16 bg-gray-50 min-h-screen">
         <div className="container mx-auto px-4 max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -51,15 +53,16 @@ const JoinGame = () => {
             transition={{ duration: 0.5 }}
           >
             {!paymentComplete ? (
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                <div className="lg:col-span-3">
+              <div className={`grid grid-cols-1 ${isMobile ? 'gap-6' : 'lg:grid-cols-5 gap-8'}`}>
+                <div className={isMobile ? '' : 'lg:col-span-3'}>
                   <GameDetails 
                     gameData={gameData} 
                     formattedDate={formattedDate} 
+                    isMobile={isMobile}
                   />
                 </div>
                 
-                <div className="lg:col-span-2">
+                <div className={isMobile ? '' : 'lg:col-span-2'}>
                   <JoinGameForm
                     gameData={gameData}
                     formattedDate={formattedDate}

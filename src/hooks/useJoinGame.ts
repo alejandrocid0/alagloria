@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -15,12 +15,59 @@ export const useJoinGame = (gameId: string | undefined) => {
   const navigate = useNavigate();
   const [gameData, setGameData] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Use our custom hook to check if the user has already joined
   const { hasJoined: paymentComplete, checkingStatus } = useCheckGameJoin(
     gameId || '', 
     user?.id || null
   );
+  
+  const fetchGameData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setConnectionError(null);
+      
+      const games = await fetchGamesFromSupabase();
+      const game = games.find(g => g.id === gameId);
+      
+      if (!game) {
+        toast({
+          title: "Partida no encontrada",
+          description: "No se pudo encontrar la partida especificada",
+          variant: "destructive"
+        });
+        navigate("/games");
+        return;
+      }
+      
+      // Add mock prize distribution if not already present
+      if (!game.prizeDistribution) {
+        game.prizeDistribution = [
+          { position: 1, percentage: 50, amount: Math.round(game.prizePool * 0.5) },
+          { position: 2, percentage: 30, amount: Math.round(game.prizePool * 0.3) },
+          { position: 3, percentage: 20, amount: Math.round(game.prizePool * 0.2) }
+        ];
+      }
+      
+      setGameData(game);
+    } catch (error) {
+      console.error("Error fetching game:", error);
+      setConnectionError("Error de conexión al cargar la partida");
+      toast({
+        title: "Error al cargar la partida",
+        description: "No se pudo cargar la información de la partida. Comprueba tu conexión.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [gameId, navigate]);
+
+  // Handler for retry fetching in case of connection issues
+  const handleRetry = () => {
+    fetchGameData();
+  };
   
   useEffect(() => {
     if (!isAuthenticated) {
@@ -33,47 +80,9 @@ export const useJoinGame = (gameId: string | undefined) => {
       return;
     }
     
-    const fetchGameData = async () => {
-      try {
-        setLoading(true);
-        const games = await fetchGamesFromSupabase();
-        const game = games.find(g => g.id === gameId);
-        
-        if (!game) {
-          toast({
-            title: "Partida no encontrada",
-            description: "No se pudo encontrar la partida especificada",
-            variant: "destructive"
-          });
-          navigate("/games");
-          return;
-        }
-        
-        // Add mock prize distribution if not already present
-        if (!game.prizeDistribution) {
-          game.prizeDistribution = [
-            { position: 1, percentage: 50, amount: Math.round(game.prizePool * 0.5) },
-            { position: 2, percentage: 30, amount: Math.round(game.prizePool * 0.3) },
-            { position: 3, percentage: 20, amount: Math.round(game.prizePool * 0.2) }
-          ];
-        }
-        
-        setGameData(game);
-      } catch (error) {
-        console.error("Error fetching game:", error);
-        toast({
-          title: "Error al cargar la partida",
-          description: "No se pudo cargar la información de la partida",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchGameData();
     
-    // Configurar suscripción en tiempo real para actualizaciones
+    // Set up real-time subscription for updates
     if (gameId) {
       const channel = supabase
         .channel(`game-${gameId}`)
@@ -88,13 +97,18 @@ export const useJoinGame = (gameId: string | undefined) => {
             fetchGameData();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            console.error('Subscription error');
+            // Handle subscription error silently without disrupting UX
+          }
+        });
       
       return () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [gameId, isAuthenticated, navigate, user]);
+  }, [gameId, isAuthenticated, navigate, user, fetchGameData]);
   
   const handleJoinGame = async () => {
     if (!user || !gameId || !gameData) return;
@@ -136,7 +150,9 @@ export const useJoinGame = (gameId: string | undefined) => {
     checkingStatus,
     paymentComplete,
     isProcessing,
+    connectionError,
     handleJoinGame,
+    handleRetry,
     formatDate
   };
 };
