@@ -33,7 +33,7 @@ export const fetchGamesFromSupabase = async (): Promise<Game[]> => {
     maxParticipants: 100, // Ensure this is always provided
     prizePool: 100, // Ensure this is always provided
     image: game.image_url || undefined,
-    category: game.category || 'general' // Use the category from DB or default to 'general'
+    category: game.category || 'semana-santa' // Default to 'semana-santa' now
   }));
 
   return formattedGames;

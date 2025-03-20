@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -11,7 +11,12 @@ import GamesList from '@/components/admin/GamesList';
 const AdminDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isAdmin = profile?.is_admin || false;
+  
+  // Get active tab from URL query parameter or default to 'games-list'
+  const queryParams = new URLSearchParams(location.search);
+  const defaultTab = queryParams.get('tab') || 'games-list';
 
   useEffect(() => {
     // Redireccionar si no está autenticado o no es admin
@@ -23,6 +28,10 @@ const AdminDashboard = () => {
       }
     }
   }, [user, isAdmin, loading, navigate]);
+
+  const handleTabChange = (value: string) => {
+    navigate(`/admin?tab=${value}`);
+  };
 
   if (loading) {
     return (
@@ -52,7 +61,7 @@ const AdminDashboard = () => {
           Panel de Administración
         </h1>
         
-        <Tabs defaultValue="games-list" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full" onValueChange={handleTabChange}>
           <TabsList className="mb-6">
             <TabsTrigger value="games-list">Lista de Partidas</TabsTrigger>
             <TabsTrigger value="create-game">Crear Partida</TabsTrigger>

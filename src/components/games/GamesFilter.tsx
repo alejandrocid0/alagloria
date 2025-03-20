@@ -18,20 +18,6 @@ const GamesFilter = ({
   filterCategory,
   setFilterCategory
 }: GamesFilterProps) => {
-  const categories = [
-    { value: "all", label: "Todas las categorías" },
-    { value: "historia", label: "Historia" },
-    { value: "cultura", label: "Cultura" },
-    { value: "deporte", label: "Deporte" },
-    { value: "arte", label: "Arte" },
-    { value: "ciencia", label: "Ciencia" },
-    { value: "cine", label: "Cine y TV" },
-    { value: "musica", label: "Música" },
-    { value: "geografia", label: "Geografía" },
-    { value: "literatura", label: "Literatura" },
-    { value: "general", label: "Conocimiento General" }
-  ];
-
   return (
     <div className="flex flex-col md:flex-row justify-between items-stretch gap-4 mb-8">
       <div className="relative flex-grow max-w-md">
@@ -70,11 +56,8 @@ const GamesFilter = ({
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
           >
-            {categories.map((category) => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
+            <option value="all">Todas las categorías</option>
+            <option value="semana-santa">Semana Santa</option>
           </select>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Tag className="h-5 w-5 text-gray-400" />

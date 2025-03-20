@@ -13,7 +13,7 @@ export const gameService = {
         description: data.description,
         date: gameDateTime.toISOString(),
         created_by: userId,
-        category: data.category
+        category: data.category || 'semana-santa' // Ensure category is always set
       })
       .select()
       .single();

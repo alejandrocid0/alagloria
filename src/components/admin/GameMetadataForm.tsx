@@ -23,19 +23,6 @@ const GameMetadataForm = ({
 }: GameMetadataFormProps) => {
   const { control } = useFormContext<GameFormValues>();
 
-  const gameCategories = [
-    { value: "historia", label: "Historia" },
-    { value: "cultura", label: "Cultura" },
-    { value: "deporte", label: "Deporte" },
-    { value: "arte", label: "Arte" },
-    { value: "ciencia", label: "Ciencia" },
-    { value: "cine", label: "Cine y TV" },
-    { value: "musica", label: "Música" },
-    { value: "geografia", label: "Geografía" },
-    { value: "literatura", label: "Literatura" },
-    { value: "general", label: "Conocimiento General" }
-  ];
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-6">
@@ -77,18 +64,14 @@ const GameMetadataForm = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoría</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue="semana-santa">
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
+                    <SelectValue placeholder="Semana Santa" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {gameCategories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="semana-santa">Semana Santa</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

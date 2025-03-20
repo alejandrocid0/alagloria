@@ -13,10 +13,12 @@ import { useGameImage } from '@/hooks/useGameImage';
 import { gameService } from '@/services/gameService';
 import GameMetadataForm from './GameMetadataForm';
 import QuestionCard from './QuestionCard';
+import { useNavigate } from 'react-router-dom';
 
 const GameManagement = () => {
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
   const { 
     imageFile, 
     imagePreview, 
@@ -34,6 +36,7 @@ const GameManagement = () => {
       description: '',
       gameDate: new Date().toISOString().split('T')[0],
       gameTime: '18:00',
+      category: 'semana-santa', // Default to Semana Santa
       questions: [
         {
           id: crypto.randomUUID(),
@@ -134,6 +137,9 @@ const GameManagement = () => {
       
       form.reset();
       resetImage();
+      
+      // Redirect to games list
+      navigate("/admin?tab=games-list");
       
     } catch (error) {
       console.error("Error submitting game:", error);
