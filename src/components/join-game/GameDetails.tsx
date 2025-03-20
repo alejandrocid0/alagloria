@@ -6,9 +6,10 @@ import { Game } from '@/components/games/types';
 interface GameDetailsProps {
   gameData: Game;
   formattedDate: string;
+  isMobile?: boolean; // Añadimos la prop isMobile como opcional
 }
 
-const GameDetails: React.FC<GameDetailsProps> = ({ gameData, formattedDate }) => {
+const GameDetails: React.FC<GameDetailsProps> = ({ gameData, formattedDate, isMobile }) => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden">
       <div className="h-48 overflow-hidden relative">

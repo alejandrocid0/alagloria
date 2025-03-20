@@ -27,11 +27,14 @@ export function useIsMobile() {
         resizeObserver.observe(document.body);
         return () => resizeObserver.disconnect();
       } else {
-        // Fallback para navegadores que no soportan ResizeObserver
+        // Corregimos el error de TypeScript especificando window explícitamente
         window.addEventListener('resize', updateSize);
         return () => window.removeEventListener('resize', updateSize);
       }
     }
+    
+    // Necesitamos añadir un return vacío para evitar errores de TypeScript
+    return undefined;
   }, []);
 
   return isMobile;
