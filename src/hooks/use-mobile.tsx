@@ -27,13 +27,14 @@ export function useIsMobile() {
         resizeObserver.observe(document.body);
         return () => resizeObserver.disconnect();
       } else {
-        // Corregimos el error de TypeScript especificando window explícitamente
-        window.addEventListener('resize', updateSize);
-        return () => window.removeEventListener('resize', updateSize);
+        // Corregimos el error usando una aserción de tipo para window
+        const win = window as Window;
+        win.addEventListener('resize', updateSize);
+        return () => win.removeEventListener('resize', updateSize);
       }
     }
     
-    // Necesitamos añadir un return vacío para evitar errores de TypeScript
+    // Return undefined para evitar errores de TypeScript
     return undefined;
   }, []);
 
