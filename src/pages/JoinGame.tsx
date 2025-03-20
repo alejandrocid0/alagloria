@@ -7,6 +7,10 @@ import Footer from '@/components/Footer';
 import Button from '@/components/Button';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { gameService } from '@/services/gameService';
+import { fetchGamesFromSupabase } from '@/components/games/gamesUtils';
+import { Game } from '@/components/games/types';
+import { supabase } from '@/integrations/supabase/client';
 
 const JoinGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -14,21 +18,8 @@ const JoinGame = () => {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [gameData, setGameData] = useState({
-    id: gameId,
-    title: "Especial Semana Santa 2023",
-    date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    participants: 0,
-    maxParticipants: 100,
-    prizePool: 100,
-    description: "Pon a prueba tus conocimientos sobre la Semana Santa de Sevilla con preguntas sobre historia, curiosidades, y tradiciones. Compite contra otros participantes y gana premios en tiempo real.",
-    image: "https://images.unsplash.com/photo-1554394985-1b222cdcc912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-    prizeDistribution: [
-      { position: 1, percentage: 30, amount: 30 },
-      { position: 2, percentage: 20, amount: 20 },
-      { position: 3, percentage: 10, amount: 10 }
-    ]
-  });
+  const [gameData, setGameData] = useState<Game | null>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     if (!isAuthenticated) {
@@ -38,17 +29,117 @@ const JoinGame = () => {
         variant: "destructive"
       });
       navigate("/login", { state: { redirectTo: `/join/${gameId}` } });
+      return;
     }
     
-    const gameParticipantsKey = `game_${gameId}_participants`;
-    const storedParticipants = localStorage.getItem(gameParticipantsKey);
-    const participants = storedParticipants ? parseInt(storedParticipants, 10) : 0;
+    const fetchGameData = async () => {
+      try {
+        setLoading(true);
+        const games = await fetchGamesFromSupabase();
+        const game = games.find(g => g.id === gameId);
+        
+        if (!game) {
+          toast({
+            title: "Partida no encontrada",
+            description: "No se pudo encontrar la partida especificada",
+            variant: "destructive"
+          });
+          navigate("/games");
+          return;
+        }
+        
+        setGameData(game);
+        
+        // Verificar si el usuario ya está inscrito
+        if (user && gameId) {
+          const { data } = await supabase
+            .from('game_participants')
+            .select()
+            .eq('game_id', gameId)
+            .eq('user_id', user.id);
+          
+          if (data && data.length > 0) {
+            setPaymentComplete(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching game:", error);
+        toast({
+          title: "Error al cargar la partida",
+          description: "No se pudo cargar la información de la partida",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    setGameData(prevData => ({
-      ...prevData,
-      participants
-    }));
-  }, [gameId, isAuthenticated, navigate]);
+    fetchGameData();
+    
+    // Configurar suscripción en tiempo real para actualizaciones
+    if (gameId) {
+      const channel = supabase
+        .channel(`game-${gameId}`)
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'game_participants',
+            filter: `game_id=eq.${gameId}`
+          }, 
+          () => {
+            fetchGameData();
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [gameId, isAuthenticated, navigate, user]);
+  
+  const handleJoinGame = async () => {
+    if (!user || !gameId || !gameData) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      await gameService.joinGame(gameId, user.id);
+      
+      toast({
+        title: "¡Pago completado!",
+        description: "Te has unido a la partida correctamente",
+      });
+      
+      setPaymentComplete(true);
+    } catch (error) {
+      console.error("Error joining game:", error);
+      toast({
+        title: "Error al unirse",
+        description: "No se pudo completar la inscripción. Inténtalo de nuevo.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  if (loading || !gameData) {
+    return (
+      <>
+        <Navbar />
+        <div className="pt-24 pb-16 bg-gray-50 min-h-screen">
+          <div className="container mx-auto px-4 max-w-6xl">
+            <div className="flex justify-center items-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gloria-purple"></div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
   
   const formattedDate = gameData.date.toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -57,47 +148,6 @@ const JoinGame = () => {
     hour: '2-digit',
     minute: '2-digit'
   });
-  
-  const handleJoinGame = () => {
-    setIsProcessing(true);
-    
-    setTimeout(() => {
-      const gameParticipantsKey = `game_${gameId}_participants`;
-      const currentParticipants = localStorage.getItem(gameParticipantsKey);
-      const newParticipantCount = currentParticipants ? parseInt(currentParticipants, 10) + 1 : 1;
-      
-      localStorage.setItem(gameParticipantsKey, newParticipantCount.toString());
-      
-      if (user) {
-        const userGamesKey = `user_${user.id}_games`;
-        const userGames = localStorage.getItem(userGamesKey) ? 
-                        JSON.parse(localStorage.getItem(userGamesKey) || '[]') : [];
-        
-        if (!userGames.includes(gameId)) {
-          userGames.push(gameId);
-          localStorage.setItem(userGamesKey, JSON.stringify(userGames));
-        }
-      }
-      
-      setIsProcessing(false);
-      setPaymentComplete(true);
-      
-      toast({
-        title: "¡Pago completado!",
-        description: "Te has unido a la partida correctamente",
-      });
-    }, 2000);
-  };
-  
-  const hasUserJoined = () => {
-    if (!user) return false;
-    
-    const userGamesKey = `user_${user.id}_games`;
-    const userGames = localStorage.getItem(userGamesKey) ? 
-                    JSON.parse(localStorage.getItem(userGamesKey) || '[]') : [];
-    
-    return userGames.includes(gameId);
-  };
   
   return (
     <>
@@ -151,7 +201,7 @@ const JoinGame = () => {
                           Descripción
                         </h2>
                         <p className="text-gray-600">
-                          {gameData.description}
+                          {gameData.description || "Sin descripción disponible."}
                         </p>
                       </div>
                       

@@ -27,6 +27,42 @@ export type Database = {
         }
         Relationships: []
       }
+      game_participants: {
+        Row: {
+          created_at: string | null
+          game_id: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_participants_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_participants_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_with_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_results: {
         Row: {
           correct_answers: number
@@ -215,6 +251,7 @@ export type Database = {
           description: string | null
           id: string | null
           image_url: string | null
+          participants_count: number | null
           title: string | null
           updated_at: string | null
         }

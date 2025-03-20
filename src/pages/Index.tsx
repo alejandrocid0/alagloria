@@ -5,37 +5,13 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
 import GameCard from '@/components/GameCard';
+import { fetchGamesFromSupabase } from '@/components/games/gamesUtils';
+import { Game } from '@/components/games/types';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const [upcomingGames, setUpcomingGames] = useState([
-    {
-      id: '1',
-      title: 'Especial Semana Santa 2023',
-      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1554394985-1b222cdcc912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: '2',
-      title: 'Trivia La Macarena',
-      date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1588638261318-9569c316c152?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: '3',
-      title: 'Hermandades Domingo de Ramos',
-      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      participants: 0,
-      maxParticipants: 100,
-      prizePool: 100,
-      image: 'https://images.unsplash.com/photo-1553524790-5872ab69e309?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    }
-  ]);
+  const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [stats, setStats] = useState({
     users: 0,
@@ -43,50 +19,65 @@ const Index = () => {
     prizes: 0
   });
 
-  const initialized = useRef(false);
-
   useEffect(() => {
-    if (!initialized.current) {
-      const calculateRealStats = () => {
-        const joinedGames = JSON.parse(localStorage.getItem('joinedGames') || '{}');
+    const loadGames = async () => {
+      setLoading(true);
+      try {
+        const games = await fetchGamesFromSupabase();
         
-        let totalParticipants = 0;
-        let totalPrizes = 0;
-        let updatedGames = [...upcomingGames];
+        const sortedGames = games.sort((a, b) => a.date.getTime() - b.date.getTime());
         
-        updatedGames = updatedGames.map(game => {
-          const gameParticipants = joinedGames[game.id]?.participants || 0;
-          totalParticipants += gameParticipants;
-          totalPrizes += (gameParticipants * game.prizePool) / game.maxParticipants;
-          
-          return {
-            ...game,
-            participants: gameParticipants
-          };
-        });
+        const gamesForHomepage = sortedGames.slice(0, 3);
+        
+        setUpcomingGames(gamesForHomepage);
+        
+        const totalParticipants = games.reduce((sum, game) => sum + game.participants, 0);
+        const totalGames = games.length;
+        const totalPrizes = games.reduce((sum, game) => sum + game.prizePool, 0);
         
         setStats({
           users: totalParticipants,
-          games: Object.keys(joinedGames).length || 0,
+          games: totalGames,
           prizes: totalPrizes
         });
-        
-        setUpcomingGames(updatedGames);
-      };
-      
-      calculateRealStats();
-      
-      const handleStorageChange = () => {
-        calculateRealStats();
-      };
-      
-      window.addEventListener('storage', handleStorageChange);
-      initialized.current = true;
-      
-      return () => {
-        window.removeEventListener('storage', handleStorageChange);
-      };
-    }
+      } catch (error) {
+        console.error("Error loading games:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadGames();
+    
+    const channel = supabase
+      .channel('public:games')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'games'
+        }, 
+        () => {
+          console.log('Games table changed, reloading data...');
+          loadGames();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'game_participants'
+        }, 
+        () => {
+          console.log('Game participants changed, reloading data...');
+          loadGames();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const containerVariants = {
@@ -311,11 +302,39 @@ const Index = () => {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {upcomingGames.map((game) => (
-              <motion.div key={game.id} variants={itemVariants}>
-                <GameCard {...game} />
-              </motion.div>
-            ))}
+            {loading ? (
+              Array(3).fill(0).map((_, index) => (
+                <motion.div key={`skeleton-${index}`} variants={itemVariants}>
+                  <div className="glass-panel animate-pulse h-96">
+                    <div className="h-40 bg-gloria-purple/20"></div>
+                    <div className="p-6 space-y-3">
+                      <div className="h-6 bg-gloria-purple/10 rounded-md w-3/4"></div>
+                      <div className="h-4 bg-gloria-purple/10 rounded-md w-1/2"></div>
+                      <div className="h-4 bg-gloria-purple/10 rounded-md w-1/3"></div>
+                      <div className="h-4 bg-gloria-purple/10 rounded-md w-2/3"></div>
+                      <div className="h-8 bg-gloria-purple/10 rounded-md"></div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : upcomingGames.length > 0 ? (
+              upcomingGames.map((game) => (
+                <motion.div key={game.id} variants={itemVariants}>
+                  <GameCard {...game} />
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-12">
+                <p className="text-xl text-gray-500">No hay partidas programadas en este momento.</p>
+                <Button 
+                  variant="primary" 
+                  href="/admin/games"
+                  className="mt-6"
+                >
+                  Crear una partida
+                </Button>
+              </div>
+            )}
           </motion.div>
         </div>
       </section>

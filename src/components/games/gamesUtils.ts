@@ -18,12 +18,12 @@ export const fetchGamesFromSupabase = async (): Promise<Game[]> => {
       title: game.title,
       date: new Date(game.date),
       description: game.description,
-      participants: Math.floor(Math.random() * 50), // Placeholder value
-      maxParticipants: 100, // Placeholder value
-      prizePool: 100, // Placeholder value
+      participants: game.participants_count || 0,
+      maxParticipants: 100, // Valor máximo fijo por ahora
+      prizePool: 100, // Valor fijo por ahora
       image: game.image_url || undefined,
       category: game.category || 'semana-santa', // Default to 'semana-santa'
-      creatorName: game.creator_name || 'Desconocido' // Añadimos el nombre del creador
+      creatorName: game.creator_name || 'Desconocido'
     }));
 
     return formattedGames;
