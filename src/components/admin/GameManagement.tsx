@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -149,7 +150,14 @@ const GameManagement = () => {
   };
 
   const onSubmit = async (data: GameFormValues) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para crear una partida",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -158,13 +166,15 @@ const GameManagement = () => {
       
       const gameDateTime = new Date(`${data.gameDate}T${data.gameTime}`);
       
+      // Modificamos la inserción para usar created_by explícitamente 
+      // y evitar la ambigüedad con user_id
       const { data: gameData, error: gameError } = await supabase
         .from('games')
         .insert({
           title: data.title,
           description: data.description,
           date: gameDateTime.toISOString(),
-          created_by: currentUser.id,
+          created_by: currentUser.id
         })
         .select()
         .single();
@@ -187,6 +197,7 @@ const GameManagement = () => {
         }
       }
       
+      // Iteramos sobre las preguntas creadas
       for (let i = 0; i < data.questions.length; i++) {
         const question = data.questions[i];
         
@@ -205,6 +216,7 @@ const GameManagement = () => {
           throw new Error(`Error al crear la pregunta ${i+1}: ${questionError.message}`);
         }
         
+        // Iteramos sobre las opciones de cada pregunta
         for (let j = 0; j < question.options.length; j++) {
           const option = question.options[j];
           
