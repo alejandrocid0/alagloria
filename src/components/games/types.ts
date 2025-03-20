@@ -9,4 +9,5 @@ export interface Game {
   prizePool: number;
   image: string | undefined;
   category: string;
+  creatorName?: string;
 }

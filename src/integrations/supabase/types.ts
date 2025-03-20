@@ -194,11 +194,32 @@ export type Database = {
             referencedRelation: "games"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "questions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_with_details"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      games_with_details: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          creator_name: string | null
+          date: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       is_admin: {

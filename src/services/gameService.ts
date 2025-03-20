@@ -78,20 +78,10 @@ export const gameService = {
   },
   
   async fetchGames() {
-    // Explicitly select all fields to avoid ambiguous column references
+    // Usar la nueva vista games_with_details en lugar de la tabla games directamente
     const { data: gamesData, error } = await supabase
-      .from('games')
-      .select(`
-        id, 
-        title, 
-        description, 
-        date, 
-        category, 
-        image_url, 
-        created_at, 
-        updated_at, 
-        created_by
-      `)
+      .from('games_with_details')
+      .select()
       .order('date', { ascending: true });
     
     if (error) {

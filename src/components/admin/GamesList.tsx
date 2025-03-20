@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Edit, Trash2, CalendarIcon } from 'lucide-react';
+import { Edit, Trash2, CalendarIcon, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import GameEditor from './GameEditor';
+import { gameService } from '@/services/gameService';
 
 interface Game {
   id: string;
@@ -17,6 +18,7 @@ interface Game {
   created_at: string;
   updated_at: string;
   image_url: string | null;
+  creator_name?: string;
 }
 
 const GamesList = () => {
@@ -28,16 +30,8 @@ const GamesList = () => {
   const fetchGames = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('games')
-        .select('*')
-        .order('date', { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      setGames(data || []);
+      const gamesData = await gameService.fetchGames();
+      setGames(gamesData || []);
     } catch (error) {
       console.error('Error fetching games:', error);
       toast({
@@ -148,6 +142,12 @@ const GamesList = () => {
                       <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
                       <span>{formatGameDate(game.date)}</span>
                     </div>
+                    {game.creator_name && (
+                      <div className="flex items-center mt-1 text-sm">
+                        <User className="h-4 w-4 mr-1 text-gray-400" />
+                        <span>Creado por: {game.creator_name}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex mt-4 md:mt-0 space-x-2">
                     <Button

@@ -1,5 +1,4 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Game } from '@/components/games/types';
 import { gameService } from '@/services/gameService';
@@ -23,7 +22,8 @@ export const fetchGamesFromSupabase = async (): Promise<Game[]> => {
       maxParticipants: 100, // Placeholder value
       prizePool: 100, // Placeholder value
       image: game.image_url || undefined,
-      category: game.category || 'semana-santa' // Default to 'semana-santa'
+      category: game.category || 'semana-santa', // Default to 'semana-santa'
+      creatorName: game.creator_name || 'Desconocido' // Añadimos el nombre del creador
     }));
 
     return formattedGames;
