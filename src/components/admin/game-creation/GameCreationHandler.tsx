@@ -22,6 +22,7 @@ export function useGameCreation() {
   } = useGameImage();
 
   const handleSubmit = async (data: GameFormValues) => {
+    // Use either user.id or currentUser.id, whichever is available
     const userId = user?.id || currentUser?.id;
     if (!userId) {
       toast({

@@ -6,6 +6,9 @@ export const gameService = {
   async createGame(data: GameFormValues, userId: string) {
     const gameDateTime = new Date(`${data.gameDate}T${data.gameTime}`);
     
+    // Log the userId to help debug
+    console.log('Creating game with userId:', userId);
+    
     const { data: gameData, error: gameError } = await supabase
       .from('games')
       .insert({
@@ -75,9 +78,20 @@ export const gameService = {
   },
   
   async fetchGames() {
+    // Explicitly select all fields to avoid ambiguous column references
     const { data: gamesData, error } = await supabase
       .from('games')
-      .select('*')
+      .select(`
+        id, 
+        title, 
+        description, 
+        date, 
+        category, 
+        image_url, 
+        created_at, 
+        updated_at, 
+        created_by
+      `)
       .order('date', { ascending: true });
     
     if (error) {
