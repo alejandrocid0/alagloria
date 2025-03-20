@@ -12,7 +12,8 @@ export const gameService = {
         title: data.title,
         description: data.description,
         date: gameDateTime.toISOString(),
-        created_by: userId
+        created_by: userId,
+        category: data.category
       })
       .select()
       .single();

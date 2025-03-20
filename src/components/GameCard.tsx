@@ -1,5 +1,5 @@
 
-import { Calendar, Users, Clock, Award, Play } from 'lucide-react';
+import { Calendar, Users, Clock, Award, Play, Tag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Button from './Button';
@@ -17,9 +17,10 @@ export interface GameCardProps {
   prizePool: number;
   image?: string;
   description?: string | null;
+  category?: string;
 }
 
-const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, image }: GameCardProps) => {
+const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, image, category }: GameCardProps) => {
   const isGameFull = participants >= maxParticipants;
   const isPastGame = date < new Date();
   const percentageFilled = (participants / maxParticipants) * 100;
@@ -39,6 +40,23 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
     addSuffix: true,
     locale: es
   });
+
+  const getCategoryLabel = (categoryValue: string) => {
+    const categoryMap: Record<string, string> = {
+      "historia": "Historia",
+      "cultura": "Cultura",
+      "deporte": "Deporte",
+      "arte": "Arte",
+      "ciencia": "Ciencia",
+      "cine": "Cine y TV",
+      "musica": "Música",
+      "geografia": "Geografía",
+      "literatura": "Literatura",
+      "general": "Conocimiento General"
+    };
+    
+    return categoryMap[categoryValue] || categoryValue;
+  };
 
   const handleCardClick = () => {
     setShowDemoButton(prev => !prev);
@@ -93,6 +111,12 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
             Completa
           </div>
         )}
+        
+        {category && (
+          <div className="absolute top-2 left-2 bg-gloria-purple text-white px-3 py-1 rounded-full text-xs font-semibold z-20">
+            {getCategoryLabel(category)}
+          </div>
+        )}
       </div>
       
       <div className="p-6">
@@ -118,6 +142,13 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
             <Award size={16} className="mr-2 text-gloria-gold" />
             <span className="font-medium text-gloria-gold">{prizePool.toFixed(2)}€ en premios</span>
           </div>
+          
+          {category && (
+            <div className="flex items-center text-sm text-gray-600">
+              <Tag size={16} className="mr-2 text-gloria-purple" />
+              <span>{getCategoryLabel(category)}</span>
+            </div>
+          )}
         </div>
         
         <div className="w-full bg-gray-200 rounded-full h-2 mb-4">

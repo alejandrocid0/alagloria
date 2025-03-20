@@ -16,6 +16,7 @@ const GamesPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'upcoming', 'full', 'past'
+  const [filterCategory, setFilterCategory] = useState('all');
 
   useEffect(() => {
     fetchGames();
@@ -48,7 +49,9 @@ const GamesPage = () => {
       matchesStatus = game.date < new Date();
     }
     
-    return matchesSearch && matchesStatus;
+    const matchesCategory = filterCategory === 'all' || game.category === filterCategory;
+    
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   if (loading) {
@@ -104,6 +107,8 @@ const GamesPage = () => {
             setSearchTerm={setSearchTerm}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
           />
           
           <GameList 
@@ -112,6 +117,8 @@ const GamesPage = () => {
             setSearchTerm={setSearchTerm}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
           />
         </div>
       </div>

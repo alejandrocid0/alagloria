@@ -9,6 +9,8 @@ interface GameListProps {
   setSearchTerm: (value: string) => void;
   filterStatus: string;
   setFilterStatus: (value: string) => void;
+  filterCategory: string;
+  setFilterCategory: (value: string) => void;
 }
 
 const GameList = ({ 
@@ -16,7 +18,9 @@ const GameList = ({
   searchTerm,
   setSearchTerm,
   filterStatus,
-  setFilterStatus
+  setFilterStatus,
+  filterCategory,
+  setFilterCategory
 }: GameListProps) => {
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -46,6 +50,7 @@ const GameList = ({
           onClick={() => {
             setSearchTerm('');
             setFilterStatus('all');
+            setFilterCategory('all');
           }}
         >
           Eliminar filtros
@@ -71,6 +76,7 @@ const GameList = ({
             maxParticipants={game.maxParticipants}
             prizePool={game.prizePool}
             image={game.image}
+            category={game.category}
           />
         </motion.div>
       ))}

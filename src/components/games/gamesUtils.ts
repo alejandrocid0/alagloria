@@ -30,7 +30,8 @@ export const fetchGamesFromSupabase = async (): Promise<Game[]> => {
     participants: Math.floor(Math.random() * 50), // Ensure this is always provided
     maxParticipants: 100, // Ensure this is always provided
     prizePool: 100, // Ensure this is always provided
-    image: game.image_url || undefined
+    image: game.image_url || undefined,
+    category: game.category || 'general' // Default to 'general' if no category is provided
   }));
 
   return formattedGames;

@@ -8,4 +8,5 @@ export interface Game {
   maxParticipants: number;
   prizePool: number;
   image: string | undefined;
+  category: string;
 }

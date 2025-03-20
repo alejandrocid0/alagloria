@@ -21,6 +21,7 @@ export const gameFormSchema = z.object({
   description: z.string().min(10, "La descripción debe tener al menos 10 caracteres"),
   gameDate: z.string().min(1, "La fecha es requerida"),
   gameTime: z.string().min(1, "La hora es requerida"),
+  category: z.string().min(1, "La categoría es requerida"),
   questions: z.array(questionSchema).min(1, "Debe haber al menos 1 pregunta"),
 });
 
