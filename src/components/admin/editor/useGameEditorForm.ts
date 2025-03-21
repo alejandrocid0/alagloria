@@ -87,7 +87,7 @@ export function useGameEditorForm(
               text: question.question_text,
               correctOption: question.correct_option,
               position: question.position,
-              difficulty: (question.difficulty as any) || 'sevillano',
+              difficulty: question.difficulty as string || 'sevillano',
               options: questionOptions.map(option => ({
                 id: option.option_id,
                 text: option.option_text,

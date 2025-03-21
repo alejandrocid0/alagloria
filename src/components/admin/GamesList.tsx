@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import GameEditor from './GameEditor';
+import GameEditor from './editor/GameEditor';
 import { gameService } from '@/services/gameService';
 
 interface Game {
