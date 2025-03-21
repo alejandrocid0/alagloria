@@ -286,6 +286,17 @@ export type Database = {
       }
     }
     Functions: {
+      get_game_leaderboard: {
+        Args: {
+          game_id: string
+        }
+        Returns: {
+          user_id: string
+          name: string
+          total_points: number
+          last_answer: string
+        }[]
+      }
       is_admin: {
         Args: {
           user_id: string

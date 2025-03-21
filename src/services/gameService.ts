@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { GameFormValues } from '@/components/admin/schemas/gameFormSchema';
 
@@ -242,49 +241,24 @@ export const gameService = {
   },
 
   async getGameLeaderboard(gameId: string) {
-    // Consulta para obtener el ranking de jugadores por puntos
+    // Utilizar la nueva función RPC para obtener el leaderboard
     const { data, error } = await supabase
       .rpc('get_game_leaderboard', { game_id: gameId });
     
     if (error) {
-      console.error('Error fetching leaderboard:', error);
-      
-      // Si la función RPC falla (porque aún no se ha creado),
-      // intentamos usar una consulta directa como alternativa
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('live_game_answers')
-        .select(`
-          user_id,
-          points,
-          profiles!inner (name)
-        `)
-        .eq('game_id', gameId)
-        .order('points', { ascending: false });
-      
-      if (fallbackError) {
-        console.error('Error fetching fallback leaderboard:', fallbackError);
-        throw new Error(`Error al obtener la clasificación: ${fallbackError.message}`);
-      }
-      
-      // Formatear y agrupar resultados por usuario
-      const userScores = {};
-      fallbackData.forEach(row => {
-        const userId = row.user_id;
-        if (!userScores[userId]) {
-          userScores[userId] = {
-            user_id: userId,
-            name: row.profiles.name,
-            total_points: 0,
-          };
-        }
-        userScores[userId].total_points += row.points;
-      });
-      
-      return Object.values(userScores)
-        .sort((a: any, b: any) => b.total_points - a.total_points);
+      console.error('Error fetching leaderboard with RPC:', error);
+      throw new Error(`Error al obtener la clasificación: ${error.message}`);
     }
     
-    return data;
+    // Formatear los resultados para añadir rank y avatar
+    return data.map((player: any, index: number) => ({
+      user_id: player.user_id,
+      name: player.name,
+      total_points: player.total_points,
+      lastAnswer: player.last_answer,
+      rank: index + 1,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
+    }));
   },
 
   async subscribeToLeaderboardUpdates(gameId: string, callback: (payload: any) => void) {

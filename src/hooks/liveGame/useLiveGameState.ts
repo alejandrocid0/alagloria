@@ -76,7 +76,7 @@ export const useLiveGameState = () => {
           });
         }
 
-        // Obtener el leaderboard inicial
+        // Obtener el leaderboard inicial usando la nueva función RPC
         const leaderboardData = await fetchGameLeaderboard(gameId);
         setLeaderboard(leaderboardData);
         

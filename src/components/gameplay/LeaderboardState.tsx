@@ -1,13 +1,7 @@
 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-
-interface Player {
-  id: number;
-  name: string;
-  points: number;
-  avatar: string;
-}
+import { Player } from '@/types/liveGame';
 
 interface LeaderboardStateProps {
   ranking: Player[];
@@ -35,38 +29,45 @@ const LeaderboardState = ({ ranking }: LeaderboardStateProps) => {
         </div>
         
         <div className="divide-y divide-gray-200">
-          {ranking.slice(0, 10).map((player, index) => (
-            <motion.div 
-              key={player.id}
-              className={cn(
-                "grid grid-cols-12 py-3 px-4 items-center",
-                player.id === 2 ? "bg-gloria-purple/10" : index % 2 === 0 ? "bg-white" : "bg-gray-50"
-              )}
-              initial={{ backgroundColor: index < 3 ? "rgba(234, 179, 8, 0.2)" : "" }}
-              animate={{ backgroundColor: player.id === 2 ? "rgba(93, 56, 145, 0.1)" : index < 3 ? "rgba(234, 179, 8, 0.1)" : "" }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="col-span-1 font-semibold text-gray-700">
-                {index + 1}
-              </div>
-              <div className="col-span-7 flex items-center">
-                <img 
-                  src={player.avatar} 
-                  alt={player.name} 
-                  className="w-8 h-8 rounded-full mr-3" 
-                />
-                <span className={cn(
-                  "font-medium",
-                  player.id === 2 ? "text-gloria-purple" : "text-gray-800"
-                )}>
-                  {player.id === 2 ? "Tú" : player.name}
-                </span>
-              </div>
-              <div className="col-span-4 text-right font-semibold text-gray-800">
-                {player.points.toLocaleString()}
-              </div>
-            </motion.div>
-          ))}
+          {ranking.slice(0, 10).map((player, index) => {
+            const isCurrentUser = player.user_id === '2'; // Temporal, deberías comparar con el ID del usuario actual
+            
+            return (
+              <motion.div 
+                key={player.user_id}
+                className={cn(
+                  "grid grid-cols-12 py-3 px-4 items-center",
+                  isCurrentUser ? "bg-gloria-purple/10" : index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                )}
+                initial={{ backgroundColor: index < 3 ? "rgba(234, 179, 8, 0.2)" : "" }}
+                animate={{ 
+                  backgroundColor: isCurrentUser ? "rgba(93, 56, 145, 0.1)" : 
+                                  index < 3 ? "rgba(234, 179, 8, 0.1)" : "" 
+                }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="col-span-1 font-semibold text-gray-700">
+                  {player.rank}
+                </div>
+                <div className="col-span-7 flex items-center">
+                  <img 
+                    src={player.avatar} 
+                    alt={player.name} 
+                    className="w-8 h-8 rounded-full mr-3" 
+                  />
+                  <span className={cn(
+                    "font-medium",
+                    isCurrentUser ? "text-gloria-purple" : "text-gray-800"
+                  )}>
+                    {isCurrentUser ? "Tú" : player.name}
+                  </span>
+                </div>
+                <div className="col-span-4 text-right font-semibold text-gray-800">
+                  {player.total_points.toLocaleString()}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
       

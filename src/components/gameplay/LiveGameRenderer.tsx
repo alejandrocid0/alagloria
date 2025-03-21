@@ -95,25 +95,13 @@ const LiveGameRenderer = () => {
           )}
           
           {gameState.status === 'leaderboard' && (
-            <LeaderboardState 
-              ranking={leaderboard.map(player => ({
-                id: parseInt(player.user_id.slice(0, 8), 16) % 1000, // Generar ID numérico para compatibilidad
-                name: player.name,
-                points: player.total_points,
-                avatar: player.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}`,
-              }))} 
-            />
+            <LeaderboardState ranking={leaderboard} />
           )}
           
           {gameState.status === 'finished' && (
             <FinishedState 
               gameId={gameId || ''}
-              ranking={leaderboard.map(player => ({
-                id: parseInt(player.user_id.slice(0, 8), 16) % 1000,
-                name: player.name,
-                points: player.total_points,
-                avatar: player.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}`,
-              }))}
+              ranking={leaderboard}
               myPoints={myPoints}
               myRank={myRank}
             />

@@ -65,62 +65,27 @@ export async function fetchGameQuestions(gameId: string): Promise<QuizQuestion[]
   }
 }
 
-// Función para actualizar el leaderboard
+// Función para actualizar el leaderboard utilizando la función RPC
 export async function fetchGameLeaderboard(gameId: string): Promise<Player[]> {
   try {
-    // Primero intentamos usar la función RPC
-    try {
-      const { data, error } = await supabase
-        .rpc('get_game_leaderboard', { game_id: gameId });
-      
-      if (error) throw error;
-      
-      // Añadir ranks a los jugadores
-      return data.map((player: Player, index: number) => ({
-        ...player,
-        rank: index + 1,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
-      }));
-    } catch (rpcError) {
-      console.error('RPC error, using fallback query:', rpcError);
-      
-      // Si la función RPC falla, usamos consulta directa como alternativa
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('live_game_answers')
-        .select(`
-          user_id,
-          points,
-          profiles!inner (name)
-        `)
-        .eq('game_id', gameId);
-      
-      if (fallbackError) throw fallbackError;
-      
-      // Agrupar por usuario y sumar puntos
-      const userScores: Record<string, Player> = {};
-      fallbackData.forEach((row: any) => {
-        const userId = row.user_id;
-        if (!userScores[userId]) {
-          userScores[userId] = {
-            user_id: userId,
-            name: row.profiles.name,
-            total_points: 0,
-          };
-        }
-        userScores[userId].total_points += row.points || 0;
-      });
-      
-      // Convertir a array y ordenar
-      const players = Object.values(userScores)
-        .sort((a: Player, b: Player) => b.total_points - a.total_points)
-        .map((player: Player, index: number) => ({
-          ...player,
-          rank: index + 1,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
-        }));
-      
-      return players;
+    // Utilizamos la nueva función RPC get_game_leaderboard
+    const { data, error } = await supabase
+      .rpc('get_game_leaderboard', { game_id: gameId });
+    
+    if (error) {
+      console.error('Error fetching leaderboard with RPC:', error);
+      throw error;
     }
+    
+    // Añadir ranks a los jugadores
+    return data.map((player: any, index: number) => ({
+      user_id: player.user_id,
+      name: player.name,
+      total_points: player.total_points,
+      rank: index + 1,
+      lastAnswer: player.last_answer,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
+    }));
   } catch (err) {
     console.error('Error fetching leaderboard:', err);
     return [];
