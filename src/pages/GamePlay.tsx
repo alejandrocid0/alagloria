@@ -11,6 +11,7 @@ import LoadingState from '@/components/gameplay/LoadingState';
 import ErrorState from '@/components/gameplay/ErrorState';
 import GameHeader from '@/components/gameplay/GameHeader';
 import ProgressBar from '@/components/gameplay/ProgressBar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const GamePlay = () => {
   const {
@@ -32,11 +33,13 @@ const GamePlay = () => {
     handleSelectOption
   } = useGamePlayState();
   
+  const isMobile = useIsMobile();
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100">
         <Navbar />
-        <div className="pt-24 pb-16">
+        <div className="pt-20 md:pt-24 pb-16">
           <div className="container mx-auto px-4 max-w-5xl">
             <LoadingState />
           </div>
@@ -49,7 +52,7 @@ const GamePlay = () => {
     return (
       <div className="min-h-screen bg-gray-100">
         <Navbar />
-        <div className="pt-24 pb-16">
+        <div className="pt-20 md:pt-24 pb-16">
           <div className="container mx-auto px-4 max-w-5xl">
             <ErrorState errorMessage={error} />
           </div>
@@ -64,7 +67,7 @@ const GamePlay = () => {
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       
-      <div className="pt-24 pb-16">
+      <div className="pt-20 md:pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <GameHeader 
@@ -74,7 +77,7 @@ const GamePlay = () => {
               isDemoGame={gameId === 'demo-123'} 
             />
             
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {currentState !== 'waiting' && currentState !== 'finished' && (
                 <ProgressBar 
                   currentQuestion={currentQuestion} 
