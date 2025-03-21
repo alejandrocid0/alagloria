@@ -19,6 +19,7 @@ export type Suggestion = {
   message: string;
   created_at: string;
   status: 'pending' | 'reviewed' | 'implemented';
+  user_id?: string;
 };
 
 export type AuthContextType = {
