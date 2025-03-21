@@ -297,11 +297,44 @@ export type Database = {
           last_answer: string
         }[]
       }
+      get_live_game_state: {
+        Args: {
+          game_id: string
+        }
+        Returns: {
+          id: string
+          status: string
+          current_question: number
+          countdown: number
+          started_at: string
+          updated_at: string
+        }[]
+      }
       is_admin: {
         Args: {
           user_id: string
         }
         Returns: boolean
+      }
+      start_live_game: {
+        Args: {
+          game_id: string
+        }
+        Returns: undefined
+      }
+      submit_game_answer: {
+        Args: {
+          p_game_id: string
+          p_user_id: string
+          p_question_position: number
+          p_selected_option: string
+          p_answer_time_ms: number
+        }
+        Returns: {
+          is_correct: boolean
+          points: number
+          correctoption: string
+        }[]
       }
     }
     Enums: {
