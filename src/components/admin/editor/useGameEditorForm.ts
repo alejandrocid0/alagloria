@@ -8,7 +8,8 @@ import {
   gameFormSchema, 
   GameFormValues, 
   Question, 
-  Option 
+  Option,
+  DIFFICULTY_LEVELS
 } from './types';
 
 export function useGameEditorForm(
@@ -82,12 +83,20 @@ export function useGameEditorForm(
           const formattedQuestions = questionsData.map(question => {
             const questionOptions = optionsData?.filter(o => o.question_id === question.id) || [];
             
+            // Make sure to validate the difficulty is one of the allowed values
+            const rawDifficulty = question.difficulty as string | undefined;
+            let validDifficulty: typeof DIFFICULTY_LEVELS[number] = 'sevillano';
+            
+            if (rawDifficulty && DIFFICULTY_LEVELS.includes(rawDifficulty as any)) {
+              validDifficulty = rawDifficulty as typeof DIFFICULTY_LEVELS[number];
+            }
+            
             return {
               id: question.id,
               text: question.question_text,
               correctOption: question.correct_option,
               position: question.position,
-              difficulty: question.difficulty as string || 'sevillano',
+              difficulty: validDifficulty,
               options: questionOptions.map(option => ({
                 id: option.option_id,
                 text: option.option_text,

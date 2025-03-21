@@ -1,6 +1,15 @@
 
 import { z } from 'zod';
 
+// Define the difficulty levels
+export const DIFFICULTY_LEVELS = [
+  'guiri',
+  'sevillano',
+  'nazareno',
+  'costalero',
+  'capataz'
+] as const;
+
 // Define schema for options
 export const optionSchema = z.object({
   id: z.string(),
@@ -18,7 +27,7 @@ export const questionSchema = z.object({
   options: z.array(optionSchema).min(3, "Debe haber al menos 3 opciones"),
   position: z.number().optional(),
   question_id: z.string().optional(),
-  difficulty: z.enum(['guiri', 'sevillano', 'nazareno', 'costalero', 'capataz']).optional(),
+  difficulty: z.enum(DIFFICULTY_LEVELS).optional().default('sevillano'),
 });
 
 // Define schema for the game form
