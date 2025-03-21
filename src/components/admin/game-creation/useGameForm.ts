@@ -24,7 +24,7 @@ export function useGameForm() {
           text: '',
           correctOption: '',
           options: createEmptyOptions(),
-          difficulty: difficulty, // Use the direct value from the array
+          difficulty: difficulty as typeof DIFFICULTY_LEVELS[number], // Explicitly type as union of allowed values
         });
       }
     }
@@ -69,7 +69,7 @@ export function useGameForm() {
     for (const [difficulty, count] of Object.entries(difficultyCount)) {
       if (count < lowestCount) {
         lowestCount = count;
-        lowestDifficulty = difficulty as (typeof DIFFICULTY_LEVELS)[number];
+        lowestDifficulty = difficulty as typeof DIFFICULTY_LEVELS[number];
       }
     }
 
