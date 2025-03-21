@@ -17,9 +17,12 @@ export async function fetchLiveGameState(gameId: string): Promise<LiveGameState 
     }
     
     // Convert the RPC response to the expected LiveGameState type
+    // Make sure to convert the status string to the required type
+    const status = data[0].status as "waiting" | "question" | "result" | "leaderboard" | "finished";
+    
     return {
       id: data[0].id,
-      status: data[0].status,
+      status: status,
       current_question: data[0].current_question,
       countdown: data[0].countdown,
       started_at: data[0].started_at,

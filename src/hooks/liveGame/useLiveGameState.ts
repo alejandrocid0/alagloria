@@ -1,265 +1,166 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { QuizQuestion } from '@/types/quiz';
-import { LiveGameState, Player, AnswerResult } from '@/types/liveGame';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  fetchLiveGameState, 
-  fetchGameQuestions, 
-  startGame as startGameUtil,
-  subscribeToGameUpdates
-} from './gameStateUtils';
-import {
-  fetchGameLeaderboard,
-  subscribeToLeaderboardUpdates
-} from './leaderboardUtils';
-import {
-  submitAnswer as submitAnswerUtil
-} from './playerUtils';
+import { Player, LiveGameState } from '@/types/liveGame';
+import { QuizQuestion } from '@/types/quiz';
+import { useParams } from 'react-router-dom';
+import { fetchLiveGameState, subscribeToGameStateUpdates } from './gameStateUtils';
+import { subscribeToLeaderboardUpdates, getGameLeaderboard } from './leaderboardUtils';
+import { submitAnswer } from './playerUtils';
+import { toast } from '@/hooks/use-toast';
+import { getQuizById } from '@/services/quiz';
 
-export const useLiveGameState = () => {
+interface UseLiveGameStateResult {
+  gameState: LiveGameState | null;
+  questions: QuizQuestion[];
+  leaderboard: Player[];
+  currentQuestion: QuizQuestion | undefined;
+  submitAnswer: (selectedOption: string, answerTimeMs: number) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export const useLiveGameState = (): UseLiveGameStateResult => {
   const { gameId } = useParams<{ gameId: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  // Estado del juego
   const [gameState, setGameState] = useState<LiveGameState | null>(null);
-  const [gameDetails, setGameDetails] = useState<any>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
-  const [myRank, setMyRank] = useState<number>(0);
-  const [myPoints, setMyPoints] = useState<number>(0);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [lastAnswer, setLastAnswer] = useState<AnswerResult | null>(null);
-  const [lastPoints, setLastPoints] = useState<number>(0);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  
-  // Estado de carga y errores
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar los detalles del juego
   useEffect(() => {
-    if (!gameId || !user) return;
+    if (!gameId) {
+      setError('Game ID is required');
+      setIsLoading(false);
+      return;
+    }
 
-    const fetchGameData = async () => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      setError(null);
+
       try {
-        setLoading(true);
-        setError(null);
+        // Fetch game state
+        const gameStateData = await fetchLiveGameState(gameId);
+        setGameState(gameStateData);
 
-        // Obtener detalles del juego
-        const { data: gamesData, error: gamesError } = await supabase
-          .from('games_with_details')
-          .select()
-          .eq('id', gameId)
-          .single();
-        
-        if (gamesError) {
-          throw new Error("Partida no encontrada");
-        }
-        
-        setGameDetails(gamesData);
-
-        // Obtener preguntas del juego
-        const questionsList = await fetchGameQuestions(gameId);
-        setQuestions(questionsList);
-
-        // Obtener el estado actual del juego en vivo
-        const liveGameState = await fetchLiveGameState(gameId);
-        if (liveGameState) {
-          setGameState(liveGameState);
+        // Fetch questions
+        const quiz = getQuizById(gameId);
+        if (quiz) {
+          setQuestions(quiz.questions);
         } else {
-          // Si no existe un estado de juego, creamos uno por defecto
-          setGameState({
-            id: gameId,
-            status: 'waiting',
-            current_question: 0
-          });
+          setError('Quiz not found');
         }
 
-        // Obtener el leaderboard inicial usando la nueva función RPC
-        const leaderboardData = await fetchGameLeaderboard(gameId);
-        setLeaderboard(leaderboardData);
-        
-        // Encontrar mi posición y puntos
-        const myPosition = leaderboardData.findIndex(p => p.user_id === user.id);
-        if (myPosition !== -1) {
-          setMyRank(myPosition + 1);
-          setMyPoints(leaderboardData[myPosition].total_points);
-        }
-
+        // Fetch leaderboard
+        const leaderboardData = await getGameLeaderboard(gameId);
+        setLeaderboard(leaderboardData.map((player, index) => ({
+          id: index + 1,
+          name: player.name,
+          points: player.total_points,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=random&color=fff`
+        })));
       } catch (err: any) {
-        console.error("Error cargando datos del juego:", err);
-        setError(err.message || "Error al cargar los datos del juego");
-        toast({
-          title: "Error",
-          description: err.message || "No se pudieron cargar los datos del juego",
-          variant: "destructive"
-        });
+        setError(err.message || 'Failed to load initial data');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchGameData();
-  }, [gameId, user]);
+    loadInitialData();
 
-  // Suscribirse a cambios en el estado del juego
-  useEffect(() => {
-    if (!gameId || !user) return;
+    // Set up subscriptions
+    const gameStateSubscription = subscribeToGameStateUpdates(gameId, (payload: any) => {
+      if (payload.new) {
+        // Convert the status string to the required type
+        const status = payload.new.status as "waiting" | "question" | "result" | "leaderboard" | "finished";
 
-    // Suscribirse a actualizaciones del estado del juego
-    const gameSubscription = subscribeToGameUpdates(
-      gameId,
-      (payload) => {
-        console.log("Game state updated:", payload);
-        
-        const newState = payload.new;
-        setGameState(newState);
-        
-        // Si cambia el estado, resetear algunas variables
-        if (newState.status === 'question') {
-          setSelectedOption(null);
-          setStartTime(Date.now());
-        }
+        setGameState({
+          id: payload.new.id,
+          status: status,
+          current_question: payload.new.current_question,
+          countdown: payload.new.countdown,
+          started_at: payload.new.started_at,
+          updated_at: payload.new.updated_at
+        });
       }
-    );
+    });
 
-    // Suscribirse a actualizaciones del leaderboard
-    const leaderboardSubscription = subscribeToLeaderboardUpdates(
-      gameId,
-      async () => {
-        // Cada vez que hay un cambio en las respuestas, actualizar el leaderboard
-        await refreshLeaderboard();
-      }
-    );
+    const leaderboardSubscription = subscribeToLeaderboardUpdates(gameId, (payload: any) => {
+      setLeaderboard(payload.new.map((player: any, index: number) => ({
+        id: index + 1,
+        name: player.name,
+        points: player.total_points,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=random&color=fff`
+      })));
+    });
 
     return () => {
-      // Limpiar suscripciones
-      supabase.removeChannel(gameSubscription);
+      supabase.removeChannel(gameStateSubscription);
       supabase.removeChannel(leaderboardSubscription);
     };
-  }, [gameId, user]);
+  }, [gameId]);
 
-  // Función para refrescar el leaderboard
-  const refreshLeaderboard = async () => {
-    if (!gameId || !user) return;
-    
-    try {
-      const leaderboardData = await fetchGameLeaderboard(gameId);
-      setLeaderboard(leaderboardData);
-      
-      // Encontrar mi posición y puntos
-      const myPosition = leaderboardData.findIndex(p => p.user_id === user.id);
-      if (myPosition !== -1) {
-        setMyRank(myPosition + 1);
-        setMyPoints(leaderboardData[myPosition].total_points);
-      }
-    } catch (err: any) {
-      console.error("Error refreshing leaderboard:", err);
+  const submitAnswerHandler = async (selectedOption: string, answerTimeMs: number) => {
+    if (!gameId || !gameState) {
+      toast({
+        title: "Error",
+        description: "Game ID or Game State is missing",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  // Función para enviar una respuesta
-  const submitAnswer = useCallback(async (optionId: string) => {
-    if (!gameId || !user || !gameState || selectedOption) return;
-    
     try {
-      const endTime = Date.now();
-      const answerTimeMs = startTime ? endTime - startTime : 10000; // Default a 10s si no hay startTime
-      
-      setSelectedOption(optionId);
-      
-      const result = await submitAnswerUtil(
+      if (!gameState.current_question) {
+        console.warn("No current question available.");
+        return;
+      }
+
+      const userId = supabase.auth.currentUser?.id;
+      if (!userId) {
+        console.error("User not authenticated.");
+        return;
+      }
+
+      const answerResult = await submitAnswer(
         gameId,
-        user.id,
+        userId,
         gameState.current_question,
-        optionId,
+        selectedOption,
         answerTimeMs
       );
-      
-      setLastAnswer(result);
-      setLastPoints(result.points);
-      
-      // Mostrar toast según el resultado
-      if (result.is_correct) {
+
+      if (answerResult.is_correct) {
         toast({
-          title: "¡Respuesta correcta!",
-          description: `Has ganado ${result.points} puntos`,
-          variant: "default"
+          title: "Correct!",
+          description: `You earned ${answerResult.points} points.`,
         });
       } else {
         toast({
-          title: "Respuesta incorrecta",
-          description: "No has ganado puntos en esta pregunta",
-          variant: "destructive"
+          title: "Incorrect",
+          description: `The correct answer was ${answerResult.correctOption}.`,
+          variant: "destructive",
         });
       }
-      
-      // Actualizar leaderboard después de enviar respuesta
-      await refreshLeaderboard();
-      
     } catch (err: any) {
       console.error("Error submitting answer:", err);
       toast({
         title: "Error",
-        description: err.message || "No se pudo enviar tu respuesta",
-        variant: "destructive"
+        description: err.message || "Failed to submit answer",
+        variant: "destructive",
       });
     }
-  }, [gameId, user, gameState, selectedOption, startTime]);
+  };
 
-  // Función para iniciar el juego
-  const startGame = useCallback(async () => {
-    if (!gameId || !user) return;
-    
-    try {
-      await startGameUtil(gameId);
-      setStartTime(Date.now());
-    } catch (err: any) {
-      console.error("Error starting game:", err);
-      toast({
-        title: "Error",
-        description: err.message || "No se pudo iniciar la partida",
-        variant: "destructive"
-      });
-    }
-  }, [gameId, user]);
-
-  // Determinar si el usuario actual es el host del juego
-  const isGameHost = gameDetails?.created_by === user?.id;
-
-  // Obtener la pregunta actual
-  const currentQuestionData = gameState && questions.length > 0 
-    ? questions.find(q => q.position === gameState.current_question) || null
-    : null;
+  const currentQuestion = gameState ? questions[gameState.current_question] : undefined;
 
   return {
-    // Estado del juego
-    gameId,
     gameState,
-    gameDetails,
-    loading,
-    error,
     questions,
-    currentQuestionData,
-    selectedOption,
-    lastAnswer,
-    lastPoints,
-    
-    // Estado del jugador
     leaderboard,
-    myRank,
-    myPoints,
-    
-    // Funciones
-    submitAnswer,
-    startGame,
-    isGameHost
+    currentQuestion,
+    submitAnswer: submitAnswerHandler,
+    isLoading,
+    error,
   };
 };
-
-export default useLiveGameState;
