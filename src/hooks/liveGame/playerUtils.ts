@@ -12,7 +12,7 @@ export async function submitAnswer(
 ): Promise<AnswerResult> {
   try {
     // Usamos RPC en lugar de consultar directamente la tabla
-    const { data: answerData, error: answerError } = await supabase
+    const { data, error } = await supabase
       .rpc('submit_game_answer', {
         p_game_id: gameId,
         p_user_id: userId,
@@ -21,12 +21,17 @@ export async function submitAnswer(
         p_answer_time_ms: answerTimeMs
       });
     
-    if (answerError) {
-      console.error('Error submitting answer:', answerError);
-      throw new Error(`Error al enviar respuesta: ${answerError.message}`);
+    if (error) {
+      console.error('Error submitting answer:', error);
+      throw new Error(`Error al enviar respuesta: ${error.message}`);
     }
     
-    return answerData as AnswerResult;
+    // Fix the mapping to match the expected type
+    return {
+      is_correct: data[0].is_correct,
+      points: data[0].points,
+      correctOption: data[0].correctoption
+    };
   } catch (err: any) {
     console.error('Error in submitAnswer:', err);
     throw err;

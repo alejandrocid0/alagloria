@@ -1,3 +1,4 @@
+
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { GameFormValues, gameFormSchema, DIFFICULTY_LEVELS } from '../schemas/gameFormSchema';
@@ -23,7 +24,7 @@ export function useGameForm() {
           text: '',
           correctOption: '',
           options: createEmptyOptions(),
-          difficulty: difficulty,  // Ahora asigna correctamente el tipo
+          difficulty: difficulty, // Correctly typed as one of the DIFFICULTY_LEVELS
         });
       }
     }
