@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export async function createQuestion(gameId: string, questionText: string, correctOption: string, position: number, difficulty: string = 'sevillano') {
+export async function createQuestion(gameId: string, questionText: string, correctOption: string, position: number) {
   const { data: questionData, error: questionError } = await supabase
     .from('questions')
     .insert({
@@ -9,7 +9,6 @@ export async function createQuestion(gameId: string, questionText: string, corre
       question_text: questionText,
       correct_option: correctOption,
       position: position,
-      difficulty: difficulty,
     })
     .select()
     .single();

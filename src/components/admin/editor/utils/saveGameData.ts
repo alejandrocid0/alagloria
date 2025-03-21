@@ -97,8 +97,7 @@ export const saveQuestionsAndOptions = async (
             game_id: gameId,
             question_text: question.text,
             correct_option: question.correctOption,
-            position: i + 1,
-            difficulty: question.difficulty,
+            position: i + 1
           })
           .select()
           .single();
@@ -131,8 +130,7 @@ export const saveQuestionsAndOptions = async (
           .update({
             question_text: question.text,
             correct_option: question.correctOption,
-            position: i + 1,
-            difficulty: question.difficulty,
+            position: i + 1
           })
           .eq('id', question.id);
         

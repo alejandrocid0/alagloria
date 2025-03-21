@@ -33,7 +33,6 @@ const useGameForm = () => {
             { id: 'D', text: '' },
             { id: 'E', text: '' },
           ],
-          difficulty: 'sevillano',
         }
       ]
     }
@@ -58,7 +57,6 @@ const useGameForm = () => {
         { id: 'D', text: '' },
         { id: 'E', text: '' },
       ],
-      difficulty: 'sevillano',
     });
   };
 
@@ -94,8 +92,7 @@ const useGameForm = () => {
           gameData.id,
           question.text,
           question.correctOption,
-          i + 1,
-          question.difficulty
+          i + 1
         );
         
         // Create options for each question

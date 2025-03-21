@@ -6,8 +6,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GameFormValues, DIFFICULTY_LEVELS } from './schemas/gameFormSchema';
+import { GameFormValues } from './schemas/gameFormSchema';
 
 interface QuestionCardProps {
   questionIndex: number;
@@ -16,11 +15,6 @@ interface QuestionCardProps {
 
 const QuestionCard = ({ questionIndex, onRemove }: QuestionCardProps) => {
   const { control } = useFormContext<GameFormValues>();
-
-  // Función para formatear el nombre del nivel de dificultad
-  const formatDifficultyName = (difficulty: string) => {
-    return difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-  };
 
   return (
     <Card key={`question-${questionIndex}`} className="border border-gray-200">
@@ -40,53 +34,19 @@ const QuestionCard = ({ questionIndex, onRemove }: QuestionCardProps) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <FormField
-              control={control}
-              name={`questions.${questionIndex}.text`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Texto de la pregunta</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej. ¿Cuál es la hermandad más antigua de Sevilla?" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div>
-            <FormField
-              control={control}
-              name={`questions.${questionIndex}.difficulty`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nivel de dificultad</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value || 'sevillano'}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona nivel" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {DIFFICULTY_LEVELS.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {formatDifficultyName(level)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
+        <FormField
+          control={control}
+          name={`questions.${questionIndex}.text`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Texto de la pregunta</FormLabel>
+              <FormControl>
+                <Input placeholder="Ej. ¿Cuál es la hermandad más antigua de Sevilla?" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <div className="space-y-2">
           <FormLabel>Opciones (selecciona la correcta)</FormLabel>

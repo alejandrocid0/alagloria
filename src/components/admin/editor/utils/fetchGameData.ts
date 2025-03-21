@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Question, Option, DIFFICULTY_LEVELS } from '../types';
+import { Question, Option } from '../types';
 import { UseFormSetValue } from 'react-hook-form';
 import { GameFormValues } from '../types';
 
@@ -81,20 +81,11 @@ export const formatQuestionsForForm = (
   return questions.map(question => {
     const questionOptions = options.filter(o => o.question_id === question.id) || [];
     
-    // Make sure to validate the difficulty is one of the allowed values
-    const rawDifficulty = question.difficulty as string | undefined;
-    let validDifficulty: typeof DIFFICULTY_LEVELS[number] = 'sevillano';
-    
-    if (rawDifficulty && DIFFICULTY_LEVELS.includes(rawDifficulty as any)) {
-      validDifficulty = rawDifficulty as typeof DIFFICULTY_LEVELS[number];
-    }
-    
     return {
       id: question.id,
       text: question.question_text,
       correctOption: question.correct_option,
       position: question.position,
-      difficulty: validDifficulty,
       options: questionOptions.map(option => ({
         id: option.option_id,
         text: option.option_text,

@@ -11,15 +11,6 @@ export const SEMANA_SANTA_CATEGORIES = [
   'mundo-costal'
 ] as const;
 
-// Define los niveles de dificultad
-export const DIFFICULTY_LEVELS = [
-  'guiri',
-  'sevillano',
-  'nazareno',
-  'costalero',
-  'capataz'
-] as const;
-
 // Define schema para options
 export const optionSchema = z.object({
   id: z.string(),
@@ -32,7 +23,6 @@ export const questionSchema = z.object({
   text: z.string().min(3, "La pregunta debe tener al menos 3 caracteres"),
   correctOption: z.string(),
   options: z.array(optionSchema).min(3, "Debe haber al menos 3 opciones"),
-  difficulty: z.enum(DIFFICULTY_LEVELS).default('sevillano'),
 });
 
 // Define schema para el game form
