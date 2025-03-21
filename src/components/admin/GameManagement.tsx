@@ -7,13 +7,15 @@ import QuestionsList from './game-creation/QuestionsList';
 import SubmitButton from './game-creation/SubmitButton';
 import useGameForm from './game-creation/useGameForm';
 import { useGameCreation } from './game-creation/GameCreationHandler';
+import { toast } from '@/hooks/use-toast';
 
 const GameManagement = () => {
   const { 
     form, 
     questionsFields, 
     handleAddQuestion, 
-    handleRemoveQuestion 
+    handleRemoveQuestion,
+    isSubmitting: formSubmitting 
   } = useGameForm();
   
   const {
@@ -51,9 +53,15 @@ const GameManagement = () => {
             />
             
             <QuestionsList 
-              questionsFields={questionsFields}
+              questionsFields={questionsFields.fields}
               onAdd={handleAddQuestion}
-              onRemove={(index) => handleRemoveQuestion(index, questionsFields.length, (message) => {})}
+              onRemove={(index) => handleRemoveQuestion(index, questionsFields.fields.length, (message) => {
+                toast({
+                  title: "Error",
+                  description: message,
+                  variant: "destructive"
+                });
+              })}
             />
             
             <SubmitButton isSubmitting={isSubmitting} />

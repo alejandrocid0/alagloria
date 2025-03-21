@@ -11,12 +11,13 @@ import LoadingState from './LoadingState';
 import ErrorState from './ErrorState';
 import GameHeader from './GameHeader';
 import ProgressBar from './ProgressBar';
-import { Player } from '@/types/liveGame';
 import { useParams } from 'react-router-dom';
+import { Player as GamePlayer } from '@/types/game';
+import { Player as LiveGamePlayer } from '@/types/liveGame';
 
 const LiveGameRenderer = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const [leaderboard, setLeaderboard] = useState<Player[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LiveGamePlayer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [myRank, setMyRank] = useState<number>(0);
   const [myPoints, setMyPoints] = useState<number>(0);
@@ -129,7 +130,14 @@ const LiveGameRenderer = () => {
           {gameState.status === 'finished' && (
             <FinishedState 
               gameId={gameId || ''}
-              ranking={leaderboard}
+              ranking={leaderboard.map(player => ({
+                id: player.id,
+                name: player.name, 
+                score: player.total_points,
+                rank: 0, // This would be calculated based on position
+                avatar: undefined,
+                lastAnswer: player.last_answer === 'correct' ? 'correct' : 'incorrect'
+              }))}
               myPoints={myPoints}
               myRank={myRank}
             />
