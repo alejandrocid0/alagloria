@@ -1,67 +1,34 @@
 
-import { AnimatePresence } from 'framer-motion';
 import Navbar from '@/components/Navbar';
-import useGamePlayState from '@/hooks/useGamePlayState';
-import WaitingState from '@/components/gameplay/WaitingState';
-import QuestionState from '@/components/gameplay/QuestionState';
-import ResultState from '@/components/gameplay/ResultState';
-import LeaderboardState from '@/components/gameplay/LeaderboardState';
-import FinishedState from '@/components/gameplay/FinishedState';
-import LoadingState from '@/components/gameplay/LoadingState';
-import ErrorState from '@/components/gameplay/ErrorState';
-import GameHeader from '@/components/gameplay/GameHeader';
-import ProgressBar from '@/components/gameplay/ProgressBar';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
 
 const GamePlay = () => {
-  const {
-    gameId,
-    quizTitle,
-    loading,
-    error,
-    currentState,
-    countdown,
-    currentQuestion,
-    selectedOption,
-    timeRemaining,
-    myPoints,
-    ranking,
-    myRank,
-    lastPoints,
-    gameQuestions,
-    startGame,
-    handleSelectOption
-  } = useGamePlayState();
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
   
-  const isMobile = useIsMobile();
+  // Redirigir a login si no hay usuario autenticado
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [user, isLoading, navigate]);
   
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100">
         <Navbar />
-        <div className="pt-20 md:pt-24 pb-16">
-          <div className="container mx-auto px-4 max-w-5xl">
-            <LoadingState />
-          </div>
+        <div className="pt-20 md:pt-24 pb-16 flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-4 border-gloria-purple/20 border-t-gloria-purple rounded-full"></div>
         </div>
       </div>
     );
   }
   
-  if (error || gameQuestions.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-100">
-        <Navbar />
-        <div className="pt-20 md:pt-24 pb-16">
-          <div className="container mx-auto px-4 max-w-5xl">
-            <ErrorState errorMessage={error} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  const currentQuestionData = gameQuestions[currentQuestion];
+  // Solo renderizar si hay un usuario autenticado
+  if (!user) return null;
   
   return (
     <div className="min-h-screen bg-gray-100">
@@ -69,66 +36,7 @@ const GamePlay = () => {
       
       <div className="pt-20 md:pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-5xl">
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <GameHeader 
-              quizTitle={quizTitle} 
-              playersCount={ranking.length} 
-              myPoints={myPoints} 
-              isDemoGame={gameId === 'demo-123'} 
-            />
-            
-            <div className="p-4 md:p-6">
-              {currentState !== 'waiting' && currentState !== 'finished' && (
-                <ProgressBar 
-                  currentQuestion={currentQuestion} 
-                  totalQuestions={gameQuestions.length} 
-                  myPoints={myPoints} 
-                />
-              )}
-              
-              <AnimatePresence mode="wait">
-                {currentState === 'waiting' && (
-                  <WaitingState 
-                    countdown={countdown} 
-                    onStartGame={startGame} 
-                  />
-                )}
-                
-                {currentState === 'question' && currentQuestionData && (
-                  <QuestionState 
-                    currentQuestionData={currentQuestionData}
-                    timeRemaining={timeRemaining}
-                    myRank={myRank}
-                    selectedOption={selectedOption}
-                    handleSelectOption={handleSelectOption}
-                  />
-                )}
-                
-                {currentState === 'result' && currentQuestionData && (
-                  <ResultState 
-                    currentQuestionData={currentQuestionData}
-                    selectedOption={selectedOption}
-                    lastPoints={lastPoints}
-                  />
-                )}
-                
-                {currentState === 'leaderboard' && (
-                  <LeaderboardState 
-                    ranking={ranking} 
-                  />
-                )}
-                
-                {currentState === 'finished' && (
-                  <FinishedState 
-                    gameId={gameId}
-                    ranking={ranking}
-                    myPoints={myPoints}
-                    myRank={myRank}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+          <LiveGameRenderer />
         </div>
       </div>
     </div>

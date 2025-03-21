@@ -155,5 +155,152 @@ export const gameService = {
     
     // Convert count to number properly
     return data && data[0] ? parseInt(String(data[0].count)) : 0;
+  },
+
+  // Nuevas funciones para partidas en tiempo real
+  async getLiveGameState(gameId: string) {
+    const { data, error } = await supabase
+      .from('live_games')
+      .select('*')
+      .eq('id', gameId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching live game state:', error);
+      throw new Error(`Error al obtener el estado de la partida: ${error.message}`);
+    }
+    
+    return data;
+  },
+
+  async subscribeToGameUpdates(gameId: string, callback: (payload: any) => void) {
+    // Suscribirse a los cambios en live_games
+    return supabase
+      .channel(`game-${gameId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'live_games',
+          filter: `id=eq.${gameId}`
+        },
+        callback
+      )
+      .subscribe();
+  },
+
+  async submitAnswer(gameId: string, userId: string, questionPosition: number, selectedOption: string, answerTimeMs: number) {
+    // Obtener la pregunta actual
+    const { data: questionData, error: questionError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('game_id', gameId)
+      .eq('position', questionPosition)
+      .maybeSingle();
+    
+    if (questionError || !questionData) {
+      console.error('Error fetching question:', questionError);
+      throw new Error('Error al obtener la pregunta');
+    }
+    
+    // Verificar si la respuesta es correcta
+    const isCorrect = questionData.correct_option === selectedOption;
+    
+    // Calcular puntos (más puntos si responde más rápido)
+    let points = 0;
+    if (isCorrect) {
+      // Fórmula: 100 puntos base + bonus por tiempo (máx 100 adicionales)
+      const timeBonus = Math.max(0, 100 - (answerTimeMs / 200)); 
+      points = Math.round(100 + timeBonus);
+    }
+    
+    // Guardar la respuesta
+    const { data: answerData, error: answerError } = await supabase
+      .from('live_game_answers')
+      .insert({
+        game_id: gameId,
+        user_id: userId,
+        question_position: questionPosition,
+        selected_option: selectedOption,
+        is_correct: isCorrect,
+        points: points,
+        answer_time_ms: answerTimeMs
+      })
+      .select()
+      .single();
+    
+    if (answerError) {
+      console.error('Error submitting answer:', answerError);
+      throw new Error(`Error al enviar respuesta: ${answerError.message}`);
+    }
+    
+    return {
+      ...answerData,
+      correctOption: questionData.correct_option
+    };
+  },
+
+  async getGameLeaderboard(gameId: string) {
+    // Consulta para obtener el ranking de jugadores por puntos
+    const { data, error } = await supabase
+      .rpc('get_game_leaderboard', { game_id: gameId });
+    
+    if (error) {
+      console.error('Error fetching leaderboard:', error);
+      
+      // Si la función RPC falla (porque aún no se ha creado),
+      // intentamos usar una consulta directa como alternativa
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('live_game_answers')
+        .select(`
+          user_id,
+          points,
+          profiles!inner (name)
+        `)
+        .eq('game_id', gameId)
+        .order('points', { ascending: false });
+      
+      if (fallbackError) {
+        console.error('Error fetching fallback leaderboard:', fallbackError);
+        throw new Error(`Error al obtener la clasificación: ${fallbackError.message}`);
+      }
+      
+      // Formatear y agrupar resultados por usuario
+      const userScores = {};
+      fallbackData.forEach(row => {
+        const userId = row.user_id;
+        if (!userScores[userId]) {
+          userScores[userId] = {
+            user_id: userId,
+            name: row.profiles.name,
+            total_points: 0,
+          };
+        }
+        userScores[userId].total_points += row.points;
+      });
+      
+      return Object.values(userScores)
+        .sort((a: any, b: any) => b.total_points - a.total_points);
+    }
+    
+    return data;
+  },
+
+  async subscribeToLeaderboardUpdates(gameId: string, callback: (payload: any) => void) {
+    // Suscribirse a los cambios en live_game_answers
+    return supabase
+      .channel(`leaderboard-${gameId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'live_game_answers',
+          filter: `game_id=eq.${gameId}`
+        },
+        callback
+      )
+      .subscribe();
   }
 };
