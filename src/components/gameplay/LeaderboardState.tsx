@@ -33,11 +33,11 @@ const LeaderboardState = ({ ranking }: LeaderboardStateProps) => {
         
         <div className="divide-y divide-gray-200">
           {ranking.slice(0, 10).map((player, index) => {
-            const isCurrentUser = player.user_id === user?.id;
+            const isCurrentUser = player.id === user?.id;
             
             return (
               <motion.div 
-                key={player.user_id}
+                key={player.id}
                 className={cn(
                   "grid grid-cols-12 py-3 px-4 items-center",
                   isCurrentUser ? "bg-gloria-purple/10" : index % 2 === 0 ? "bg-white" : "bg-gray-50"
@@ -50,11 +50,11 @@ const LeaderboardState = ({ ranking }: LeaderboardStateProps) => {
                 transition={{ duration: 0.5 }}
               >
                 <div className="col-span-1 font-semibold text-gray-700">
-                  {player.rank}
+                  {index + 1}
                 </div>
                 <div className="col-span-7 flex items-center">
                   <img 
-                    src={player.avatar} 
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`}
                     alt={player.name} 
                     className="w-8 h-8 rounded-full mr-3" 
                   />

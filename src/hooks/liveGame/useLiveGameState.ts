@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Player, LiveGameState } from '@/types/liveGame';
 import { QuizQuestion } from '@/types/quiz';
 import { useParams } from 'react-router-dom';
 import { fetchLiveGameState, subscribeToGameStateUpdates } from './gameStateUtils';
-import { subscribeToLeaderboardUpdates, getGameLeaderboard } from './leaderboardUtils';
+import { fetchGameLeaderboard, subscribeToLeaderboardUpdates } from './leaderboardUtils';
 import { submitAnswer } from './playerUtils';
 import { toast } from '@/hooks/use-toast';
 import { getQuizById } from '@/services/quiz';
@@ -52,13 +53,8 @@ export const useLiveGameState = (): UseLiveGameStateResult => {
         }
 
         // Fetch leaderboard
-        const leaderboardData = await getGameLeaderboard(gameId);
-        setLeaderboard(leaderboardData.map((player, index) => ({
-          id: index + 1,
-          name: player.name,
-          points: player.total_points,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=random&color=fff`
-        })));
+        const leaderboardData = await fetchGameLeaderboard(gameId);
+        setLeaderboard(leaderboardData);
       } catch (err: any) {
         setError(err.message || 'Failed to load initial data');
       } finally {
@@ -85,13 +81,10 @@ export const useLiveGameState = (): UseLiveGameStateResult => {
       }
     });
 
-    const leaderboardSubscription = subscribeToLeaderboardUpdates(gameId, (payload: any) => {
-      setLeaderboard(payload.new.map((player: any, index: number) => ({
-        id: index + 1,
-        name: player.name,
-        points: player.total_points,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=random&color=fff`
-      })));
+    const leaderboardSubscription = subscribeToLeaderboardUpdates(gameId, async (payload: any) => {
+      // When we get a leaderboard update, refresh the entire leaderboard
+      const updatedLeaderboard = await fetchGameLeaderboard(gameId);
+      setLeaderboard(updatedLeaderboard);
     });
 
     return () => {
@@ -116,7 +109,9 @@ export const useLiveGameState = (): UseLiveGameStateResult => {
         return;
       }
 
-      const userId = supabase.auth.currentUser?.id;
+      const user = supabase.auth.getUser();
+      const userId = (await user).data.user?.id;
+      
       if (!userId) {
         console.error("User not authenticated.");
         return;

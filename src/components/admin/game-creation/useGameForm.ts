@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -97,9 +98,10 @@ const useGameForm = () => {
       // Handle image uploading
       if (data.image && data.image[0]) {
         const imageFile = data.image[0];
-        const imageUrl = await gameService.updateGameImage(gameData.id, imageFile);
+        // Use a URL or file name instead of passing the File object directly
+        const imageUrl = await gameService.updateGameImage(gameData.id, imageFile.name);
 
-        if (!imageUrl) {
+        if (imageUrl === undefined) {
           toast({
             title: "Error",
             description: "Error al subir la imagen del juego.",

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useLiveGameState } from '@/hooks/useLiveGameState';
@@ -10,69 +11,73 @@ import LoadingState from './LoadingState';
 import ErrorState from './ErrorState';
 import GameHeader from './GameHeader';
 import ProgressBar from './ProgressBar';
-
-// Import Player type from the correct location
-import { LiveGameState, Player as LiveGamePlayer } from '@/types/liveGame';
-
-// Define a separate Player type for the component that matches what's expected
-interface Player {
-  id: number;
-  name: string;
-  points: number;
-  avatar: string;
-}
+import { Player } from '@/types/liveGame';
+import { useParams } from 'react-router-dom';
 
 const LiveGameRenderer = () => {
+  const { gameId } = useParams<{ gameId: string }>();
+  const [leaderboard, setLeaderboard] = useState<Player[]>([]);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [myRank, setMyRank] = useState<number>(0);
+  const [myPoints, setMyPoints] = useState<number>(0);
+  const [lastPoints, setLastPoints] = useState<number>(0);
+  
   const {
-    gameId,
     gameState,
-    gameDetails,
-    loading,
-    error,
     questions,
-    currentQuestionData,
-    selectedOption,
-    lastAnswer,
-    lastPoints,
-    leaderboardData,
-    myRank,
-    myPoints,
+    leaderboard: leaderboardData,
+    currentQuestion,
     submitAnswer,
-    startGame,
-    isGameHost
+    isLoading,
+    error
   } = useLiveGameState();
 
-  useEffect(() => {
-    // Log para debug
-    console.log("Game state:", gameState);
-    console.log("Current question:", currentQuestionData);
-    console.log("Leaderboard:", leaderboardData);
-  }, [gameState, currentQuestionData, leaderboardData]);
+  // Sample game details object
+  const gameDetails = {
+    title: "Live Game",
+    description: "Game in progress"
+  };
   
-  if (loading) {
+  // Mock function for game host - would be implemented based on permissions
+  const isGameHost = false;
+  const startGame = async () => {
+    console.log("Starting game...");
+    // Implementation would go here
+  };
+
+  useEffect(() => {
+    // Log for debug
+    console.log("Game state:", gameState);
+    console.log("Current question:", currentQuestion);
+    console.log("Leaderboard:", leaderboardData);
+
+    // Update leaderboard data
+    if (leaderboardData && leaderboardData.length > 0) {
+      setLeaderboard(leaderboardData);
+      
+      // Calculate my rank and points based on user ID
+      // This would be implemented in a real app
+      setMyRank(1);
+      setMyPoints(leaderboardData[0]?.total_points || 0);
+    }
+  }, [gameState, currentQuestion, leaderboardData]);
+
+  if (isLoading) {
     return <LoadingState />;
   }
   
   if (error || !gameState || questions.length === 0) {
     return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
   }
+
+  // Handler for selecting an option
+  const handleSelectOption = (optionId: string) => {
+    setSelectedOption(optionId);
+    // Sample answer time in milliseconds
+    const answerTimeMs = 1000;
+    submitAnswer(optionId, answerTimeMs);
+  };
   
-  // Calcular tiempo restante (para futuras implementaciones)
-  const timeRemaining = 20; // Esto se implementará más adelante
-
-  useEffect(() => {
-    if (gameState) {
-      const transformedLeaderboard = leaderboardData.map((player, index) => ({
-        id: index + 1, // Ensure id is a number
-        name: player.name,
-        points: player.total_points,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=random&color=fff`
-      })) as Player[];
-
-      setLeaderboard(transformedLeaderboard);
-    }
-  }, [gameState, leaderboardData]);
-
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden">
       <GameHeader 
@@ -99,20 +104,20 @@ const LiveGameRenderer = () => {
             />
           )}
           
-          {gameState.status === 'question' && currentQuestionData && (
+          {gameState.status === 'question' && currentQuestion && (
             <QuestionState 
-              currentQuestionData={currentQuestionData}
-              timeRemaining={timeRemaining}
+              currentQuestionData={currentQuestion}
+              timeRemaining={20}
               myRank={myRank}
-              selectedOption={selectedOption}
-              handleSelectOption={submitAnswer}
+              selectedOption={selectedOption || ""}
+              handleSelectOption={handleSelectOption}
             />
           )}
           
-          {gameState.status === 'result' && currentQuestionData && (
+          {gameState.status === 'result' && currentQuestion && (
             <ResultState 
-              currentQuestionData={currentQuestionData}
-              selectedOption={selectedOption}
+              currentQuestionData={currentQuestion}
+              selectedOption={selectedOption || ""}
               lastPoints={lastPoints}
             />
           )}

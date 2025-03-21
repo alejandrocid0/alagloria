@@ -5,7 +5,7 @@ import { Form } from '@/components/ui/form';
 import GameMetadataForm from './GameMetadataForm';
 import QuestionsList from './game-creation/QuestionsList';
 import SubmitButton from './game-creation/SubmitButton';
-import { useGameForm } from './game-creation/useGameForm';
+import useGameForm from './game-creation/useGameForm';
 import { useGameCreation } from './game-creation/GameCreationHandler';
 
 const GameManagement = () => {

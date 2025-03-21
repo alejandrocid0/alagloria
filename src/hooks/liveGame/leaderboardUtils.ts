@@ -14,20 +14,21 @@ export async function fetchGameLeaderboard(gameId: string): Promise<Player[]> {
       throw error;
     }
     
-    // Añadir ranks a los jugadores
+    // Convert the response to Player type
     return data.map((player: any, index: number) => ({
-      user_id: player.user_id,
+      id: player.user_id, // Use user_id as id
       name: player.name,
       total_points: player.total_points,
-      rank: index + 1,
-      lastAnswer: player.last_answer,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
+      last_answer: player.last_answer // Match the field from the Player interface
     }));
   } catch (err) {
     console.error('Error fetching leaderboard:', err);
     return [];
   }
 }
+
+// Function alias for backward compatibility
+export const getGameLeaderboard = fetchGameLeaderboard;
 
 // Función para suscribirse a cambios en el leaderboard
 export function subscribeToLeaderboardUpdates(
