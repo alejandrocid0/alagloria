@@ -24,7 +24,7 @@ export function useGameForm() {
           text: '',
           correctOption: '',
           options: createEmptyOptions(),
-          difficulty,
+          difficulty, // Usando el valor directamente del array
         });
       }
     }
