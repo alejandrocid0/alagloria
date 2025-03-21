@@ -239,6 +239,33 @@ export type Database = {
           },
         ]
       }
+      user_suggestions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       games_with_details: {

@@ -1,8 +1,15 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut, Settings, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Profile, User as AuthUser } from '@/contexts/auth/types';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface DesktopNavProps {
   navLinks: Array<{ title: string; path: string }>;
@@ -56,20 +63,34 @@ const DesktopNav = ({
                 <span>Administración</span>
               </Link>
             )}
-            <Link
-              to="/dashboard"
-              className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
-            >
-              <User size={16} className="inline mr-2" />
-              <span>Mi Perfil</span>
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center space-x-1 px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
-            >
-              <LogOut size={16} className="mr-2" />
-              <span>Salir</span>
-            </button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center">
+                  <User size={16} className="inline mr-2" />
+                  <span>Mi Perfil</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="w-full cursor-pointer">
+                    <User size={16} className="mr-2" />
+                    Estadísticas
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/suggestions" className="w-full cursor-pointer">
+                    <MessageSquare size={16} className="mr-2" />
+                    Buzón de sugerencias
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                  <LogOut size={16} className="mr-2" />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ) : (
           <>

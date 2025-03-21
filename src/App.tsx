@@ -16,6 +16,7 @@ import JoinGame from "./pages/JoinGame";
 import Game from "./pages/Game";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Suggestions from "./pages/Suggestions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/join/:gameId" element={<JoinGame />} />
             <Route path="/game/:gameId" element={<Game />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/suggestions" element={<Suggestions />} />
             <Route path="/admin" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

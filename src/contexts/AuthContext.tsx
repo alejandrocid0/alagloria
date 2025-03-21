@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType, Profile } from './auth/types';
 import { useAuthActions } from './auth/useAuthActions';
 import { useProfile } from './auth/useProfile';
+import { toast } from 'sonner';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -19,6 +20,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const { fetchProfile } = useProfile();
   const { signUp, signIn, signOut, resetPassword, updatePassword } = useAuthActions(setLoading, setProfile);
+
+  // Función para enviar una sugerencia
+  const sendSuggestion = async (message: string) => {
+    if (!user) {
+      return { error: new Error('Debes estar autenticado para enviar una sugerencia') };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_suggestions')
+        .insert({
+          user_id: user.id,
+          email: user.email || profile?.email || '',
+          message,
+        });
+
+      if (error) {
+        console.error('Error al enviar sugerencia:', error);
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Error en sendSuggestion:', error);
+      return { error };
+    }
+  };
 
   // Función para cargar el perfil de usuario
   const loadUserProfile = async (userId: string, userObj: User) => {
@@ -79,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     resetPassword,
     updatePassword,
+    sendSuggestion,
     loading,
     isAuthenticated,
     currentUser,

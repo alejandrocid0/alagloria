@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut, Settings, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Profile, User as AuthUser } from '@/contexts/auth/types';
 
@@ -49,6 +49,7 @@ const MobileMenu = ({
                 <User size={16} className="mr-2" />
                 {profile?.name}
               </div>
+              
               {isAdmin && (
                 <Link 
                   to="/admin"
@@ -59,14 +60,25 @@ const MobileMenu = ({
                   Administración
                 </Link>
               )}
+              
               <Link 
                 to="/dashboard"
                 className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
                 onClick={closeMenu}
               >
                 <User size={16} className="mr-2" />
-                Mi Perfil
+                Estadísticas
               </Link>
+              
+              <Link 
+                to="/suggestions"
+                className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                onClick={closeMenu}
+              >
+                <MessageSquare size={16} className="mr-2" />
+                Buzón de sugerencias
+              </Link>
+              
               <button 
                 onClick={handleSignOut}
                 className="py-2 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"

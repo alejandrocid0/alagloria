@@ -13,6 +13,14 @@ export type Profile = {
   [key: string]: any;
 };
 
+export type Suggestion = {
+  id: string;
+  email: string;
+  message: string;
+  created_at: string;
+  status: 'pending' | 'reviewed' | 'implemented';
+};
+
 export type AuthContextType = {
   session: Session | null;
   user: User | null;
@@ -22,6 +30,7 @@ export type AuthContextType = {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
+  sendSuggestion: (message: string) => Promise<{ error: any }>;
   loading: boolean;
   isAuthenticated: boolean;
   currentUser: User | null;
