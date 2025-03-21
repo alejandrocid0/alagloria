@@ -6,7 +6,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GameFormValues } from './schemas/gameFormSchema';
+import { GameFormValues, SEMANA_SANTA_CATEGORIES } from './schemas/gameFormSchema';
 
 interface GameMetadataFormProps {
   imageFile: File | null;
@@ -22,6 +22,14 @@ const GameMetadataForm = ({
   onImageChange 
 }: GameMetadataFormProps) => {
   const { control } = useFormContext<GameFormValues>();
+
+  // Función para formatear el nombre de la categoría para mostrar
+  const formatCategoryName = (category: string) => {
+    return category
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -64,14 +72,18 @@ const GameMetadataForm = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoría</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue="semana-santa">
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Semana Santa" />
+                    <SelectValue placeholder="Selecciona una categoría" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="semana-santa">Semana Santa</SelectItem>
+                  {SEMANA_SANTA_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {formatCategoryName(category)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />

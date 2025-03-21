@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { GameFormValues } from '@/components/admin/schemas/gameFormSchema';
 
@@ -15,7 +16,7 @@ export const gameService = {
         description: data.description,
         date: gameDateTime.toISOString(),
         created_by: userId,
-        category: data.category || 'semana-santa' // Ensure category is always set
+        category: data.category
       })
       .select()
       .single();
@@ -40,7 +41,7 @@ export const gameService = {
     }
   },
   
-  async createQuestion(gameId: string, questionText: string, correctOption: string, position: number) {
+  async createQuestion(gameId: string, questionText: string, correctOption: string, position: number, difficulty: string = 'sevillano') {
     const { data: questionData, error: questionError } = await supabase
       .from('questions')
       .insert({
@@ -48,6 +49,7 @@ export const gameService = {
         question_text: questionText,
         correct_option: correctOption,
         position: position,
+        difficulty: difficulty, // Añadimos el campo de dificultad
       })
       .select()
       .single();

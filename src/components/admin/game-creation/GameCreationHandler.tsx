@@ -62,7 +62,8 @@ export function useGameCreation() {
           gameData.id,
           question.text,
           question.correctOption,
-          i + 1
+          i + 1,
+          question.difficulty // Pasar nivel de dificultad
         );
         console.log("Question created:", questionData);
         
