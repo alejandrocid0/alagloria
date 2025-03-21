@@ -60,7 +60,13 @@ const Suggestions = () => {
       if (error) {
         console.error('Error fetching suggestions:', error);
       } else {
-        setPreviousSuggestions(data || []);
+        // Cast the status to the correct type
+        const typedData = data?.map(item => ({
+          ...item,
+          status: item.status as 'pending' | 'reviewed' | 'implemented'
+        })) || [];
+        
+        setPreviousSuggestions(typedData);
       }
     } catch (error) {
       console.error('Error in fetchPreviousSuggestions:', error);

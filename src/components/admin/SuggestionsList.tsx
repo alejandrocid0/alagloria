@@ -34,11 +34,11 @@ const SuggestionsList = () => {
   }, []);
 
   // Actualizar estado de sugerencia
-  const updateSuggestionStatus = async (id: string, status: string) => {
+  const updateSuggestionStatus = async (id: string, newStatus: 'pending' | 'reviewed' | 'implemented') => {
     try {
       const { error } = await supabase
         .from('user_suggestions')
-        .update({ status })
+        .update({ status: newStatus })
         .eq('id', id);
 
       if (error) {
@@ -49,7 +49,7 @@ const SuggestionsList = () => {
         // Actualizar localmente
         setSuggestions(prevSuggestions => 
           prevSuggestions.map(suggestion => 
-            suggestion.id === id ? { ...suggestion, status } : suggestion
+            suggestion.id === id ? { ...suggestion, status: newStatus } : suggestion
           )
         );
       }
@@ -66,7 +66,10 @@ const SuggestionsList = () => {
       // Consulta para obtener todas las sugerencias
       const { data, error } = await supabase
         .from('user_suggestions')
-        .select('*, profiles!inner(name)')
+        .select(`
+          *,
+          profiles(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -79,7 +82,7 @@ const SuggestionsList = () => {
           email: item.email,
           message: item.message,
           created_at: item.created_at,
-          status: item.status,
+          status: item.status as 'pending' | 'reviewed' | 'implemented',
           user_name: item.profiles?.name || 'Usuario'
         }));
         setSuggestions(formattedData);
@@ -195,7 +198,10 @@ const SuggestionsList = () => {
                   <TableCell>
                     <Select 
                       defaultValue={suggestion.status}
-                      onValueChange={(value) => updateSuggestionStatus(suggestion.id, value)}
+                      onValueChange={(value) => updateSuggestionStatus(
+                        suggestion.id, 
+                        value as 'pending' | 'reviewed' | 'implemented'
+                      )}
                     >
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Cambiar estado" />
