@@ -133,9 +133,9 @@ const LiveGameRenderer = () => {
               ranking={leaderboard.map(player => ({
                 id: player.id,
                 name: player.name, 
-                score: player.total_points,
+                points: player.total_points,
                 rank: 0, // This would be calculated based on position
-                avatar: undefined,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`,
                 lastAnswer: player.last_answer === 'correct' ? 'correct' : 'incorrect'
               }))}
               myPoints={myPoints}

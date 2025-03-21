@@ -5,10 +5,12 @@ import { cn } from '@/lib/utils';
 import Button from '@/components/Button';
 
 interface Player {
-  id: number;
+  id: string;
   name: string;
   points: number;
+  rank: number;
   avatar: string;
+  lastAnswer: 'correct' | 'incorrect' | null;
 }
 
 interface FinishedStateProps {
@@ -106,7 +108,7 @@ const FinishedState = ({ gameId, ranking, myPoints, myRank }: FinishedStateProps
                 />
                 <div>
                   <div className="font-medium text-gray-800">
-                    {player.id === 2 ? "Tú" : player.name}
+                    {player.id === '2' ? "Tú" : player.name}
                   </div>
                   <div className="text-sm text-gray-500">
                     {player.points.toLocaleString()} puntos

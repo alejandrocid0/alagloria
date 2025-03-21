@@ -80,8 +80,10 @@ const useGameForm = () => {
       const gameData = await gameService.createGame({
         title: data.title,
         description: data.description,
-        date: gameDateTime.toISOString(),
-        category: data.category
+        gameDate: data.gameDate,
+        gameTime: data.gameTime,
+        category: data.category,
+        questions: data.questions
       }, "current-user-id"); // This second param is needed based on the error
 
       // Process questions and options
