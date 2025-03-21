@@ -2,19 +2,29 @@
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
 
 const GamePlay = () => {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Redirigir a login si no hay usuario autenticado
+  // Manejar estado de carga y redirigir a login si no hay usuario autenticado
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login', { state: { from: location.pathname } });
+    if (user) {
+      setIsLoading(false);
+    } else {
+      // Pequeño retraso para asegurarnos de que la autenticación ha sido comprobada
+      const timeout = setTimeout(() => {
+        setIsLoading(false);
+        if (!user) {
+          navigate('/login', { state: { from: location.pathname } });
+        }
+      }, 1000);
+      return () => clearTimeout(timeout);
     }
-  }, [user, isLoading, navigate]);
+  }, [user, navigate]);
   
   if (isLoading) {
     return (

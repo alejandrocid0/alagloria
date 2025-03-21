@@ -5,10 +5,11 @@ export interface QuizOption {
 }
 
 export interface QuizQuestion {
-  id: number;
+  id: string; // Cambiado de number a string para compatibilidad con UUID
   question: string;
   options: QuizOption[];
   correctOption: string;
+  position: number; // Añadido para mantener el orden de las preguntas
 }
 
 export interface Quiz {
