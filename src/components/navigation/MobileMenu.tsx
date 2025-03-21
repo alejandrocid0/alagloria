@@ -50,7 +50,8 @@ const MobileMenu = ({
                 {profile?.name}
               </div>
               
-              {isAdmin && (
+              {isAdmin ? (
+                // Para usuarios administradores, mostrar solo el botón de administración
                 <Link 
                   to="/admin"
                   className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
@@ -59,25 +60,28 @@ const MobileMenu = ({
                   <Settings size={16} className="mr-2" />
                   Administración
                 </Link>
+              ) : (
+                // Para usuarios normales, mostrar todos los enlaces de perfil
+                <>
+                  <Link 
+                    to="/dashboard"
+                    className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                    onClick={closeMenu}
+                  >
+                    <User size={16} className="mr-2" />
+                    Estadísticas
+                  </Link>
+                  
+                  <Link 
+                    to="/suggestions"
+                    className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                    onClick={closeMenu}
+                  >
+                    <MessageSquare size={16} className="mr-2" />
+                    Buzón de sugerencias
+                  </Link>
+                </>
               )}
-              
-              <Link 
-                to="/dashboard"
-                className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
-                onClick={closeMenu}
-              >
-                <User size={16} className="mr-2" />
-                Estadísticas
-              </Link>
-              
-              <Link 
-                to="/suggestions"
-                className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
-                onClick={closeMenu}
-              >
-                <MessageSquare size={16} className="mr-2" />
-                Buzón de sugerencias
-              </Link>
               
               <button 
                 onClick={handleSignOut}

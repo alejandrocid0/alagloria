@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { User, LogOut, Settings, MessageSquare } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Profile, User as AuthUser } from '@/contexts/auth/types';
 import { 
@@ -54,7 +54,9 @@ const DesktopNav = ({
             <div className="text-gloria-purple font-medium">
               Hola, {profile?.name}
             </div>
-            {isAdmin && (
+            
+            {isAdmin ? (
+              // Para administradores, solo mostrar el botón de Administración
               <Link
                 to="/admin"
                 className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
@@ -62,35 +64,41 @@ const DesktopNav = ({
                 <Settings size={16} className="inline mr-2" />
                 <span>Administración</span>
               </Link>
+            ) : (
+              // Para usuarios normales, mantener el menú desplegable
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center">
+                    <span>Mi Perfil</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="w-full cursor-pointer">
+                      Estadísticas
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/suggestions" className="w-full cursor-pointer">
+                      Buzón de sugerencias
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                    Cerrar sesión
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center">
-                  <User size={16} className="inline mr-2" />
-                  <span>Mi Perfil</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard" className="w-full cursor-pointer">
-                    <User size={16} className="mr-2" />
-                    Estadísticas
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/suggestions" className="w-full cursor-pointer">
-                    <MessageSquare size={16} className="mr-2" />
-                    Buzón de sugerencias
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                  <LogOut size={16} className="mr-2" />
-                  Cerrar sesión
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Botón de cerrar sesión siempre visible para todos los usuarios */}
+            <button 
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
+            >
+              <LogOut size={16} className="inline mr-2" />
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         ) : (
           <>
