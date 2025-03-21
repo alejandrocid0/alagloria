@@ -9,12 +9,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   fetchLiveGameState, 
   fetchGameQuestions, 
-  fetchGameLeaderboard, 
-  submitAnswer as submitAnswerUtil, 
   startGame as startGameUtil,
-  subscribeToGameUpdates,
+  subscribeToGameUpdates
+} from './gameStateUtils';
+import {
+  fetchGameLeaderboard,
   subscribeToLeaderboardUpdates
-} from './liveGameUtils';
+} from './leaderboardUtils';
+import {
+  submitAnswer as submitAnswerUtil
+} from './playerUtils';
 
 export const useLiveGameState = () => {
   const { gameId } = useParams<{ gameId: string }>();

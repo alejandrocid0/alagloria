@@ -2,12 +2,15 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/liveGame';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LeaderboardStateProps {
   ranking: Player[];
 }
 
 const LeaderboardState = ({ ranking }: LeaderboardStateProps) => {
+  const { user } = useAuth();
+  
   return (
     <motion.div 
       key="leaderboard"
@@ -30,7 +33,7 @@ const LeaderboardState = ({ ranking }: LeaderboardStateProps) => {
         
         <div className="divide-y divide-gray-200">
           {ranking.slice(0, 10).map((player, index) => {
-            const isCurrentUser = player.user_id === '2'; // Temporal, deberías comparar con el ID del usuario actual
+            const isCurrentUser = player.user_id === user?.id;
             
             return (
               <motion.div 
