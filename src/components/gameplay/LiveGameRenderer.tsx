@@ -11,9 +11,13 @@ import LoadingState from './LoadingState';
 import ErrorState from './ErrorState';
 import GameHeader from './GameHeader';
 import ProgressBar from './ProgressBar';
+import WaitingRoom from './WaitingRoom';
 import { useParams } from 'react-router-dom';
 import { Player } from '@/types/game';
 import { QuizQuestion } from '@/types/quiz';
+import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 // Helper function to adapt Question to QuizQuestion format
 const adaptQuestionToQuizFormat = (question: any): QuizQuestion => {
@@ -36,6 +40,15 @@ const LiveGameRenderer = () => {
   const [myRank, setMyRank] = useState<number>(0);
   const [myPoints, setMyPoints] = useState<number>(0);
   const [lastPoints, setLastPoints] = useState<number>(0);
+  const [gameInfo, setGameInfo] = useState<{
+    title: string;
+    scheduledTime: string;
+    prizePool: number;
+  }>({
+    title: "Partida en vivo",
+    scheduledTime: "",
+    prizePool: 100
+  });
   
   const {
     gameState,
@@ -48,11 +61,37 @@ const LiveGameRenderer = () => {
     error
   } = useLiveGameState();
 
-  // Sample game details object
-  const gameDetails = {
-    title: "Live Game",
-    description: "Game in progress"
-  };
+  // Fetch game details
+  useEffect(() => {
+    const fetchGameDetails = async () => {
+      if (!gameId) return;
+      
+      try {
+        const { data, error } = await fetch(`/api/games/${gameId}`).then(res => res.json());
+        
+        if (error) throw new Error(error.message);
+        
+        if (data) {
+          const formattedDate = format(
+            new Date(data.date), 
+            "EEEE d 'de' MMMM, HH:mm", 
+            { locale: es }
+          );
+          
+          setGameInfo({
+            title: data.title || "Partida en vivo",
+            scheduledTime: formattedDate,
+            prizePool: data.prizePool || 100
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching game details:", err);
+        // Fallback to defaults, silently fail to not disrupt the experience
+      }
+    };
+    
+    fetchGameDetails();
+  }, [gameId]);
   
   // Mock function for game host - would be implemented based on permissions
   const isGameHost = false;
@@ -97,6 +136,21 @@ const LiveGameRenderer = () => {
     // Set last points when we get an answer result
     if (lastAnswerResult) {
       setLastPoints(lastAnswerResult.points);
+      
+      // Show toast notification for points earned
+      if (lastAnswerResult.isCorrect) {
+        toast({
+          title: "¡Respuesta correcta!",
+          description: `Has ganado ${lastAnswerResult.points} puntos`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Respuesta incorrecta",
+          description: "No has sumado puntos en esta pregunta",
+          variant: "destructive",
+        });
+      }
     }
   }, [gameState, currentQuestion, leaderboardData, lastAnswerResult]);
 
@@ -104,8 +158,28 @@ const LiveGameRenderer = () => {
     return <LoadingState />;
   }
   
-  if (error || !gameState || questions.length === 0) {
+  if (error || !gameState) {
     return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
+  }
+  
+  // Renderizar la sala de espera si el juego aún no ha comenzado y estamos en momento previo
+  // Esta es una nueva condición que verifica si la partida programada aún no ha comenzado
+  const currentTime = new Date();
+  const scheduledTime = gameInfo.scheduledTime ? new Date(gameInfo.scheduledTime) : null;
+  const isBeforeGameStart = scheduledTime && currentTime < scheduledTime;
+
+  if (isBeforeGameStart) {
+    const timeUntilStart = Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / 1000));
+    
+    return (
+      <WaitingRoom 
+        gameTitle={gameInfo.title} 
+        scheduledTime={gameInfo.scheduledTime}
+        playersOnline={leaderboardData || []}
+        prizePool={gameInfo.prizePool}
+        timeUntilStart={timeUntilStart}
+      />
+    );
   }
 
   // Helper function to adapt the current question
@@ -124,7 +198,7 @@ const LiveGameRenderer = () => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden">
       <GameHeader 
-        quizTitle={gameDetails?.title || "Partida en vivo"} 
+        quizTitle={gameInfo.title} 
         playersCount={leaderboard.length} 
         myPoints={myPoints} 
         isDemoGame={false} 

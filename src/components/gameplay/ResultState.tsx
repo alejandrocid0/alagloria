@@ -1,8 +1,10 @@
 
-import { motion } from 'framer-motion';
-import { CheckCircle, XCircle } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { motion, useAnimate } from 'framer-motion';
 import { QuizQuestion } from '@/types/quiz';
 import { cn } from '@/lib/utils';
+import { CheckCircle, XCircle, Award, TrendingUp, Timer } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 interface ResultStateProps {
   currentQuestionData: QuizQuestion;
@@ -10,8 +12,34 @@ interface ResultStateProps {
   lastPoints: number;
 }
 
-const ResultState = ({ currentQuestionData, selectedOption, lastPoints }: ResultStateProps) => {
+const ResultState: React.FC<ResultStateProps> = ({
+  currentQuestionData,
+  selectedOption,
+  lastPoints,
+}) => {
+  const [pointsScope, animatePoints] = useAnimate();
+  
+  // Comprobar si la respuesta seleccionada es correcta
   const isCorrect = selectedOption === currentQuestionData.correctOption;
+  
+  // Lanzar confetti si la respuesta es correcta
+  useEffect(() => {
+    if (isCorrect && lastPoints > 0) {
+      // Lanzar confetti desde la parte superior
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      
+      // Animar el contador de puntos
+      animatePoints(
+        pointsScope.current,
+        { scale: [1, 1.5, 1], opacity: [0, 1] },
+        { duration: 0.5 }
+      );
+    }
+  }, [isCorrect, lastPoints, animatePoints]);
   
   return (
     <motion.div 
@@ -20,81 +48,102 @@ const ResultState = ({ currentQuestionData, selectedOption, lastPoints }: Result
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
+      className="py-6"
     >
-      <div className="mb-8 text-center">
-        <div className="flex justify-center mb-4">
-          {isCorrect ? (
-            <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-12 w-12 text-green-600" />
-            </div>
-          ) : (
-            <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center">
-              <XCircle className="h-12 w-12 text-red-600" />
-            </div>
+      <div className="text-center mb-8">
+        <motion.div
+          animate={{ 
+            scale: [1, 1.05, 1],
+            y: [0, -10, 0] 
+          }}
+          transition={{ 
+            duration: 0.5,
+            ease: "easeInOut" 
+          }}
+          className={cn(
+            "inline-flex items-center justify-center rounded-full p-2",
+            isCorrect ? "bg-green-100" : "bg-red-100"
           )}
-        </div>
+        >
+          {isCorrect ? (
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          ) : (
+            <XCircle className="w-8 h-8 text-red-600" />
+          )}
+        </motion.div>
         
-        <h2 className="text-xl md:text-2xl font-serif font-semibold mb-2">
-          {isCorrect 
-            ? "¡Respuesta correcta!" 
-            : "Respuesta incorrecta"}
+        <h2 className="text-2xl font-serif font-bold mt-4 mb-2">
+          {isCorrect ? "¡Respuesta correcta!" : "Respuesta incorrecta"}
         </h2>
         
-        {isCorrect && (
-          <div className="text-center mb-4">
-            <p className="text-lg font-semibold text-gloria-purple">
-              +{lastPoints} puntos
-            </p>
-          </div>
-        )}
-        
-        <p className="text-gray-600 mb-6">
-          {currentQuestionData.question}
+        <p className="text-gray-600">
+          {isCorrect 
+            ? "¡Excelente trabajo! Has respondido correctamente." 
+            : "No te preocupes, aún tienes más oportunidades."}
         </p>
+        
+        {isCorrect && (
+          <motion.div 
+            ref={pointsScope}
+            className="mt-4 inline-flex items-center justify-center bg-gloria-gold/20 text-gloria-gold px-4 py-2 rounded-full"
+          >
+            <Award className="w-5 h-5 mr-2" />
+            <span className="font-bold text-lg">+{lastPoints} puntos</span>
+          </motion.div>
+        )}
       </div>
       
-      <div className="grid gap-3">
-        {currentQuestionData.options.map((option) => {
-          const isSelected = selectedOption === option.id;
-          const isCorrectOption = option.id === currentQuestionData.correctOption;
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8">
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+          <h3 className="font-serif font-semibold text-gloria-purple">Detalles de la pregunta</h3>
+        </div>
+        
+        <div className="p-6">
+          <div className="mb-4">
+            <h4 className="font-medium text-gray-700 mb-2">Pregunta:</h4>
+            <p className="text-gray-900">{currentQuestionData.question}</p>
+          </div>
           
-          return (
-            <div
-              key={option.id}
-              className={cn(
-                "w-full text-left p-4 rounded-lg border",
-                isCorrectOption 
-                  ? "border-green-500 bg-green-50" 
-                  : isSelected 
-                    ? "border-red-500 bg-red-50" 
-                    : "border-gray-200"
-              )}
-            >
-              <div className="flex items-center">
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center mr-3 font-medium text-sm",
-                  isCorrectOption
-                    ? "bg-green-500 text-white"
-                    : isSelected
-                      ? "bg-red-500 text-white"
-                      : "bg-gray-100 text-gray-700"
-                )}>
-                  {option.id.toUpperCase()}
-                </div>
-                <span className={cn(
-                  "font-medium",
-                  isCorrectOption
-                    ? "text-green-700"
-                    : isSelected
-                      ? "text-red-700"
-                      : "text-gray-800"
-                )}>
-                  {option.text}
+          <div className="mb-4">
+            <h4 className="font-medium text-gray-700 mb-2">Tu respuesta:</h4>
+            {selectedOption ? (
+              <div className={cn(
+                "p-3 rounded-lg border-2 flex items-center",
+                isCorrect ? "border-green-300 bg-green-50" : "border-red-300 bg-red-50"
+              )}>
+                {isCorrect ? (
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-red-600 mr-2" />
+                )}
+                <span>
+                  {currentQuestionData.options.find(o => o.id === selectedOption)?.text || "No seleccionada"}
+                </span>
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg border-2 border-red-300 bg-red-50 flex items-center">
+                <XCircle className="w-5 h-5 text-red-600 mr-2" />
+                <span>No seleccionaste ninguna respuesta</span>
+              </div>
+            )}
+          </div>
+          
+          {!isCorrect && (
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Respuesta correcta:</h4>
+              <div className="p-3 rounded-lg border-2 border-green-300 bg-green-50 flex items-center">
+                <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                <span>
+                  {currentQuestionData.options.find(o => o.id === currentQuestionData.correctOption)?.text || "Error en datos"}
                 </span>
               </div>
             </div>
-          );
-        })}
+          )}
+        </div>
+      </div>
+      
+      <div className="text-center text-gray-500">
+        Preparándose para la siguiente pregunta...
       </div>
     </motion.div>
   );
