@@ -9,10 +9,10 @@ export interface AnswerResult {
 export interface Player {
   id: string;
   name: string;
-  points: number; // changed from total_points to match game.ts
+  points: number; // standardized property name
   rank: number;
   avatar?: string;
-  lastAnswer: 'correct' | 'incorrect' | null; // changed from last_answer
+  lastAnswer: 'correct' | 'incorrect' | null; // standardized property name
 }
 
 export interface LiveGameState {

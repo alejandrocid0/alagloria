@@ -14,12 +14,13 @@ export async function fetchGameLeaderboard(gameId: string): Promise<Player[]> {
       throw error;
     }
     
-    // Convert the response to Player type
+    // Convert the response to Player type with correct property names
     return data.map((player: any, index: number) => ({
       id: player.user_id, // Use user_id as id
       name: player.name,
-      total_points: player.total_points,
-      last_answer: player.last_answer // Match the field from the Player interface
+      points: player.total_points, // Map to points instead of total_points
+      rank: index + 1, // Add rank property
+      lastAnswer: player.last_answer // Map to lastAnswer instead of last_answer
     }));
   } catch (err) {
     console.error('Error fetching leaderboard:', err);

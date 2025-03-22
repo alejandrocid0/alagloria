@@ -66,7 +66,7 @@ const LeaderboardState = ({ ranking }: LeaderboardStateProps) => {
                   </span>
                 </div>
                 <div className="col-span-4 text-right font-semibold text-gray-800">
-                  {player.total_points.toLocaleString()}
+                  {player.points.toLocaleString()}
                 </div>
               </motion.div>
             );
