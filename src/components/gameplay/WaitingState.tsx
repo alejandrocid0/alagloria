@@ -1,14 +1,80 @@
 
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface WaitingStateProps {
   countdown: number;
-  onStartGame: () => void;
+  onStartGame?: () => void;
+  gameId?: string;
 }
 
-const WaitingState = ({ countdown, onStartGame }: WaitingStateProps) => {
+const WaitingState = ({ countdown, onStartGame, gameId }: WaitingStateProps) => {
+  useEffect(() => {
+    // Si la cuenta regresiva llega a 0, iniciar automáticamente
+    if (countdown <= 0 && gameId) {
+      handleAutoStart();
+    }
+  }, [countdown, gameId]);
+
+  const handleAutoStart = async () => {
+    if (!gameId) return;
+    
+    try {
+      // Llamar a la edge function para avanzar el estado del juego
+      const { data, error } = await supabase.functions.invoke('advance-game-state', {
+        body: { gameId }
+      });
+      
+      if (error) {
+        console.error('Error starting game automatically:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo iniciar la partida automáticamente",
+          variant: "destructive"
+        });
+      } else if (data?.success) {
+        console.log('Game started automatically:', data);
+        // Si existe onStartGame, llamarlo también (para implementaciones adicionales)
+        if (onStartGame) onStartGame();
+      }
+    } catch (err) {
+      console.error('Unexpected error starting game:', err);
+    }
+  };
+
+  const handleManualStart = async () => {
+    if (!gameId) {
+      if (onStartGame) onStartGame();
+      return;
+    }
+    
+    try {
+      // Llamar a la edge function para avanzar el estado del juego
+      const { data, error } = await supabase.functions.invoke('advance-game-state', {
+        body: { gameId }
+      });
+      
+      if (error) {
+        console.error('Error starting game manually:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo iniciar la partida manualmente",
+          variant: "destructive"
+        });
+      } else if (data?.success) {
+        console.log('Game started manually:', data);
+        // Si existe onStartGame, llamarlo también (para implementaciones adicionales)
+        if (onStartGame) onStartGame();
+      }
+    } catch (err) {
+      console.error('Unexpected error starting game:', err);
+    }
+  };
+
   return (
     <motion.div 
       key="waiting"
@@ -44,7 +110,7 @@ const WaitingState = ({ countdown, onStartGame }: WaitingStateProps) => {
         <Button
           variant="primary"
           className="mt-6"
-          onClick={onStartGame}
+          onClick={handleManualStart}
         >
           Empezar ahora
         </Button>

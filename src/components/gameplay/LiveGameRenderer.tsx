@@ -130,6 +130,7 @@ const LiveGameRenderer = () => {
             <WaitingState 
               countdown={gameState.countdown || 5} 
               onStartGame={isGameHost ? startGame : undefined} 
+              gameId={gameId}
             />
           )}
           
