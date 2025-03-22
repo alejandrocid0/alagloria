@@ -2,10 +2,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { Player, Question, LiveGameState } from '@/types/liveGame';
 import { toast } from '@/hooks/use-toast';
-import { Player, Question } from '@/types/game';
-import { LiveGameState } from '@/types/liveGame';
+import { fetchGameState, subscribeToGameStateUpdates } from './gameStateUtils';
+import { fetchQuestions } from './questionsUtils';
+import { fetchGameLeaderboard, subscribeToLeaderboardUpdates } from './leaderboardUtils';
+import { submitPlayerAnswer } from './playerUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useLiveGameState = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -18,28 +21,16 @@ export const useLiveGameState = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch game state from the server
-  const fetchGameState = useCallback(async () => {
+  const fetchGameStateData = useCallback(async () => {
     if (!gameId) return;
 
     try {
-      const { data, error } = await supabase
-        .rpc('get_live_game_state', { game_id: gameId });
+      const state = await fetchGameState(gameId);
       
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const state = {
-          id: data[0].id,
-          status: data[0].status as "waiting" | "question" | "result" | "leaderboard" | "finished",
-          current_question: data[0].current_question,
-          countdown: data[0].countdown,
-          started_at: data[0].started_at,
-          updated_at: data[0].updated_at
-        };
-        
+      if (state) {
         setGameState(state);
         
-        // Si hay un cambio en la pregunta actual, actualizarla
+        // If there's a change in the current question, update it
         if (state.current_question !== undefined && questions.length > 0) {
           setCurrentQuestion(questions[state.current_question]);
         }
@@ -49,78 +40,6 @@ export const useLiveGameState = () => {
       setError('No se pudo cargar el estado del juego');
     }
   }, [gameId, questions]);
-
-  // Fetch questions for the game
-  const fetchQuestions = useCallback(async () => {
-    if (!gameId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select(`
-          id,
-          question_text,
-          correct_option,
-          position,
-          options (
-            id,
-            option_id,
-            option_text
-          )
-        `)
-        .eq('game_id', gameId)
-        .order('position');
-      
-      if (error) throw error;
-      
-      if (data) {
-        const formattedQuestions = data.map((q) => ({
-          id: q.id,
-          text: q.question_text,
-          correctOption: q.correct_option,
-          timeLimit: 20, // Default time limit in seconds
-          options: q.options.map((o) => o.option_text)
-        }));
-        
-        setQuestions(formattedQuestions);
-        
-        // Si hay un estado de juego, actualizar la pregunta actual
-        if (gameState && gameState.current_question !== undefined) {
-          setCurrentQuestion(formattedQuestions[gameState.current_question]);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching questions:', err);
-      setError('No se pudieron cargar las preguntas');
-    }
-  }, [gameId, gameState]);
-
-  // Fetch leaderboard data
-  const fetchLeaderboard = useCallback(async () => {
-    if (!gameId) return;
-
-    try {
-      const { data, error } = await supabase
-        .rpc('get_game_leaderboard', { game_id: gameId });
-      
-      if (error) throw error;
-      
-      if (data) {
-        const formattedLeaderboard = data.map((player, index) => ({
-          id: player.user_id,
-          name: player.name,
-          points: player.total_points,
-          rank: index + 1,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`,
-          lastAnswer: player.last_answer as 'correct' | 'incorrect' | null
-        }));
-        
-        setLeaderboard(formattedLeaderboard);
-      }
-    } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-    }
-  }, [gameId]);
 
   // Submit answer to the server
   const submitAnswer = useCallback(async (selectedOption: string, answerTimeMs: number) => {
@@ -134,19 +53,16 @@ export const useLiveGameState = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .rpc('submit_game_answer', {
-          p_game_id: gameId,
-          p_user_id: user.id,
-          p_question_position: gameState.current_question,
-          p_selected_option: selectedOption,
-          p_answer_time_ms: answerTimeMs
-        });
+      const data = await submitPlayerAnswer(
+        gameId,
+        user.id,
+        gameState.current_question,
+        selectedOption,
+        answerTimeMs
+      );
       
-      if (error) throw error;
-      
-      // Actualizar el tablero después de enviar la respuesta
-      fetchLeaderboard();
+      // Update the leaderboard after submitting the answer
+      fetchGameLeaderboard(gameId).then(setLeaderboard);
       
       return data;
     } catch (err) {
@@ -157,18 +73,24 @@ export const useLiveGameState = () => {
         variant: "destructive"
       });
     }
-  }, [gameId, user, gameState, fetchLeaderboard]);
+  }, [gameId, user, gameState]);
 
   // Load initial data and set up subscriptions
   useEffect(() => {
     setIsLoading(true);
     
-    // Cargar datos iniciales
+    // Load initial data
     const loadInitialData = async () => {
       try {
-        await fetchGameState();
-        await fetchQuestions();
-        await fetchLeaderboard();
+        await fetchGameStateData();
+        
+        if (gameId) {
+          const questionData = await fetchQuestions(gameId);
+          setQuestions(questionData);
+          
+          const leaderboardData = await fetchGameLeaderboard(gameId);
+          setLeaderboard(leaderboardData);
+        }
       } catch (err) {
         console.error('Error loading initial data:', err);
       } finally {
@@ -178,45 +100,26 @@ export const useLiveGameState = () => {
     
     loadInitialData();
     
-    // Configurar suscripciones para actualizaciones en tiempo real
-    const gameStateChannel = supabase
-      .channel(`game-state-${gameId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'live_games',
-          filter: `id=eq.${gameId}`
-        },
-        () => {
-          fetchGameState();
-        }
-      )
-      .subscribe();
+    // Set up subscriptions for real-time updates
+    let gameStateChannel: any = null;
+    let leaderboardChannel: any = null;
     
-    const leaderboardChannel = supabase
-      .channel(`leaderboard-${gameId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'live_game_answers',
-          filter: `game_id=eq.${gameId}`
-        },
-        () => {
-          fetchLeaderboard();
-        }
-      )
-      .subscribe();
+    if (gameId) {
+      gameStateChannel = subscribeToGameStateUpdates(gameId, () => {
+        fetchGameStateData();
+      });
+      
+      leaderboardChannel = subscribeToLeaderboardUpdates(gameId, () => {
+        fetchGameLeaderboard(gameId).then(setLeaderboard);
+      });
+    }
     
-    // Limpiar suscripciones al desmontar
+    // Clean up subscriptions when unmounting
     return () => {
-      supabase.removeChannel(gameStateChannel);
-      supabase.removeChannel(leaderboardChannel);
+      if (gameStateChannel) supabase.removeChannel(gameStateChannel);
+      if (leaderboardChannel) supabase.removeChannel(leaderboardChannel);
     };
-  }, [gameId, fetchGameState, fetchQuestions, fetchLeaderboard]);
+  }, [gameId, fetchGameStateData]);
 
   return {
     gameState,

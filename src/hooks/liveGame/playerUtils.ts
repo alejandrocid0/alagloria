@@ -2,8 +2,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AnswerResult } from '@/types/liveGame';
 
-// Función para enviar una respuesta
-export async function submitAnswer(
+// Function to submit an answer
+export async function submitPlayerAnswer(
   gameId: string, 
   userId: string, 
   questionPosition: number, 
@@ -11,7 +11,7 @@ export async function submitAnswer(
   answerTimeMs: number
 ): Promise<AnswerResult> {
   try {
-    // Usamos RPC en lugar de consultar directamente la tabla
+    // Use RPC instead of directly querying the table
     const { data, error } = await supabase
       .rpc('submit_game_answer', {
         p_game_id: gameId,
@@ -26,14 +26,14 @@ export async function submitAnswer(
       throw new Error(`Error al enviar respuesta: ${error.message}`);
     }
     
-    // Fix the mapping to match the expected type
+    // Map the response to match the expected type
     return {
       is_correct: data[0].is_correct,
       points: data[0].points,
       correctOption: data[0].correctoption
     };
   } catch (err: any) {
-    console.error('Error in submitAnswer:', err);
+    console.error('Error in submitPlayerAnswer:', err);
     throw err;
   }
 }

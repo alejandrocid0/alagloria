@@ -2,10 +2,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Player } from '@/types/liveGame';
 
-// Función para obtener el leaderboard utilizando la función RPC
+// Function to fetch game leaderboard using the RPC function
 export async function fetchGameLeaderboard(gameId: string): Promise<Player[]> {
+  if (!gameId) return [];
+  
   try {
-    // Utilizamos la nueva función RPC get_game_leaderboard
+    // Use the RPC function get_game_leaderboard
     const { data, error } = await supabase
       .rpc('get_game_leaderboard', { game_id: gameId });
     
@@ -20,7 +22,8 @@ export async function fetchGameLeaderboard(gameId: string): Promise<Player[]> {
       name: player.name,
       points: player.total_points, // Map to points instead of total_points
       rank: index + 1, // Add rank property
-      lastAnswer: player.last_answer // Map to lastAnswer instead of last_answer
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`,
+      lastAnswer: player.last_answer as 'correct' | 'incorrect' | null // Map to lastAnswer
     }));
   } catch (err) {
     console.error('Error fetching leaderboard:', err);
@@ -28,14 +31,13 @@ export async function fetchGameLeaderboard(gameId: string): Promise<Player[]> {
   }
 }
 
-// Function alias for backward compatibility
-export const getGameLeaderboard = fetchGameLeaderboard;
-
-// Función para suscribirse a cambios en el leaderboard
+// Function to subscribe to leaderboard updates
 export function subscribeToLeaderboardUpdates(
   gameId: string, 
   callback: (payload: any) => void
-): any {
+) {
+  if (!gameId) return null;
+  
   return supabase
     .channel(`leaderboard-${gameId}`)
     .on(
