@@ -23,3 +23,11 @@ export interface LiveGameState {
   started_at: string;
   updated_at: string;
 }
+
+export interface Question {
+  id: string;
+  text: string;
+  options: string[];
+  correctOption: string;
+  timeLimit: number;
+}
