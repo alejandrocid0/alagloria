@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Player, Question, LiveGameState } from '@/types/liveGame';
+import { Player, Question, LiveGameState, AnswerResult } from '@/types/liveGame';
 import { toast } from '@/hooks/use-toast';
 import { fetchGameState, subscribeToGameStateUpdates, setupAutoAdvance } from './gameStateUtils';
 import { fetchQuestions } from './questionsUtils';
@@ -93,8 +93,13 @@ export const useLiveGameState = () => {
         answerTimeMs
       );
       
-      // Store the answer result for showing in the Result state
-      setLastAnswerResult(result);
+      // Map the result to match our expected state format
+      // This fixes the TypeScript error by properly transforming is_correct to isCorrect
+      setLastAnswerResult({
+        isCorrect: result.is_correct,
+        points: result.points,
+        correctOption: result.correctOption
+      });
       
       // Update the leaderboard after submitting the answer
       fetchGameLeaderboard(gameId).then(setLeaderboard);
