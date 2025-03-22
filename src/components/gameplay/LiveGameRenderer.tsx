@@ -12,12 +12,26 @@ import ErrorState from './ErrorState';
 import GameHeader from './GameHeader';
 import ProgressBar from './ProgressBar';
 import { useParams } from 'react-router-dom';
-import { Player as GamePlayer } from '@/types/game';
-import { Player as LiveGamePlayer } from '@/types/liveGame';
+import { Player } from '@/types/game';
+import { QuizQuestion } from '@/types/quiz';
+
+// Helper function to adapt Question to QuizQuestion format
+const adaptQuestionToQuizFormat = (question: any): QuizQuestion => {
+  return {
+    id: question.id,
+    question: question.text,
+    correctOption: question.correctOption,
+    position: 0, // Default position
+    options: question.options.map((text: string, index: number) => ({
+      id: String(index),
+      text
+    }))
+  };
+};
 
 const LiveGameRenderer = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const [leaderboard, setLeaderboard] = useState<LiveGamePlayer[]>([]);
+  const [leaderboard, setLeaderboard] = useState<Player[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [myRank, setMyRank] = useState<number>(0);
   const [myPoints, setMyPoints] = useState<number>(0);
@@ -54,12 +68,23 @@ const LiveGameRenderer = () => {
 
     // Update leaderboard data
     if (leaderboardData && leaderboardData.length > 0) {
-      setLeaderboard(leaderboardData);
+      const adaptedLeaderboard = leaderboardData.map(player => ({
+        id: player.id,
+        name: player.name,
+        points: player.points,
+        rank: player.rank,
+        avatar: player.avatar,
+        lastAnswer: player.lastAnswer
+      }));
+      
+      setLeaderboard(adaptedLeaderboard);
       
       // Calculate my rank and points based on user ID
       // This would be implemented in a real app
       setMyRank(1);
-      setMyPoints(leaderboardData[0]?.total_points || 0);
+      if (adaptedLeaderboard[0]) {
+        setMyPoints(adaptedLeaderboard[0].points || 0);
+      }
     }
   }, [gameState, currentQuestion, leaderboardData]);
 
@@ -70,6 +95,9 @@ const LiveGameRenderer = () => {
   if (error || !gameState || questions.length === 0) {
     return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
   }
+
+  // Helper function to adapt the current question
+  const adaptedCurrentQuestion = currentQuestion ? adaptQuestionToQuizFormat(currentQuestion) : null;
 
   // Handler for selecting an option
   const handleSelectOption = (optionId: string) => {
@@ -105,20 +133,20 @@ const LiveGameRenderer = () => {
             />
           )}
           
-          {gameState.status === 'question' && currentQuestion && (
+          {gameState.status === 'question' && adaptedCurrentQuestion && (
             <QuestionState 
-              currentQuestionData={currentQuestion}
+              currentQuestionData={adaptedCurrentQuestion}
               timeRemaining={20}
               myRank={myRank}
-              selectedOption={selectedOption || ""}
+              selectedOption={selectedOption}
               handleSelectOption={handleSelectOption}
             />
           )}
           
-          {gameState.status === 'result' && currentQuestion && (
+          {gameState.status === 'result' && adaptedCurrentQuestion && (
             <ResultState 
-              currentQuestionData={currentQuestion}
-              selectedOption={selectedOption || ""}
+              currentQuestionData={adaptedCurrentQuestion}
+              selectedOption={selectedOption}
               lastPoints={lastPoints}
             />
           )}
@@ -133,10 +161,10 @@ const LiveGameRenderer = () => {
               ranking={leaderboard.map(player => ({
                 id: player.id,
                 name: player.name, 
-                points: player.total_points,
-                rank: 0, // This would be calculated based on position
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`,
-                lastAnswer: player.last_answer === 'correct' ? 'correct' : 'incorrect'
+                points: player.points,
+                rank: player.rank, 
+                avatar: player.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`,
+                lastAnswer: player.lastAnswer
               }))}
               myPoints={myPoints}
               myRank={myRank}

@@ -65,7 +65,7 @@ const LeaderboardPanel = ({ players, countdown }: LeaderboardPanelProps) => {
               </div>
               
               <div className="text-right">
-                <p className="font-medium">{player.score} puntos</p>
+                <p className="font-medium">{player.points} puntos</p>
                 {player.lastAnswer && (
                   <p className={`text-xs ${
                     player.lastAnswer === 'correct' ? 'text-green-600' : 'text-red-600'

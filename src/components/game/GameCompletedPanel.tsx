@@ -48,7 +48,7 @@ const GameCompletedPanel = ({ players }: GameCompletedPanelProps) => {
               
               <div className="flex-grow">
                 <p className="font-medium text-gloria-purple">{player.name}</p>
-                <p className="text-sm text-gray-500">{player.score} puntos</p>
+                <p className="text-sm text-gray-500">{player.points} puntos</p>
               </div>
               
               <div className="text-right">
@@ -76,7 +76,7 @@ const GameCompletedPanel = ({ players }: GameCompletedPanelProps) => {
               </div>
               
               <div className="text-right">
-                <p className="font-medium">{player.score} puntos</p>
+                <p className="font-medium">{player.points} puntos</p>
               </div>
             </div>
           ))}

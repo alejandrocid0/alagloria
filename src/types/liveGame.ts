@@ -1,3 +1,4 @@
+
 // Define the structure for answer results
 export interface AnswerResult {
   is_correct: boolean;
@@ -8,8 +9,10 @@ export interface AnswerResult {
 export interface Player {
   id: string;
   name: string;
-  total_points: number;
-  last_answer: string;
+  points: number; // changed from total_points to match game.ts
+  rank: number;
+  avatar?: string;
+  lastAnswer: 'correct' | 'incorrect' | null; // changed from last_answer
 }
 
 export interface LiveGameState {

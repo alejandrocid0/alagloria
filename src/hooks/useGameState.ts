@@ -17,14 +17,14 @@ const useGameState = (gameId: string | undefined) => {
   // Set up mock players data
   useEffect(() => {
     const mockPlayers: Player[] = [
-      { id: '1', name: 'Usuario', avatar: '', score: 0, rank: 1, lastAnswer: null },
-      { id: '2', name: 'María García', avatar: '', score: 0, rank: 2, lastAnswer: null },
-      { id: '3', name: 'Juan Pérez', avatar: '', score: 0, rank: 3, lastAnswer: null },
-      { id: '4', name: 'Ana Rodríguez', avatar: '', score: 0, rank: 4, lastAnswer: null },
-      { id: '5', name: 'Carlos López', avatar: '', score: 0, rank: 5, lastAnswer: null },
-      { id: '6', name: 'Laura Martínez', avatar: '', score: 0, rank: 6, lastAnswer: null },
-      { id: '7', name: 'Diego Sánchez', avatar: '', score: 0, rank: 7, lastAnswer: null },
-      { id: '8', name: 'Sofía Fernández', avatar: '', score: 0, rank: 8, lastAnswer: null },
+      { id: '1', name: 'Usuario', avatar: '', points: 0, rank: 1, lastAnswer: null },
+      { id: '2', name: 'María García', avatar: '', points: 0, rank: 2, lastAnswer: null },
+      { id: '3', name: 'Juan Pérez', avatar: '', points: 0, rank: 3, lastAnswer: null },
+      { id: '4', name: 'Ana Rodríguez', avatar: '', points: 0, rank: 4, lastAnswer: null },
+      { id: '5', name: 'Carlos López', avatar: '', points: 0, rank: 5, lastAnswer: null },
+      { id: '6', name: 'Laura Martínez', avatar: '', points: 0, rank: 6, lastAnswer: null },
+      { id: '7', name: 'Diego Sánchez', avatar: '', points: 0, rank: 7, lastAnswer: null },
+      { id: '8', name: 'Sofía Fernández', avatar: '', points: 0, rank: 8, lastAnswer: null },
     ];
     
     setPlayers(mockPlayers);
@@ -39,7 +39,7 @@ const useGameState = (gameId: string | undefined) => {
     let pointsEarned = 0;
     
     // Calculate points based on correct answer and time remaining
-    if (optionIndex === currentQ.correctOption) {
+    if (optionIndex.toString() === currentQ.correctOption) {
       // Base points + time bonus
       pointsEarned = 100 + Math.round((timeRemaining / currentQ.timeLimit) * 100);
       
@@ -51,7 +51,7 @@ const useGameState = (gameId: string | undefined) => {
         if (userIndex !== -1) {
           updated[userIndex] = {
             ...updated[userIndex],
-            score: updated[userIndex].score + pointsEarned,
+            points: updated[userIndex].points + pointsEarned,
             lastAnswer: 'correct'
           };
         }
@@ -60,13 +60,13 @@ const useGameState = (gameId: string | undefined) => {
         updated.forEach((player, index) => {
           if (index !== userIndex) {
             const randomPoints = Math.random() > 0.4 ? Math.round(Math.random() * 200) : 0;
-            player.score += randomPoints;
+            player.points += randomPoints;
             player.lastAnswer = randomPoints > 0 ? 'correct' : 'incorrect';
           }
         });
         
         // Sort by score and update ranks
-        return updated.sort((a, b) => b.score - a.score).map((player, idx) => ({
+        return updated.sort((a, b) => b.points - a.points).map((player, idx) => ({
           ...player,
           rank: idx + 1
         }));
@@ -90,13 +90,13 @@ const useGameState = (gameId: string | undefined) => {
         updated.forEach((player, index) => {
           if (index !== userIndex) {
             const randomPoints = Math.random() > 0.4 ? Math.round(Math.random() * 200) : 0;
-            player.score += randomPoints;
+            player.points += randomPoints;
             player.lastAnswer = randomPoints > 0 ? 'correct' : 'incorrect';
           }
         });
         
         // Sort by score and update ranks
-        return updated.sort((a, b) => b.score - a.score).map((player, idx) => ({
+        return updated.sort((a, b) => b.points - a.points).map((player, idx) => ({
           ...player,
           rank: idx + 1
         }));

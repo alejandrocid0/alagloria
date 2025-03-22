@@ -79,7 +79,7 @@ const Game = () => {
                 <QuestionCard
                   question={questions[currentQuestion].text}
                   options={questions[currentQuestion].options}
-                  correctAnswer={answered ? questions[currentQuestion].correctOption : undefined}
+                  correctAnswer={answered ? parseInt(questions[currentQuestion].correctOption) : undefined}
                   timeLimit={questions[currentQuestion].timeLimit}
                   onAnswer={handleAnswer}
                   answered={answered}

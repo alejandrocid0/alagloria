@@ -12,7 +12,7 @@ export const mockQuestions: Question[] = [
       'Hermandad de Santa Marta',
       'Hermandad del Museo'
     ],
-    correctOption: 2,
+    correctOption: '2', // Changed from number to string
     timeLimit: 20
   },
   {
@@ -25,7 +25,7 @@ export const mockQuestions: Question[] = [
       'Nuestra Señora de la Amargura',
       'Nuestra Señora de la Soledad'
     ],
-    correctOption: 0,
+    correctOption: '0', // Changed from number to string
     timeLimit: 15
   },
   {
@@ -38,7 +38,7 @@ export const mockQuestions: Question[] = [
       'Miércoles Santo',
       'Madrugá del Jueves al Viernes Santo'
     ],
-    correctOption: 4,
+    correctOption: '4', // Changed from number to string
     timeLimit: 15
   },
   {
@@ -51,7 +51,7 @@ export const mockQuestions: Question[] = [
       'El Cachorro',
       'La Mortaja'
     ],
-    correctOption: 3,
+    correctOption: '3', // Changed from number to string
     timeLimit: 15
   },
   {
@@ -64,7 +64,7 @@ export const mockQuestions: Question[] = [
       '1987',
       '2000'
     ],
-    correctOption: 1,
+    correctOption: '1', // Changed from number to string
     timeLimit: 15
   }
 ];
