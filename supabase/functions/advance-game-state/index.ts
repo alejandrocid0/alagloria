@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { gameId } = body;
+    const { gameId, forceState } = body;
 
     if (!gameId) {
       return new Response(
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Avanzando estado del juego: ${gameId}`);
+    console.log(`Avanzando estado del juego: ${gameId}`, forceState ? `(Forzando a: ${forceState})` : '');
 
     // Obtener el estado actual del juego
     const { data: gameState, error: getError } = await supabaseClient
@@ -74,21 +74,30 @@ Deno.serve(async (req) => {
     }
 
     const currentState = gameState[0];
+    const totalQuestions = await getTotalQuestions(gameId);
+    
+    if (totalQuestions === null) {
+      return new Response(
+        JSON.stringify({ error: 'Error al obtener número total de preguntas' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
+    }
 
-    // Si el estado es "waiting", cambiarlo a "question"
-    if (currentState.status === 'waiting') {
+    // Si se especifica un estado forzado, actualizar a ese estado
+    if (forceState) {
       const { error: updateError } = await supabaseClient
         .from('live_games')
         .update({
-          status: 'question',
-          current_question: 0,
-          countdown: 20, // tiempo para responder en segundos
+          status: forceState,
           updated_at: new Date().toISOString()
         })
         .eq('id', gameId);
 
       if (updateError) {
-        console.error('Error al actualizar el estado del juego:', updateError);
+        console.error('Error al forzar el estado del juego:', updateError);
         return new Response(
           JSON.stringify({ error: 'Error al actualizar el estado del juego' }),
           { 
@@ -101,21 +110,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Estado del juego actualizado a question',
-          newStatus: 'question'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200 
-        }
-      );
-    } else {
-      // Si no está en estado waiting, devolver el estado actual
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'El juego no está en estado waiting',
-          currentStatus: currentState.status
+          message: `Estado del juego forzado a ${forceState}`,
+          newStatus: forceState
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -123,6 +119,104 @@ Deno.serve(async (req) => {
         }
       );
     }
+
+    // Determinar el siguiente estado según el estado actual
+    let nextState = '';
+    let countdown = 0;
+    let currentQuestion = currentState.current_question;
+    
+    switch (currentState.status) {
+      case 'waiting':
+        nextState = 'question';
+        countdown = 20; // 20 segundos para responder
+        currentQuestion = 0;
+        break;
+        
+      case 'question':
+        nextState = 'result';
+        countdown = 5; // 5 segundos para mostrar resultados
+        break;
+        
+      case 'result':
+        nextState = 'leaderboard';
+        countdown = 8; // 8 segundos para mostrar clasificación
+        break;
+        
+      case 'leaderboard':
+        // Verificar si hay más preguntas o terminar el juego
+        if (currentQuestion < totalQuestions - 1) {
+          nextState = 'question';
+          countdown = 20; // 20 segundos para la siguiente pregunta
+          currentQuestion = currentQuestion + 1;
+        } else {
+          nextState = 'finished';
+          countdown = 0;
+        }
+        break;
+        
+      case 'finished':
+        // Ya está terminado, no hay siguiente estado
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: 'El juego ya ha terminado',
+            currentStatus: 'finished'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 200 
+          }
+        );
+        
+      default:
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: 'Estado no reconocido',
+            currentStatus: currentState.status
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 400 
+          }
+        );
+    }
+
+    // Actualizar al siguiente estado
+    const { error: updateError } = await supabaseClient
+      .from('live_games')
+      .update({
+        status: nextState,
+        current_question: currentQuestion,
+        countdown: countdown,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', gameId);
+
+    if (updateError) {
+      console.error('Error al actualizar el estado del juego:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Error al actualizar el estado del juego' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: `Estado del juego actualizado a ${nextState}`,
+        previousStatus: currentState.status,
+        newStatus: nextState,
+        currentQuestion: currentQuestion
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 200 
+      }
+    );
   } catch (err) {
     console.error('Error inesperado:', err);
     return new Response(
@@ -133,4 +227,24 @@ Deno.serve(async (req) => {
       }
     );
   }
-})
+});
+
+// Función auxiliar para obtener el número total de preguntas
+async function getTotalQuestions(gameId: string): Promise<number | null> {
+  try {
+    const { count, error } = await supabaseClient
+      .from('questions')
+      .select('*', { count: 'exact', head: true })
+      .eq('game_id', gameId);
+    
+    if (error) {
+      console.error('Error al contar preguntas:', error);
+      return null;
+    }
+    
+    return count || 0;
+  } catch (err) {
+    console.error('Error al obtener total de preguntas:', err);
+    return null;
+  }
+}

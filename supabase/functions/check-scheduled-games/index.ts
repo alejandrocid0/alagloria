@@ -36,6 +36,9 @@ Deno.serve(async (req) => {
       )
     }
     
+    // También realizar una verificación de las partidas que están en "waiting" y que han excedido su tiempo de espera
+    await checkWaitingGames();
+    
     console.log('Verificación de partidas programadas completada con éxito')
     return new Response(
       JSON.stringify({ success: true, message: 'Verificación de partidas programadas completada' }), 
@@ -55,3 +58,38 @@ Deno.serve(async (req) => {
     )
   }
 })
+
+// Función para verificar las partidas en estado "waiting" que han excedido su tiempo de espera
+async function checkWaitingGames() {
+  try {
+    // Buscar partidas en estado "waiting" que han estado esperando por más de 5 minutos
+    const { data, error } = await supabaseClient
+      .from('live_games')
+      .select('id, countdown, updated_at')
+      .eq('status', 'waiting')
+      .lt('updated_at', new Date(Date.now() - 5 * 60 * 1000).toISOString()); // 5 minutos antes
+    
+    if (error) {
+      console.error('Error al buscar partidas en espera:', error);
+      return;
+    }
+    
+    // Para cada partida que ha excedido el tiempo de espera, avanzar al siguiente estado
+    for (const game of data || []) {
+      console.log(`Partida ${game.id} ha excedido el tiempo de espera, avanzando automáticamente...`);
+      
+      // Llamar a la función de Edge Function para avanzar el estado
+      const { error: advanceError } = await supabaseClient.functions.invoke('advance-game-state', {
+        body: { gameId: game.id }
+      });
+      
+      if (advanceError) {
+        console.error(`Error al avanzar el estado de la partida ${game.id}:`, advanceError);
+      } else {
+        console.log(`Partida ${game.id} avanzada correctamente de "waiting" a "question"`);
+      }
+    }
+  } catch (err) {
+    console.error('Error al verificar partidas en espera:', err);
+  }
+}

@@ -77,12 +77,17 @@ export async function startGame(gameId: string) {
 }
 
 // Function to advance game state
-export async function advanceGameState(gameId: string) {
+export async function advanceGameState(gameId: string, forceState?: "waiting" | "question" | "result" | "leaderboard" | "finished") {
   if (!gameId) return false;
   
   try {
+    const body: any = { gameId };
+    if (forceState) {
+      body.forceState = forceState;
+    }
+    
     const { data, error } = await supabase.functions.invoke('advance-game-state', {
-      body: { gameId }
+      body
     });
     
     if (error) {
@@ -95,4 +100,24 @@ export async function advanceGameState(gameId: string) {
     console.error('Error advancing game state:', err);
     return false;
   }
+}
+
+// Function to trigger automatic state advancement based on countdown
+export function setupAutoAdvance(gameId: string, status: string, countdown: number, callback?: () => void) {
+  if (!gameId || countdown <= 0) return null;
+  
+  console.log(`Setting up auto-advance for ${status} state in ${countdown} seconds`);
+  
+  // Set a timer that will advance the state when countdown reaches zero
+  const timer = setTimeout(async () => {
+    console.log(`Auto-advancing game ${gameId} from ${status} state after ${countdown} seconds`);
+    const success = await advanceGameState(gameId);
+    
+    if (success && callback) {
+      callback();
+    }
+  }, countdown * 1000); // Convert seconds to milliseconds
+  
+  // Return the timer so it can be cleared if needed
+  return timer;
 }

@@ -43,6 +43,7 @@ const LiveGameRenderer = () => {
     leaderboard: leaderboardData,
     currentQuestion,
     submitAnswer,
+    lastAnswerResult,
     isLoading,
     error
   } = useLiveGameState();
@@ -65,6 +66,7 @@ const LiveGameRenderer = () => {
     console.log("Game state:", gameState);
     console.log("Current question:", currentQuestion);
     console.log("Leaderboard:", leaderboardData);
+    console.log("Last answer result:", lastAnswerResult);
 
     // Update leaderboard data
     if (leaderboardData && leaderboardData.length > 0) {
@@ -86,7 +88,17 @@ const LiveGameRenderer = () => {
         setMyPoints(adaptedLeaderboard[0].points || 0);
       }
     }
-  }, [gameState, currentQuestion, leaderboardData]);
+    
+    // Reset selected option when moving to a new question
+    if (gameState?.status === 'question') {
+      setSelectedOption(null);
+    }
+    
+    // Set last points when we get an answer result
+    if (lastAnswerResult) {
+      setLastPoints(lastAnswerResult.points);
+    }
+  }, [gameState, currentQuestion, leaderboardData, lastAnswerResult]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -101,9 +113,11 @@ const LiveGameRenderer = () => {
 
   // Handler for selecting an option
   const handleSelectOption = (optionId: string) => {
+    if (selectedOption !== null) return; // Prevent multiple selections
+    
     setSelectedOption(optionId);
-    // Sample answer time in milliseconds
-    const answerTimeMs = 1000;
+    // Sample answer time in milliseconds (could be calculated based on actual timing)
+    const answerTimeMs = 5000;
     submitAnswer(optionId, answerTimeMs);
   };
   
@@ -137,7 +151,7 @@ const LiveGameRenderer = () => {
           {gameState.status === 'question' && adaptedCurrentQuestion && (
             <QuestionState 
               currentQuestionData={adaptedCurrentQuestion}
-              timeRemaining={20}
+              timeRemaining={gameState.countdown || 20}
               myRank={myRank}
               selectedOption={selectedOption}
               handleSelectOption={handleSelectOption}
