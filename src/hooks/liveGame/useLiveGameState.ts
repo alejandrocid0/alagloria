@@ -1,161 +1,232 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Player, LiveGameState } from '@/types/liveGame';
-import { QuizQuestion } from '@/types/quiz';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchLiveGameState, subscribeToGameStateUpdates } from './gameStateUtils';
-import { fetchGameLeaderboard, subscribeToLeaderboardUpdates } from './leaderboardUtils';
-import { submitAnswer } from './playerUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { getQuizById } from '@/services/quiz';
+import { Player, Question } from '@/types/game';
+import { LiveGameState } from '@/types/liveGame';
 
-interface UseLiveGameStateResult {
-  gameState: LiveGameState | null;
-  questions: QuizQuestion[];
-  leaderboard: Player[];
-  currentQuestion: QuizQuestion | undefined;
-  submitAnswer: (selectedOption: string, answerTimeMs: number) => Promise<void>;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export const useLiveGameState = (): UseLiveGameStateResult => {
+export const useLiveGameState = () => {
   const { gameId } = useParams<{ gameId: string }>();
+  const { user } = useAuth();
   const [gameState, setGameState] = useState<LiveGameState | null>(null);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!gameId) {
-      setError('Game ID is required');
-      setIsLoading(false);
-      return;
-    }
+  // Fetch game state from the server
+  const fetchGameState = useCallback(async () => {
+    if (!gameId) return;
 
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        // Fetch game state
-        const gameStateData = await fetchLiveGameState(gameId);
-        setGameState(gameStateData);
-
-        // Fetch questions
-        const quiz = getQuizById(gameId);
-        if (quiz) {
-          setQuestions(quiz.questions);
-        } else {
-          setError('Quiz not found');
+    try {
+      const { data, error } = await supabase
+        .rpc('get_live_game_state', { game_id: gameId });
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const state = {
+          id: data[0].id,
+          status: data[0].status as "waiting" | "question" | "result" | "leaderboard" | "finished",
+          current_question: data[0].current_question,
+          countdown: data[0].countdown,
+          started_at: data[0].started_at,
+          updated_at: data[0].updated_at
+        };
+        
+        setGameState(state);
+        
+        // Si hay un cambio en la pregunta actual, actualizarla
+        if (state.current_question !== undefined && questions.length > 0) {
+          setCurrentQuestion(questions[state.current_question]);
         }
-
-        // Fetch leaderboard
-        const leaderboardData = await fetchGameLeaderboard(gameId);
-        setLeaderboard(leaderboardData);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load initial data');
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (err) {
+      console.error('Error fetching game state:', err);
+      setError('No se pudo cargar el estado del juego');
+    }
+  }, [gameId, questions]);
 
-    loadInitialData();
+  // Fetch questions for the game
+  const fetchQuestions = useCallback(async () => {
+    if (!gameId) return;
 
-    // Set up subscriptions
-    const gameStateSubscription = subscribeToGameStateUpdates(gameId, (payload: any) => {
-      if (payload.new) {
-        // Convert the status string to the required type
-        const status = payload.new.status as "waiting" | "question" | "result" | "leaderboard" | "finished";
-
-        setGameState({
-          id: payload.new.id,
-          status: status,
-          current_question: payload.new.current_question,
-          countdown: payload.new.countdown,
-          started_at: payload.new.started_at,
-          updated_at: payload.new.updated_at
-        });
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select(`
+          id,
+          question_text,
+          correct_option,
+          position,
+          options (
+            id,
+            option_id,
+            option_text
+          )
+        `)
+        .eq('game_id', gameId)
+        .order('position');
+      
+      if (error) throw error;
+      
+      if (data) {
+        const formattedQuestions = data.map((q) => ({
+          id: q.id,
+          text: q.question_text,
+          correctOption: q.correct_option,
+          timeLimit: 20, // Default time limit in seconds
+          options: q.options.map((o) => o.option_text)
+        }));
+        
+        setQuestions(formattedQuestions);
+        
+        // Si hay un estado de juego, actualizar la pregunta actual
+        if (gameState && gameState.current_question !== undefined) {
+          setCurrentQuestion(formattedQuestions[gameState.current_question]);
+        }
       }
-    });
+    } catch (err) {
+      console.error('Error fetching questions:', err);
+      setError('No se pudieron cargar las preguntas');
+    }
+  }, [gameId, gameState]);
 
-    const leaderboardSubscription = subscribeToLeaderboardUpdates(gameId, async (payload: any) => {
-      // When we get a leaderboard update, refresh the entire leaderboard
-      const updatedLeaderboard = await fetchGameLeaderboard(gameId);
-      setLeaderboard(updatedLeaderboard);
-    });
+  // Fetch leaderboard data
+  const fetchLeaderboard = useCallback(async () => {
+    if (!gameId) return;
 
-    return () => {
-      supabase.removeChannel(gameStateSubscription);
-      supabase.removeChannel(leaderboardSubscription);
-    };
+    try {
+      const { data, error } = await supabase
+        .rpc('get_game_leaderboard', { game_id: gameId });
+      
+      if (error) throw error;
+      
+      if (data) {
+        const formattedLeaderboard = data.map((player, index) => ({
+          id: player.user_id,
+          name: player.name,
+          points: player.total_points,
+          rank: index + 1,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`,
+          lastAnswer: player.last_answer as 'correct' | 'incorrect' | null
+        }));
+        
+        setLeaderboard(formattedLeaderboard);
+      }
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err);
+    }
   }, [gameId]);
 
-  const submitAnswerHandler = async (selectedOption: string, answerTimeMs: number) => {
-    if (!gameId || !gameState) {
+  // Submit answer to the server
+  const submitAnswer = useCallback(async (selectedOption: string, answerTimeMs: number) => {
+    if (!gameId || !user || !gameState) {
       toast({
         title: "Error",
-        description: "Game ID or Game State is missing",
-        variant: "destructive",
+        description: "No se pudo enviar la respuesta",
+        variant: "destructive"
       });
       return;
     }
 
     try {
-      if (!gameState.current_question) {
-        console.warn("No current question available.");
-        return;
-      }
-
-      const user = supabase.auth.getUser();
-      const userId = (await user).data.user?.id;
+      const { data, error } = await supabase
+        .rpc('submit_game_answer', {
+          p_game_id: gameId,
+          p_user_id: user.id,
+          p_question_position: gameState.current_question,
+          p_selected_option: selectedOption,
+          p_answer_time_ms: answerTimeMs
+        });
       
-      if (!userId) {
-        console.error("User not authenticated.");
-        return;
-      }
-
-      const answerResult = await submitAnswer(
-        gameId,
-        userId,
-        gameState.current_question,
-        selectedOption,
-        answerTimeMs
-      );
-
-      if (answerResult.is_correct) {
-        toast({
-          title: "Correct!",
-          description: `You earned ${answerResult.points} points.`,
-        });
-      } else {
-        toast({
-          title: "Incorrect",
-          description: `The correct answer was ${answerResult.correctOption}.`,
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      console.error("Error submitting answer:", err);
+      if (error) throw error;
+      
+      // Actualizar el tablero después de enviar la respuesta
+      fetchLeaderboard();
+      
+      return data;
+    } catch (err) {
+      console.error('Error submitting answer:', err);
       toast({
         title: "Error",
-        description: err.message || "Failed to submit answer",
-        variant: "destructive",
+        description: "No se pudo enviar la respuesta",
+        variant: "destructive"
       });
     }
-  };
+  }, [gameId, user, gameState, fetchLeaderboard]);
 
-  const currentQuestion = gameState ? questions[gameState.current_question] : undefined;
+  // Load initial data and set up subscriptions
+  useEffect(() => {
+    setIsLoading(true);
+    
+    // Cargar datos iniciales
+    const loadInitialData = async () => {
+      try {
+        await fetchGameState();
+        await fetchQuestions();
+        await fetchLeaderboard();
+      } catch (err) {
+        console.error('Error loading initial data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadInitialData();
+    
+    // Configurar suscripciones para actualizaciones en tiempo real
+    const gameStateChannel = supabase
+      .channel(`game-state-${gameId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_games',
+          filter: `id=eq.${gameId}`
+        },
+        () => {
+          fetchGameState();
+        }
+      )
+      .subscribe();
+    
+    const leaderboardChannel = supabase
+      .channel(`leaderboard-${gameId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_game_answers',
+          filter: `game_id=eq.${gameId}`
+        },
+        () => {
+          fetchLeaderboard();
+        }
+      )
+      .subscribe();
+    
+    // Limpiar suscripciones al desmontar
+    return () => {
+      supabase.removeChannel(gameStateChannel);
+      supabase.removeChannel(leaderboardChannel);
+    };
+  }, [gameId, fetchGameState, fetchQuestions, fetchLeaderboard]);
 
   return {
     gameState,
     questions,
-    leaderboard,
     currentQuestion,
-    submitAnswer: submitAnswerHandler,
+    leaderboard,
+    submitAnswer,
     isLoading,
-    error,
+    error
   };
 };
+
+export default useLiveGameState;

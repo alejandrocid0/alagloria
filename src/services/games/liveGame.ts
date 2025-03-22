@@ -68,9 +68,9 @@ export async function getGameLeaderboard(gameId: string) {
   
   // Format the results to add rank and avatar
   return data.map((player: any, index: number) => ({
-    user_id: player.user_id,
+    id: player.user_id,
     name: player.name,
-    total_points: player.total_points,
+    points: player.total_points,
     lastAnswer: player.last_answer,
     rank: index + 1,
     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
@@ -92,4 +92,17 @@ export function subscribeToLeaderboardUpdates(gameId: string, callback: (payload
       callback
     )
     .subscribe();
+}
+
+// Función para iniciar manualmente una partida (para administradores)
+export async function startGame(gameId: string) {
+  const { data, error } = await supabase
+    .rpc('start_live_game', { game_id: gameId });
+  
+  if (error) {
+    console.error('Error starting game:', error);
+    throw new Error(`Error al iniciar la partida: ${error.message}`);
+  }
+  
+  return true;
 }

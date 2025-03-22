@@ -138,6 +138,48 @@ export type Database = {
         }
         Relationships: []
       }
+      live_games: {
+        Row: {
+          countdown: number
+          current_question: number
+          id: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          countdown?: number
+          current_question?: number
+          id: string
+          started_at?: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          countdown?: number
+          current_question?: number
+          id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "games_with_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       options: {
         Row: {
           created_at: string
@@ -286,6 +328,14 @@ export type Database = {
       }
     }
     Functions: {
+      activate_scheduled_games: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      check_scheduled_games: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_game_leaderboard: {
         Args: {
           game_id: string
