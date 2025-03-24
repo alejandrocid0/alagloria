@@ -39,11 +39,20 @@ export const useLiveGameState = () => {
   // Get questions data
   const { questions, currentQuestion } = useGameQuestions(gameId, gameState);
 
+  // Create a proper Promise-returning function for leaderboard data fetching
+  const fetchLeaderboardDataWrapper = async (): Promise<void> => {
+    if (leaderboard.length > 0) {
+      return Promise.resolve();
+    } else {
+      return Promise.resolve(setLeaderboard([]));
+    }
+  };
+
   // Initialize game data
   useGameInitialization({
     gameId,
     fetchGameStateData,
-    fetchLeaderboardData: () => leaderboard.length > 0 ? Promise.resolve() : setLeaderboard([]),
+    fetchLeaderboardData: fetchLeaderboardDataWrapper,
     isLoading,
     setIsLoading,
     scheduleReconnect
