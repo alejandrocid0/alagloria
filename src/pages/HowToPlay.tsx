@@ -4,7 +4,6 @@ import Footer from '@/components/Footer';
 import PageHeader from '@/components/how-to-play/PageHeader';
 import StepsSection from '@/components/how-to-play/StepsSection';
 import FaqSection from '@/components/how-to-play/FaqSection';
-import ImportantInfo from '@/components/how-to-play/ImportantInfo';
 import CtaSection from '@/components/how-to-play/CtaSection';
 
 const HowToPlay = () => {
@@ -19,7 +18,6 @@ const HowToPlay = () => {
           <div className="space-y-16 md:space-y-24">
             <StepsSection />
             <FaqSection />
-            <ImportantInfo />
             <CtaSection />
           </div>
         </div>
