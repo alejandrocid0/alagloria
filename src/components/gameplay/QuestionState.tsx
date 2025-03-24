@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuizQuestion } from '@/types/quiz';
@@ -27,9 +26,8 @@ const QuestionState: React.FC<QuestionStateProps> = ({
   const [flashWarning, setFlashWarning] = useState(false);
   const [hasPulsed, setHasPulsed] = useState(false);
   
-  // Manejar la cuenta regresiva y los puntos potenciales
   useEffect(() => {
-    if (selectedOption) return; // Detener cuando se ha seleccionado una opción
+    if (selectedOption) return;
     
     setSecondsLeft(timeRemaining);
     
@@ -37,10 +35,8 @@ const QuestionState: React.FC<QuestionStateProps> = ({
       setSecondsLeft(prev => {
         const newValue = prev - 1;
         
-        // Activar advertencia cuando quedan 5 segundos o menos
         if (newValue <= 5 && !isWarning) {
           setIsWarning(true);
-          // Pulsar una vez para llamar la atención
           if (!hasPulsed) {
             document.body.classList.add('pulse-animation');
             setTimeout(() => {
@@ -50,15 +46,12 @@ const QuestionState: React.FC<QuestionStateProps> = ({
           }
         }
         
-        // Activar urgencia cuando quedan 3 segundos o menos
         if (newValue <= 3 && !isUrgent) {
           setIsUrgent(true);
-          // Destello rápido para llamar la atención
           setFlashWarning(true);
           setTimeout(() => setFlashWarning(false), 200);
         }
         
-        // Calcular puntos potenciales basados en el tiempo restante
         const pointsPercent = Math.max(0, newValue / timeRemaining);
         setPotentialPoints(Math.round(1000 * pointsPercent));
         
@@ -69,13 +62,10 @@ const QuestionState: React.FC<QuestionStateProps> = ({
     return () => clearInterval(timer);
   }, [timeRemaining, selectedOption, isWarning, isUrgent, hasPulsed]);
   
-  // Verificar si una opción está seleccionada
   const isOptionSelected = (optionId: string) => selectedOption === optionId;
   
-  // Verificar si el tiempo se está acabando (últimos 5 segundos)
   const isTimeRunningOut = secondsLeft <= 5;
   
-  // Opciones variantes para el grid de opciones
   const optionsContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -91,7 +81,6 @@ const QuestionState: React.FC<QuestionStateProps> = ({
     visible: { opacity: 1, y: 0 }
   };
 
-  // Animar el contenedor de puntos potenciales
   const pointsContainerVariants = {
     normal: { scale: 1 },
     warning: { 

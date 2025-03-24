@@ -60,9 +60,9 @@ const LiveGameRenderer = () => {
   // Notificar cuando hay resultados de respuestas
   useEffect(() => {
     if (lastAnswerResult) {
-      if (lastAnswerResult.correct && lastPoints > 0) {
+      if (lastAnswerResult.isCorrect && lastPoints > 0) {
         gameNotifications.correctAnswer(lastPoints);
-      } else if (!lastAnswerResult.correct) {
+      } else if (!lastAnswerResult.isCorrect) {
         gameNotifications.wrongAnswer();
       }
     }
