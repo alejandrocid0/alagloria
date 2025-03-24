@@ -20,7 +20,7 @@ interface GameStateRendererProps {
   gameInfo: {
     title: string;
     scheduledTime: string;
-    prizePool: number;
+    prizePool?: number;
   };
   questions: any[];
   currentQuestion: any;
@@ -77,7 +77,6 @@ const GameStateRenderer = ({
         gameTitle={gameInfo.title} 
         scheduledTime={gameInfo.scheduledTime}
         playersOnline={leaderboard || []}
-        prizePool={gameInfo.prizePool}
         timeUntilStart={timeUntilStart}
       />
     );

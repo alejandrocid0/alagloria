@@ -76,7 +76,7 @@ export async function startGame(gameId: string) {
   }
 }
 
-// Function to advance game state
+// Function to advance game state through the edge function
 export async function advanceGameState(gameId: string, forceState?: "waiting" | "question" | "result" | "leaderboard" | "finished") {
   if (!gameId) return false;
   
@@ -86,6 +86,7 @@ export async function advanceGameState(gameId: string, forceState?: "waiting" | 
       body.forceState = forceState;
     }
     
+    // Llamar a la edge function para avanzar el estado del juego
     const { data, error } = await supabase.functions.invoke('advance-game-state', {
       body
     });
@@ -102,6 +103,25 @@ export async function advanceGameState(gameId: string, forceState?: "waiting" | 
   }
 }
 
+// Function to run the game state manager
+export async function runGameStateManager() {
+  try {
+    // Llamar a la edge function para gestionar el estado del juego
+    const { data, error } = await supabase.functions.invoke('game-state-manager');
+    
+    if (error) {
+      console.error('Error running game state manager:', error);
+      return false;
+    }
+    
+    console.log('Game state manager result:', data);
+    return true;
+  } catch (err) {
+    console.error('Error running game state manager:', err);
+    return false;
+  }
+}
+
 // Function to trigger automatic state advancement based on countdown
 export function setupAutoAdvance(gameId: string, status: string, countdown: number, callback?: () => void) {
   if (!gameId || countdown <= 0) return null;
@@ -111,7 +131,14 @@ export function setupAutoAdvance(gameId: string, status: string, countdown: numb
   // Set a timer that will advance the state when countdown reaches zero
   const timer = setTimeout(async () => {
     console.log(`Auto-advancing game ${gameId} from ${status} state after ${countdown} seconds`);
-    const success = await advanceGameState(gameId);
+    
+    // Intentar usar la edge function primero por mayor robustez
+    let success = await runGameStateManager();
+    
+    // Si falla, intentar con el método directo
+    if (!success) {
+      success = await advanceGameState(gameId);
+    }
     
     if (success && callback) {
       callback();

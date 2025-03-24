@@ -25,6 +25,12 @@ export const useLiveGameState = () => {
     correctOption: string;
   } | null>(null);
   
+  // Connection state tracking
+  const [isConnected, setIsConnected] = useState(true);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastConnectionAttemptRef = useRef<number>(0);
+  const reconnectAttemptsRef = useRef<number>(0);
+  
   // Timer references for auto-advancement
   const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -66,12 +72,74 @@ export const useLiveGameState = () => {
             }
           );
         }
+        
+        // Update connection state to connected if we successfully fetched the state
+        if (!isConnected) {
+          setIsConnected(true);
+          toast({
+            title: "Conexión recuperada",
+            description: "Te has vuelto a conectar a la partida",
+            variant: "default",
+          });
+          reconnectAttemptsRef.current = 0;
+        }
       }
     } catch (err) {
       console.error('Error fetching game state:', err);
       setError('No se pudo cargar el estado del juego');
+      
+      // Mark as disconnected if fetch fails
+      if (isConnected) {
+        setIsConnected(false);
+        toast({
+          title: "Conexión perdida",
+          description: "Intentando reconectar...",
+          variant: "destructive",
+        });
+      }
+      
+      // Schedule reconnection attempt with exponential backoff
+      scheduleReconnect();
     }
-  }, [gameId, questions]);
+  }, [gameId, questions, isConnected]);
+
+  // Function to handle reconnection attempts with exponential backoff
+  const scheduleReconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+    }
+
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
+    
+    // If we've tried reconnecting recently, back off exponentially
+    const baseDelay = 1000; // Start with 1 second
+    const maxDelay = 30000; // Cap at 30 seconds
+    const attemptsCount = reconnectAttemptsRef.current;
+
+    // Calculate delay with exponential backoff
+    const delay = Math.min(
+      baseDelay * Math.pow(1.5, attemptsCount),
+      maxDelay
+    );
+    
+    // Schedule reconnection
+    reconnectTimerRef.current = setTimeout(() => {
+      lastConnectionAttemptRef.current = Date.now();
+      reconnectAttemptsRef.current += 1;
+      console.log(`Reconnection attempt ${reconnectAttemptsRef.current} after ${delay}ms`);
+      
+      // Attempt to fetch data and reestablish subscriptions
+      fetchGameStateData();
+      
+      // Also refresh leaderboard data
+      if (gameId) {
+        fetchGameLeaderboard(gameId).then(setLeaderboard).catch(err => {
+          console.error('Error fetching leaderboard during reconnect:', err);
+        });
+      }
+    }, delay);
+  }, [fetchGameStateData, gameId]);
 
   // Submit answer to the server
   const submitAnswer = useCallback(async (selectedOption: string, answerTimeMs: number) => {
@@ -110,16 +178,63 @@ export const useLiveGameState = () => {
       toast({
         title: "Error",
         description: "No se pudo enviar la respuesta",
-        variant: "destructive"
+        variant: "destructive",
       });
+      
+      // If submission fails due to connectivity, mark as disconnected
+      if (err instanceof Error && err.message.includes('network')) {
+        setIsConnected(false);
+        scheduleReconnect();
+      }
     }
-  }, [gameId, user, gameState]);
+  }, [gameId, user, gameState, scheduleReconnect]);
 
   // Handle game state changes
   const handleGameStateChange = useCallback((payload: any) => {
     console.log('Game state changed:', payload);
     fetchGameStateData();
   }, [fetchGameStateData]);
+
+  // Event handler for network status changes
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('Network connection restored');
+      setIsConnected(true);
+      fetchGameStateData();
+      
+      if (gameId) {
+        fetchGameLeaderboard(gameId).then(setLeaderboard);
+      }
+      
+      toast({
+        title: "Conexión restablecida",
+        description: "Te has vuelto a conectar a la partida",
+        variant: "default",
+      });
+    };
+    
+    const handleOffline = () => {
+      console.log('Network connection lost');
+      setIsConnected(false);
+      
+      toast({
+        title: "Conexión perdida",
+        description: "Intentando reconectar...",
+        variant: "destructive",
+      });
+      
+      scheduleReconnect();
+    };
+    
+    // Listen for browser's online/offline events
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [gameId, fetchGameStateData, scheduleReconnect]);
 
   // Load initial data and set up subscriptions
   useEffect(() => {
@@ -139,6 +254,8 @@ export const useLiveGameState = () => {
         }
       } catch (err) {
         console.error('Error loading initial data:', err);
+        setIsConnected(false);
+        scheduleReconnect();
       } finally {
         setIsLoading(false);
       }
@@ -167,8 +284,13 @@ export const useLiveGameState = () => {
       if (autoAdvanceTimerRef.current) {
         clearTimeout(autoAdvanceTimerRef.current);
       }
+      
+      // Clear reconnect timer
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
     };
-  }, [gameId, fetchGameStateData, handleGameStateChange]);
+  }, [gameId, fetchGameStateData, handleGameStateChange, scheduleReconnect]);
 
   return {
     gameState,
@@ -178,7 +300,8 @@ export const useLiveGameState = () => {
     submitAnswer,
     lastAnswerResult,
     isLoading,
-    error
+    error,
+    isConnected
   };
 };
 

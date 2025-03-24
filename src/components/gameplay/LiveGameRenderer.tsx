@@ -7,6 +7,7 @@ import GameStateRenderer from './GameStateRenderer';
 import { useGameInfo } from './hooks/useGameInfo';
 import { useGameStateValues } from './hooks/useGameStateValues';
 import { adaptQuestionToQuizFormat } from './utils/gameDataAdapters';
+import { Alert, AlertCircle } from 'lucide-react';
 
 const LiveGameRenderer = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -23,7 +24,8 @@ const LiveGameRenderer = () => {
     submitAnswer,
     lastAnswerResult,
     isLoading,
-    error
+    error,
+    isConnected
   } = useLiveGameState();
   
   // Get derived state values and handlers
@@ -61,6 +63,17 @@ const LiveGameRenderer = () => {
         myPoints={myPoints} 
         isDemoGame={false} 
       />
+      
+      {!isConnected && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-center space-x-3">
+          <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+          <div>
+            <p className="text-sm text-yellow-700">
+              Conexión perdida. Intentando reconectar...
+            </p>
+          </div>
+        </div>
+      )}
       
       <GameStateRenderer
         gameId={gameId}
