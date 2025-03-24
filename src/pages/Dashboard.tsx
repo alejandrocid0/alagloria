@@ -60,6 +60,7 @@ const Dashboard = () => {
       }
 
       if (data) {
+        console.log('Resultados de juego cargados:', data.length);
         setGameResults(data);
         calculateStats(data);
       }

@@ -3,6 +3,7 @@ import * as core from './core';
 import * as questions from './questions';
 import * as participants from './participants';
 import * as liveGame from './liveGame';
+import * as results from './results';
 
 // Re-export all functions from the various modules
 export const gameService = {
@@ -25,5 +26,9 @@ export const gameService = {
   subscribeToGameUpdates: liveGame.subscribeToGameUpdates,
   submitAnswer: liveGame.submitAnswer,
   getGameLeaderboard: liveGame.getGameLeaderboard,
-  subscribeToLeaderboardUpdates: liveGame.subscribeToLeaderboardUpdates
+  subscribeToLeaderboardUpdates: liveGame.subscribeToLeaderboardUpdates,
+  
+  // Game results
+  saveGameResult: results.saveGameResult,
+  checkExistingGameResult: results.checkExistingGameResult
 };

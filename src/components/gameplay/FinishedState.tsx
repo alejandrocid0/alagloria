@@ -1,11 +1,12 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, ArrowRight, Award, BadgeCheck, Clock, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Button from '@/components/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import confetti from 'canvas-confetti';
+import { gameService } from '@/services/games';
+import { toast } from '@/hooks/use-toast';
 
 interface Player {
   id: string;
@@ -21,17 +22,27 @@ interface FinishedStateProps {
   ranking: Player[];
   myPoints: number;
   myRank: number;
+  questions: any[];
+  gameTitle?: string;
 }
 
 const FinishedState: React.FC<FinishedStateProps> = ({
   gameId,
   ranking,
   myPoints,
-  myRank
+  myRank,
+  questions = [],
+  gameTitle = "Partida"
 }) => {
   const { user } = useAuth();
   const topPlayers = ranking.slice(0, 3);
   const otherPlayers = ranking.slice(3, 10);
+  const [resultSaved, setResultSaved] = useState(false);
+  
+  // Cálculo de estadísticas
+  const correctAnswers = ranking.find(p => p.id === user?.id)?.points ? 
+    Math.round(Math.min(ranking.find(p => p.id === user?.id)?.points / 100, questions.length)) : 0;
+  const totalAnswers = questions.length;
   
   // Lanzar confetti cuando se muestre el componente
   useEffect(() => {
@@ -61,6 +72,45 @@ const FinishedState: React.FC<FinishedStateProps> = ({
     
     frame();
   }, []);
+
+  // Guardar resultados en la base de datos
+  useEffect(() => {
+    const saveResults = async () => {
+      if (!user || resultSaved) return;
+      
+      try {
+        // Verificar si ya existe un resultado para evitar duplicados
+        const exists = await gameService.checkExistingGameResult(gameId);
+        if (exists) {
+          console.log('Los resultados ya están guardados');
+          setResultSaved(true);
+          return;
+        }
+        
+        // Guardar resultados
+        await gameService.saveGameResult({
+          gameId,
+          gameTitle,
+          position: myRank,
+          correctAnswers,
+          totalAnswers,
+          entryFee: 0 // Ya no se usa el campo entry_fee
+        });
+        
+        console.log('Resultados guardados correctamente');
+        setResultSaved(true);
+      } catch (error) {
+        console.error('Error al guardar resultados:', error);
+        toast({
+          title: "Error al guardar tus resultados",
+          description: "Hubo un problema guardando tus estadísticas",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    saveResults();
+  }, [user, gameId, myRank, gameTitle, questions.length, resultSaved, correctAnswers, totalAnswers]);
 
   return (
     <motion.div
