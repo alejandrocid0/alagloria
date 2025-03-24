@@ -22,8 +22,7 @@ const ImportantInfo = () => {
             La finalidad principal es divertirse y demostrar tus conocimientos sobre la Semana Santa de Sevilla.
           </p>
           <p className="text-sm text-gray-500">
-            Al participar en las partidas, aceptas nuestros términos y condiciones. 
-            Debes ser mayor de 18 años para participar.
+            Al participar en las partidas, aceptas nuestros términos y condiciones.
           </p>
         </div>
       </div>

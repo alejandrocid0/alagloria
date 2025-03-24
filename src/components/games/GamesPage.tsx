@@ -49,7 +49,8 @@ const GamesPage = () => {
       matchesStatus = game.date < new Date();
     }
     
-    const matchesCategory = filterCategory === 'all' || game.category === filterCategory;
+    const matchesCategory = filterCategory === 'all' || 
+      (game.category && game.category === filterCategory);
     
     return matchesSearch && matchesStatus && matchesCategory;
   });

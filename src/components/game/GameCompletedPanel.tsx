@@ -54,9 +54,9 @@ const GameCompletedPanel = ({ players, gameTitle = "Partida" }: GameCompletedPan
               
               <div className="text-right">
                 <p className="font-bold text-gloria-gold">
-                  {index === 0 ? '80€' : index === 1 ? '50€' : '30€'}
+                  {index === 0 ? '🏆' : index === 1 ? '🥈' : '🥉'}
                 </p>
-                <p className="text-xs text-gray-500">Premio</p>
+                <p className="text-xs text-gray-500">Posición</p>
               </div>
             </div>
           ))}

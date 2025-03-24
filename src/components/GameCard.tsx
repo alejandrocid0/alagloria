@@ -14,13 +14,13 @@ export interface GameCardProps {
   date: Date;
   participants: number;
   maxParticipants: number;
-  prizePool: number;
+  prizePool?: number;
   image?: string;
   description?: string | null;
   category?: string;
 }
 
-const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, image, category }: GameCardProps) => {
+const GameCard = ({ id, title, date, participants, maxParticipants, image, category }: GameCardProps) => {
   const isGameFull = participants >= maxParticipants;
   const isPastGame = date < new Date();
   const percentageFilled = (participants / maxParticipants) * 100;
