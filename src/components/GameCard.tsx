@@ -43,16 +43,12 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
 
   const getCategoryLabel = (categoryValue: string) => {
     const categoryMap: Record<string, string> = {
+      "curiosidades": "Curiosidades",
       "historia": "Historia",
-      "cultura": "Cultura",
-      "deporte": "Deporte",
-      "arte": "Arte",
-      "ciencia": "Ciencia",
-      "cine": "Cine y TV",
-      "musica": "Música",
-      "geografia": "Geografía",
-      "literatura": "Literatura",
-      "general": "Conocimiento General"
+      "ediciones-semana-santa": "Ediciones Semana Santa",
+      "misterios": "Misterios",
+      "palios": "Palios",
+      "mundo-costal": "Mundo Costal"
     };
     
     return categoryMap[categoryValue] || categoryValue;

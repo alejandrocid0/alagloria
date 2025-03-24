@@ -52,7 +52,7 @@ const HowItWorksSection = () => {
             </div>
             <h3 className="text-xl font-serif font-semibold text-gloria-purple mb-3">1. Únete a una partida</h3>
             <p className="text-gray-600">
-              Elige una de las partidas disponibles y regístrate con solo 1€ para participar.
+              Elige una de las partidas disponibles y regístrate para participar gratuitamente.
             </p>
           </motion.div>
           
@@ -76,9 +76,9 @@ const HowItWorksSection = () => {
             <div className="w-16 h-16 bg-gloria-purple/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Award className="h-8 w-8 text-gloria-purple" />
             </div>
-            <h3 className="text-xl font-serif font-semibold text-gloria-purple mb-3">3. Gana premios</h3>
+            <h3 className="text-xl font-serif font-semibold text-gloria-purple mb-3">3. Consigue logros</h3>
             <p className="text-gray-600">
-              Los tres primeros puestos reciben premios económicos del bote acumulado.
+              Demuestra tus conocimientos y compite por los primeros puestos del ranking.
             </p>
           </motion.div>
         </motion.div>

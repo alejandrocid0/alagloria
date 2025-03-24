@@ -1,5 +1,6 @@
 
 import { Search, Filter, Tag } from 'lucide-react';
+import { SEMANA_SANTA_CATEGORIES } from '@/components/admin/schemas/gameFormSchema';
 
 interface GamesFilterProps {
   searchTerm: string;
@@ -18,6 +19,20 @@ const GamesFilter = ({
   filterCategory,
   setFilterCategory
 }: GamesFilterProps) => {
+  // Función para obtener etiquetas legibles de categorías
+  const getCategoryLabel = (category: string) => {
+    const categoryLabels: Record<string, string> = {
+      'curiosidades': 'Curiosidades',
+      'historia': 'Historia',
+      'ediciones-semana-santa': 'Ediciones Semana Santa',
+      'misterios': 'Misterios',
+      'palios': 'Palios',
+      'mundo-costal': 'Mundo Costal'
+    };
+    
+    return categoryLabels[category] || category;
+  };
+
   return (
     <div className="flex flex-col md:flex-row justify-between items-stretch gap-4 mb-8">
       <div className="relative flex-grow max-w-md">
@@ -57,7 +72,11 @@ const GamesFilter = ({
             onChange={(e) => setFilterCategory(e.target.value)}
           >
             <option value="all">Todas las categorías</option>
-            <option value="semana-santa">Semana Santa</option>
+            {SEMANA_SANTA_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {getCategoryLabel(category)}
+              </option>
+            ))}
           </select>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Tag className="h-5 w-5 text-gray-400" />

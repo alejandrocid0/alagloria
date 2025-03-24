@@ -9,12 +9,12 @@ const HowToPlay = () => {
   const steps = [
     {
       title: "Únete a una partida",
-      description: "Elige entre las partidas disponibles y regístrate con solo 1€ para participar.",
+      description: "Elige entre las partidas disponibles y regístrate para participar de forma gratuita.",
       icon: <CheckCircle className="w-10 h-10 text-gloria-gold" />,
       details: [
         "Las partidas tienen un número limitado de participantes.",
         "Puedes ver detalles como la fecha, hora y número actual de participantes.",
-        "El pago se realiza de forma segura a través de Stripe."
+        "La participación es totalmente gratuita."
       ]
     },
     {
@@ -39,30 +39,30 @@ const HowToPlay = () => {
       ]
     },
     {
-      title: "Compite por el premio",
-      description: "Los tres primeros puestos reciben premios económicos del bote acumulado.",
+      title: "Compite por la gloria",
+      description: "Demuestra tus conocimientos y compite por los primeros puestos del ranking.",
       icon: <Award className="w-10 h-10 text-gloria-gold" />,
       details: [
-        "El primer puesto recibe el 50% del bote.",
-        "El segundo puesto recibe el 30% del bote.",
-        "El tercer puesto recibe el 20% del bote.",
-        "El bote se forma con el dinero recaudado de las inscripciones."
+        "Gana puntos de experiencia con cada partida.",
+        "Desbloquea logros especiales por tus conocimientos.",
+        "Sube de nivel y compite por ser el mejor.",
+        "Comparte tus resultados y presume de tus conocimientos."
       ]
     }
   ];
 
   const faqs = [
     {
-      question: "¿Cómo se realiza el pago para entrar en una partida?",
-      answer: "El pago se realiza a través de Stripe, una plataforma segura de pagos online. Puedes utilizar tarjeta de crédito o débito para el pago de 1€ por partida."
+      question: "¿Es necesario pagar para participar en las partidas?",
+      answer: "No, la participación en todas las partidas es completamente gratuita. Solo necesitas registrarte en la plataforma."
     },
     {
       question: "¿Qué pasa si no puedo conectarme a la hora de la partida?",
-      answer: "Lamentablemente, no podemos ofrecer reembolsos si no puedes conectarte. Las partidas comienzan a la hora programada y sólo podrás participar si estás conectado."
+      answer: "No te preocupes, siempre habrá más partidas disponibles. Si no puedes conectarte, simplemente inscríbete en otra partida que se ajuste mejor a tu horario."
     },
     {
-      question: "¿Cómo se entregan los premios?",
-      answer: "Los premios se envían a través de transferencia bancaria a la cuenta que hayas registrado en tu perfil. La transferencia se realiza en un plazo máximo de 48 horas tras finalizar la partida."
+      question: "¿Cómo se determina el ganador?",
+      answer: "El ganador es el participante que acumula más puntos durante la partida. Los puntos se otorgan por respuestas correctas y la velocidad con la que respondes."
     },
     {
       question: "¿Cuántas preguntas tiene cada partida?",
@@ -99,7 +99,7 @@ const HowToPlay = () => {
               Cómo Jugar
             </h1>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Sigue estos simples pasos para participar en nuestras partidas y ganar premios
+              Sigue estos simples pasos para participar en nuestras partidas y demostrar tus conocimientos
             </p>
           </motion.div>
           
@@ -196,16 +196,15 @@ const HowToPlay = () => {
                 <AlertTriangle className="w-6 h-6 text-yellow-500 mr-4 flex-shrink-0 mt-0.5" />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    Juego responsable
+                    Información importante
                   </h3>
                   <p className="text-gray-600 mb-4">
                     A la Gloria es un juego de preguntas y respuestas sobre conocimientos de la Semana Santa. 
-                    Aunque hay premios económicos, la finalidad principal es divertirse y demostrar tus conocimientos.
-                    Juega siempre de forma responsable.
+                    La finalidad principal es divertirse y demostrar tus conocimientos sobre la Semana Santa de Sevilla.
                   </p>
                   <p className="text-sm text-gray-500">
                     Al participar en las partidas, aceptas nuestros términos y condiciones. 
-                    Debes ser mayor de 18 años para recibir premios económicos.
+                    Debes ser mayor de 18 años para participar.
                   </p>
                 </div>
               </div>

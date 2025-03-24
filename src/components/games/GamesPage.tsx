@@ -98,7 +98,7 @@ const GamesPage = () => {
               Partidas Disponibles
             </h1>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Únete a una partida, responde correctamente y compite por premios en tiempo real
+              Únete a una partida, responde correctamente y demuestra tus conocimientos sobre Semana Santa
             </p>
           </motion.div>
           
