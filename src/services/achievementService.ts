@@ -5,7 +5,7 @@ import { Achievement, UserAchievement, AchievementWithProgress } from '@/types/a
 // Obtener todos los logros
 export async function fetchAchievements(): Promise<Achievement[]> {
   const { data, error } = await supabase
-    .from('achievements')
+    .from('achievements_old')
     .select('*')
     .order('required_correct_answers', { ascending: true });
 
@@ -20,7 +20,7 @@ export async function fetchAchievements(): Promise<Achievement[]> {
 // Obtener logros por categoría
 export async function fetchAchievementsByCategory(category: string = 'cofrade'): Promise<Achievement[]> {
   const { data, error } = await supabase
-    .from('achievements')
+    .from('achievements_old')
     .select('*')
     .eq('category', category)
     .order('required_correct_answers', { ascending: true });
@@ -36,8 +36,8 @@ export async function fetchAchievementsByCategory(category: string = 'cofrade'):
 // Obtener logros de un usuario
 export async function fetchUserAchievements(userId: string): Promise<UserAchievement[]> {
   const { data, error } = await supabase
-    .from('user_achievements')
-    .select('*, achievement:achievement_id(*)')
+    .from('user_achievements_old')
+    .select('*, achievement:achievement_id(*)') 
     .eq('user_id', userId);
 
   if (error) {
@@ -51,7 +51,7 @@ export async function fetchUserAchievements(userId: string): Promise<UserAchieve
 // Crear un nuevo logro (solo admin)
 export async function createAchievement(achievement: Omit<Achievement, 'id' | 'created_at' | 'created_by'>): Promise<Achievement | null> {
   const { data, error } = await supabase
-    .from('achievements')
+    .from('achievements_old')
     .insert({
       ...achievement,
       created_by: (await supabase.auth.getSession()).data.session?.user.id
@@ -70,7 +70,7 @@ export async function createAchievement(achievement: Omit<Achievement, 'id' | 'c
 // Eliminar un logro (solo admin)
 export async function deleteAchievement(id: string): Promise<boolean> {
   const { error } = await supabase
-    .from('achievements')
+    .from('achievements_old')
     .delete()
     .eq('id', id);
 

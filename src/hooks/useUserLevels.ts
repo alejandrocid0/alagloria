@@ -2,16 +2,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserLevelWithProgress } from '@/types/userLevels';
-import { fetchUserLevelsWithProgress } from '@/services/userLevelService';
+import { fetchUserLevelsWithProgress, fetchCurrentUserLevel } from '@/services/userLevelService';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useUserLevels(category: string = 'cofrade') {
   const { user } = useAuth();
   const [levels, setLevels] = useState<UserLevelWithProgress[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentLevel, setCurrentLevel] = useState<UserLevelWithProgress | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  // Suscribirse a los cambios en los niveles
+  // Cargar niveles y suscribirse a cambios
   useEffect(() => {
     if (!user) {
       setLevels([]);
@@ -23,11 +23,12 @@ export function useUserLevels(category: string = 'cofrade') {
     const loadLevels = async () => {
       setLoading(true);
       try {
+        // Cargar niveles con progreso
         const levelsWithProgress = await fetchUserLevelsWithProgress(user.id, category);
         setLevels(levelsWithProgress);
         
-        // Identificar el nivel actual
-        const current = levelsWithProgress.find(l => l.isCurrentLevel) || null;
+        // Establecer nivel actual
+        const current = await fetchCurrentUserLevel(user.id, category);
         setCurrentLevel(current);
       } catch (error) {
         console.error('Error al cargar niveles:', error);
@@ -38,9 +39,9 @@ export function useUserLevels(category: string = 'cofrade') {
     
     loadLevels();
     
-    // Suscribirse a cambios en perfiles (para actualizaciones de nivel)
-    const profilesChannel = supabase
-      .channel('profiles_changes')
+    // Suscribirse a cambios en el perfil del usuario (para nivel actual)
+    const profileChannel = supabase
+      .channel('profile-changes')
       .on('postgres_changes', 
         { 
           event: 'UPDATE', 
@@ -54,9 +55,9 @@ export function useUserLevels(category: string = 'cofrade') {
       )
       .subscribe();
     
-    // Suscribirse a cambios en las respuestas del juego
+    // Suscribirse a cambios en respuestas de juegos (para actualizar progreso)
     const answersChannel = supabase
-      .channel('game_answers_changes')
+      .channel('game-answers-changes')
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
@@ -71,20 +72,14 @@ export function useUserLevels(category: string = 'cofrade') {
       .subscribe();
     
     return () => {
-      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(profileChannel);
       supabase.removeChannel(answersChannel);
     };
   }, [user, category]);
   
   return {
     levels,
-    loading,
     currentLevel,
-    hasPreviousLevel: currentLevel 
-      ? levels.some(l => l.level.level_order < currentLevel.level.level_order && l.isAchieved) 
-      : false,
-    hasNextLevel: currentLevel 
-      ? levels.some(l => l.level.level_order > currentLevel.level.level_order) 
-      : false
+    loading
   };
 }

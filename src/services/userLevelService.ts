@@ -33,20 +33,19 @@ export async function fetchUserLevelsByCategory(category: string = 'cofrade'): P
   return data || [];
 }
 
-// Obtener el nivel actual de un usuario
-export async function fetchCurrentUserLevel(userId: string): Promise<UserLevel | null> {
+// Obtener progreso de nivel de un usuario
+export async function fetchUserLevelProgress(userId: string): Promise<UserLevelProgress[]> {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('current_level_id, current_level:current_level_id(id, name, description, icon_name, required_correct_answers, level_order, category)')
-    .eq('id', userId)
-    .single();
+    .from('user_level_progress')
+    .select('*, user_level:current_level_id(*)')
+    .eq('user_id', userId);
 
-  if (error || !data || !data.current_level) {
-    console.error('Error al obtener nivel actual del usuario:', error);
-    return null;
+  if (error) {
+    console.error('Error al obtener progreso de nivel del usuario:', error);
+    return [];
   }
 
-  return data.current_level as UserLevel;
+  return data || [];
 }
 
 // Crear un nuevo nivel (solo admin)
@@ -83,7 +82,24 @@ export async function deleteUserLevel(id: string): Promise<boolean> {
   return true;
 }
 
-// Obtener niveles con progreso del usuario
+// Actualizar un nivel (solo admin)
+export async function updateUserLevel(id: string, level: Partial<Omit<UserLevel, 'id' | 'created_at' | 'created_by'>>): Promise<UserLevel | null> {
+  const { data, error } = await supabase
+    .from('user_levels')
+    .update(level)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error al actualizar nivel:', error);
+    return null;
+  }
+
+  return data;
+}
+
+// Obtener niveles con progreso para un usuario
 export async function fetchUserLevelsWithProgress(
   userId: string,
   category: string = 'cofrade'
@@ -92,7 +108,7 @@ export async function fetchUserLevelsWithProgress(
     // Obtener todos los niveles de la categoría
     const levels = await fetchUserLevelsByCategory(category);
     
-    // Obtener el perfil del usuario para las estadísticas
+    // Obtener el perfil del usuario para el nivel actual y progreso
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('current_level_id, current_level_progress, correct_answers_by_category')
@@ -106,29 +122,45 @@ export async function fetchUserLevelsWithProgress(
     
     // Obtener el número de respuestas correctas para la categoría
     const correctAnswers = profile?.correct_answers_by_category?.[category] || 0;
-    const currentLevelId = profile?.current_level_id;
     
-    // Ordenar los niveles por orden
-    const sortedLevels = levels.sort((a, b) => a.level_order - b.level_order);
+    // Ordenar niveles por orden
+    const sortedLevels = [...levels].sort((a, b) => a.level_order - b.level_order);
+    
+    // Calcular el siguiente nivel (si existe)
+    const currentLevelIndex = sortedLevels.findIndex(level => level.id === profile?.current_level_id);
+    const nextLevel = currentLevelIndex >= 0 && currentLevelIndex < sortedLevels.length - 1
+      ? sortedLevels[currentLevelIndex + 1]
+      : undefined;
     
     // Mapear los niveles con progreso
     return sortedLevels.map(level => {
-      const isCurrentLevel = level.id === currentLevelId;
-      const isAchieved = correctAnswers >= level.required_correct_answers;
+      const isCurrentLevel = level.id === profile?.current_level_id;
+      const isAchieved = isCurrentLevel || 
+        (level.required_correct_answers <= correctAnswers);
       
-      // Encontrar el siguiente nivel para calcular el progreso
-      const nextLevelIndex = sortedLevels.findIndex(l => l.id === level.id) + 1;
-      const nextLevel = nextLevelIndex < sortedLevels.length ? sortedLevels[nextLevelIndex] : null;
-      
+      // Calcular progreso hacia el siguiente nivel o para el nivel actual
       let progress = 0;
+      let requiredForNextLevel = 0;
       
-      if (isAchieved) {
+      if (isCurrentLevel && nextLevel) {
+        requiredForNextLevel = nextLevel.required_correct_answers - level.required_correct_answers;
+        const progressTowardsNext = correctAnswers - level.required_correct_answers;
+        progress = Math.min(
+          100,
+          Math.floor((progressTowardsNext / requiredForNextLevel) * 100)
+        );
+      } else if (isCurrentLevel) {
+        // Ya está en el nivel máximo
         progress = 100;
-      } else if (nextLevel && level.required_correct_answers < nextLevel.required_correct_answers) {
-        // Calcular progreso hacia el siguiente nivel
-        const levelRange = nextLevel.required_correct_answers - level.required_correct_answers;
-        const userProgress = correctAnswers - level.required_correct_answers;
-        progress = Math.min(99, Math.max(0, Math.floor((userProgress / levelRange) * 100)));
+      } else if (!isAchieved && level.required_correct_answers > 0) {
+        // Calcular progreso hacia este nivel
+        progress = Math.min(
+          100,
+          Math.floor((correctAnswers / level.required_correct_answers) * 100)
+        );
+      } else if (isAchieved) {
+        // Ya ha superado este nivel
+        progress = 100;
       }
       
       return {
@@ -143,5 +175,19 @@ export async function fetchUserLevelsWithProgress(
   } catch (error) {
     console.error('Error al obtener niveles con progreso:', error);
     return [];
+  }
+}
+
+// Obtener el nivel actual del usuario
+export async function fetchCurrentUserLevel(
+  userId: string,
+  category: string = 'cofrade'
+): Promise<UserLevelWithProgress | null> {
+  try {
+    const levelsWithProgress = await fetchUserLevelsWithProgress(userId, category);
+    return levelsWithProgress.find(lwp => lwp.isCurrentLevel) || null;
+  } catch (error) {
+    console.error('Error al obtener nivel actual del usuario:', error);
+    return null;
   }
 }
