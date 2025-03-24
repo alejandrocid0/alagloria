@@ -9,7 +9,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      achievements: {
+      achievements_old: {
         Row: {
           category: string | null
           created_at: string
@@ -323,6 +323,8 @@ export type Database = {
         Row: {
           correct_answers_by_category: Json | null
           created_at: string
+          current_level_id: string | null
+          current_level_progress: number | null
           email: string
           id: string
           is_admin: boolean | null
@@ -331,6 +333,8 @@ export type Database = {
         Insert: {
           correct_answers_by_category?: Json | null
           created_at?: string
+          current_level_id?: string | null
+          current_level_progress?: number | null
           email: string
           id: string
           is_admin?: boolean | null
@@ -339,12 +343,22 @@ export type Database = {
         Update: {
           correct_answers_by_category?: Json | null
           created_at?: string
+          current_level_id?: string | null
+          current_level_progress?: number | null
           email?: string
           id?: string
           is_admin?: boolean | null
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_current_level_id_fkey"
+            columns: ["current_level_id"]
+            isOneToOne: false
+            referencedRelation: "user_levels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       question_templates: {
         Row: {
@@ -418,7 +432,7 @@ export type Database = {
           },
         ]
       }
-      user_achievements: {
+      user_achievements_old: {
         Row: {
           achievement_id: string
           earned_at: string
@@ -442,10 +456,75 @@ export type Database = {
             foreignKeyName: "user_achievements_achievement_id_fkey"
             columns: ["achievement_id"]
             isOneToOne: false
-            referencedRelation: "achievements"
+            referencedRelation: "achievements_old"
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_level_progress: {
+        Row: {
+          current_level_id: string | null
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          current_level_id?: string | null
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          current_level_id?: string | null
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_level_progress_current_level_id_fkey"
+            columns: ["current_level_id"]
+            isOneToOne: false
+            referencedRelation: "user_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_levels: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string
+          icon_name: string
+          id: string
+          level_order: number
+          name: string
+          required_correct_answers: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description: string
+          icon_name: string
+          id?: string
+          level_order: number
+          name: string
+          required_correct_answers: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          icon_name?: string
+          id?: string
+          level_order?: number
+          name?: string
+          required_correct_answers?: number
+        }
+        Relationships: []
       }
       user_suggestions: {
         Row: {

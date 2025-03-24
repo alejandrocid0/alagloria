@@ -10,7 +10,7 @@ import StatsOverviewCard from '@/components/dashboard/StatsOverviewCard';
 import SuccessRatioCard from '@/components/dashboard/SuccessRatioCard';
 import SpendingCard from '@/components/dashboard/SpendingCard';
 import RecentGamesCard from '@/components/dashboard/RecentGamesCard';
-import AchievementsCard from '@/components/dashboard/AchievementsCard';
+import UserLevelCard from '@/components/dashboard/UserLevelCard';
 
 const Dashboard = () => {
   const { user, profile, loading } = useAuth();
@@ -191,9 +191,9 @@ const Dashboard = () => {
             <RecentGamesCard recentGames={formattedGameResults} />
           </div>
           
-          {/* Tarjeta de Logros */}
+          {/* Tarjeta de Niveles (reemplaza a la tarjeta de logros) */}
           <div className="mt-6">
-            <AchievementsCard />
+            <UserLevelCard />
           </div>
         </div>
       </div>

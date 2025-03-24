@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import GameManagement from '@/components/admin/GameManagement';
 import GamesList from '@/components/admin/GamesList';
 import SuggestionsList from '@/components/admin/SuggestionsList';
-import AchievementsManager from '@/components/admin/achievements/AchievementsManager';
+import UserLevelsManager from '@/components/admin/levels/UserLevelsManager';
 import QuestionTemplatesManager from '@/components/admin/templates/QuestionTemplatesManager';
 
 const AdminDashboard = () => {
@@ -69,7 +69,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="games-list">Lista de Partidas</TabsTrigger>
             <TabsTrigger value="create-game">Crear Partida</TabsTrigger>
             <TabsTrigger value="templates">Plantillas</TabsTrigger>
-            <TabsTrigger value="achievements">Logros</TabsTrigger>
+            <TabsTrigger value="levels">Niveles</TabsTrigger>
             <TabsTrigger value="suggestions">Sugerencias</TabsTrigger>
             <TabsTrigger value="statistics">Estadísticas</TabsTrigger>
           </TabsList>
@@ -86,8 +86,8 @@ const AdminDashboard = () => {
             <QuestionTemplatesManager />
           </TabsContent>
           
-          <TabsContent value="achievements">
-            <AchievementsManager />
+          <TabsContent value="levels">
+            <UserLevelsManager />
           </TabsContent>
           
           <TabsContent value="suggestions">
