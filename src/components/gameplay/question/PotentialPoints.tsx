@@ -33,6 +33,7 @@ const PotentialPoints: React.FC<PotentialPointsProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 0.2 }}
       variants={pointsContainerVariants}
+      // Fix: Only use a single animate prop
       animate={isTimeRunningOut && !selectedOption ? "warning" : "normal"}
     >
       <motion.div 
