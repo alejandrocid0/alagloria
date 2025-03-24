@@ -23,6 +23,9 @@ const Game = () => {
     questions
   } = useGameState(gameId);
   
+  // Título del juego - en una aplicación real esto vendría de la base de datos
+  const gameTitle = "Cuestionario de Semana Santa";
+  
   return (
     <>
       <Navbar />
@@ -62,7 +65,10 @@ const Game = () => {
           
           <AnimatePresence mode="wait">
             {gameComplete ? (
-              <GameCompletedPanel players={players} />
+              <GameCompletedPanel 
+                players={players} 
+                gameTitle={gameTitle}  
+              />
             ) : showLeaderboard ? (
               <LeaderboardPanel 
                 players={players}

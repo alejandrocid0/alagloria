@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import HeaderSection from './finished/HeaderSection';
@@ -7,6 +7,7 @@ import WinnersPodium from './finished/WinnersPodium';
 import PlayersRankingList from './finished/PlayersRankingList';
 import UserStatsCards from './finished/UserStatsCards';
 import ActionButtons from './finished/ActionButtons';
+import FeedbackDialog from './finished/FeedbackDialog';
 import { useGameResultSaver } from './finished/useGameResultSaver';
 import { useConfettiEffect } from './finished/useConfettiEffect';
 
@@ -39,6 +40,7 @@ const FinishedState: React.FC<FinishedStateProps> = ({
   const { user } = useAuth();
   const topPlayers = ranking.slice(0, 3);
   const otherPlayers = ranking.slice(3, 10);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   
   // Cálculo de estadísticas
   const correctAnswers = ranking.find(p => p.id === user?.id)?.points ? 
@@ -56,6 +58,15 @@ const FinishedState: React.FC<FinishedStateProps> = ({
     correctAnswers,
     totalAnswers
   });
+
+  // Mostrar el diálogo de feedback después de un breve retraso
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFeedbackDialogOpen(true);
+    }, 1500); // Esperar 1.5 segundos para que el usuario vea primero los resultados
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <motion.div
@@ -84,6 +95,13 @@ const FinishedState: React.FC<FinishedStateProps> = ({
         <UserStatsCards rank={myRank} points={myPoints} />
         <ActionButtons />
       </div>
+
+      {/* Diálogo de feedback */}
+      <FeedbackDialog 
+        isOpen={feedbackDialogOpen} 
+        onOpenChange={setFeedbackDialogOpen}
+        gameTitle={gameTitle}
+      />
     </motion.div>
   );
 };

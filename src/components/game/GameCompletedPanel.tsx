@@ -5,9 +5,10 @@ import { Player } from '@/types/game';
 
 interface GameCompletedPanelProps {
   players: Player[];
+  gameTitle?: string;
 }
 
-const GameCompletedPanel = ({ players }: GameCompletedPanelProps) => {
+const GameCompletedPanel = ({ players, gameTitle = "Partida" }: GameCompletedPanelProps) => {
   return (
     <motion.div 
       key="game-complete"
