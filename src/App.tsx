@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ContentProvider } from "@/contexts/ContentContext";
 import ScrollToTop from "@/components/navigation/ScrollToTop";
 import Index from "./pages/Index";
 import Games from "./pages/Games";
@@ -30,22 +31,24 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/games" element={<Games />} />
-            <Route path="/how-to-play" element={<HowToPlay />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/join/:gameId" element={<JoinGame />} />
-            <Route path="/game/:gameId" element={<Game />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/suggestions" element={<Suggestions />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ContentProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/games" element={<Games />} />
+              <Route path="/how-to-play" element={<HowToPlay />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/join/:gameId" element={<JoinGame />} />
+              <Route path="/game/:gameId" element={<Game />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/suggestions" element={<Suggestions />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ContentProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

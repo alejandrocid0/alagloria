@@ -10,6 +10,7 @@ import GamesList from '@/components/admin/GamesList';
 import SuggestionsList from '@/components/admin/SuggestionsList';
 import UserLevelsManager from '@/components/admin/levels/UserLevelsManager';
 import QuestionTemplatesManager from '@/components/admin/templates/QuestionTemplatesManager';
+import ContentManager from '@/components/admin/content/ContentManager';
 
 const AdminDashboard = () => {
   const { user, profile, loading } = useAuth();
@@ -71,6 +72,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="templates">Plantillas</TabsTrigger>
             <TabsTrigger value="levels">Niveles</TabsTrigger>
             <TabsTrigger value="suggestions">Sugerencias</TabsTrigger>
+            <TabsTrigger value="content">Contenido</TabsTrigger>
             <TabsTrigger value="statistics">Estadísticas</TabsTrigger>
           </TabsList>
           
@@ -92,6 +94,10 @@ const AdminDashboard = () => {
           
           <TabsContent value="suggestions">
             <SuggestionsList />
+          </TabsContent>
+
+          <TabsContent value="content">
+            <ContentManager />
           </TabsContent>
           
           <TabsContent value="statistics">
