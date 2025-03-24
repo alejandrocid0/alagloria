@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuizQuestion } from '@/types/quiz';
 import { cn } from '@/lib/utils';
-import { CheckCircle, XCircle, Clock, Award, BrainCircuit, AlertCircle, Timer } from 'lucide-react';
+import { CheckCircle, Clock, Award, BrainCircuit, AlertCircle, Timer } from 'lucide-react';
 
 interface QuestionStateProps {
   currentQuestionData: QuizQuestion;
@@ -25,6 +25,7 @@ const QuestionState: React.FC<QuestionStateProps> = ({
   const [isUrgent, setIsUrgent] = useState(false);
   const [potentialPoints, setPotentialPoints] = useState(1000);
   const [flashWarning, setFlashWarning] = useState(false);
+  const [hasPulsed, setHasPulsed] = useState(false);
   
   // Manejar la cuenta regresiva y los puntos potenciales
   useEffect(() => {
@@ -39,6 +40,14 @@ const QuestionState: React.FC<QuestionStateProps> = ({
         // Activar advertencia cuando quedan 5 segundos o menos
         if (newValue <= 5 && !isWarning) {
           setIsWarning(true);
+          // Pulsar una vez para llamar la atención
+          if (!hasPulsed) {
+            document.body.classList.add('pulse-animation');
+            setTimeout(() => {
+              document.body.classList.remove('pulse-animation');
+            }, 300);
+            setHasPulsed(true);
+          }
         }
         
         // Activar urgencia cuando quedan 3 segundos o menos
@@ -58,7 +67,7 @@ const QuestionState: React.FC<QuestionStateProps> = ({
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [timeRemaining, selectedOption, isWarning, isUrgent]);
+  }, [timeRemaining, selectedOption, isWarning, isUrgent, hasPulsed]);
   
   // Verificar si una opción está seleccionada
   const isOptionSelected = (optionId: string) => selectedOption === optionId;
@@ -80,6 +89,18 @@ const QuestionState: React.FC<QuestionStateProps> = ({
   const optionVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
+  };
+
+  // Animar el contenedor de puntos potenciales
+  const pointsContainerVariants = {
+    normal: { scale: 1 },
+    warning: { 
+      scale: [1, 1.05, 1],
+      transition: { 
+        repeat: Infinity,
+        duration: 0.8
+      }
+    }
   };
   
   return (
@@ -147,6 +168,8 @@ const QuestionState: React.FC<QuestionStateProps> = ({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
+          variants={pointsContainerVariants}
+          animate={isTimeRunningOut && !selectedOption ? "warning" : "normal"}
         >
           <motion.div 
             className="bg-gloria-cream/30 rounded-lg px-4 py-2.5 flex items-center"
@@ -186,9 +209,14 @@ const QuestionState: React.FC<QuestionStateProps> = ({
       >
         <div className="flex items-center mb-4">
           <BrainCircuit className="w-6 h-6 text-gloria-purple mr-2" />
-          <h2 className="text-xl md:text-2xl font-serif font-bold text-gloria-purple">
+          <motion.h2 
+            className="text-xl md:text-2xl font-serif font-bold text-gloria-purple"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
             {currentQuestionData.question}
-          </h2>
+          </motion.h2>
         </div>
         
         <motion.div 
@@ -249,7 +277,7 @@ const QuestionState: React.FC<QuestionStateProps> = ({
             exit={{ opacity: 0 }}
             className="text-center text-gray-500 italic"
           >
-            <Timer className="inline-block w-4 h-4 mr-1" />
+            <Timer className="inline-block w-4 h-4 mr-1 animate-pulse" />
             Espera mientras los demás jugadores responden...
           </motion.div>
         )}

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { motion, useAnimate } from 'framer-motion';
+import { motion, useAnimate, AnimatePresence } from 'framer-motion';
 import { QuizQuestion } from '@/types/quiz';
 import { cn } from '@/lib/utils';
 import { CheckCircle, XCircle, Award, TrendingUp, Timer, Sparkles } from 'lucide-react';
@@ -83,11 +83,17 @@ const ResultState: React.FC<ResultStateProps> = ({
           animate={{ 
             scale: isCorrect ? [1, 1.1, 1] : [1, 0.9, 1],
             y: isCorrect ? [0, -15, 0] : [0, -5, 0],
-            rotate: isCorrect ? [0, 5, -5, 0] : 0
+            rotate: isCorrect ? [0, 5, -5, 0] : 0,
+            boxShadow: isCorrect ? [
+              "0 0 0 rgba(93, 56, 145, 0)",
+              "0 0 20px rgba(93, 56, 145, 0.3)",
+              "0 0 0 rgba(93, 56, 145, 0)"
+            ] : "none"
           }}
           transition={{ 
             duration: 0.7,
-            ease: "easeInOut" 
+            ease: "easeInOut",
+            boxShadow: { repeat: isCorrect ? 3 : 0, duration: 1.5 }
           }}
           className={cn(
             "inline-flex items-center justify-center rounded-full p-3",
@@ -125,6 +131,16 @@ const ResultState: React.FC<ResultStateProps> = ({
           <motion.div 
             ref={pointsScope}
             className="mt-4 inline-flex items-center justify-center bg-gloria-gold/20 text-gloria-gold px-4 py-2 rounded-full"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -5, 0],
+              transition: { 
+                y: { repeat: Infinity, duration: 1.5 },
+                opacity: { duration: 0.3 }
+              }
+            }}
           >
             {lastPoints > 500 ? (
               <Sparkles className="w-5 h-5 mr-2 animate-pulse" />
@@ -186,21 +202,24 @@ const ResultState: React.FC<ResultStateProps> = ({
             )}
           </div>
           
-          {!isCorrect && (
-            <motion.div
-              initial={{ x: -10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-            >
-              <h4 className="font-medium text-gray-700 mb-2">Respuesta correcta:</h4>
-              <div className="p-3 rounded-lg border-2 border-green-300 bg-green-50 flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                <span>
-                  {currentQuestionData.options.find(o => o.id === currentQuestionData.correctOption)?.text || "Error en datos"}
-                </span>
-              </div>
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {!isCorrect && (
+              <motion.div
+                initial={{ x: -10, opacity: 0, height: 0 }}
+                animate={{ x: 0, opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <h4 className="font-medium text-gray-700 mb-2">Respuesta correcta:</h4>
+                <div className="p-3 rounded-lg border-2 border-green-300 bg-green-50 flex items-center">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                  <span>
+                    {currentQuestionData.options.find(o => o.id === currentQuestionData.correctOption)?.text || "Error en datos"}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
       

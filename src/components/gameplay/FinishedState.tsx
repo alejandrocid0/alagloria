@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import confetti from 'canvas-confetti';
 import { gameService } from '@/services/games';
 import { toast } from '@/hooks/use-toast';
+import { gameNotifications } from '@/components/ui/notification-toast';
 
 interface Player {
   id: string;
@@ -100,6 +101,7 @@ const FinishedState: React.FC<FinishedStateProps> = ({
         
         console.log('Resultados guardados correctamente');
         setResultSaved(true);
+        gameNotifications.resultsSaved();
       } catch (error) {
         console.error('Error al guardar resultados:', error);
         toast({
