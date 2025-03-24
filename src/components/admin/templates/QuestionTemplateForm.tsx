@@ -54,8 +54,15 @@ const QuestionTemplateForm = ({
     }
   });
 
+  // Aseguramos que los valores pasados a onSubmit no sean opcionales
   const handleSubmit = (values: FormValues) => {
-    onSubmit(values);
+    // Al usar FormValues y provenir de zodResolver, TypeScript garantiza que los valores 
+    // requeridos por el esquema existen y no son opcionales
+    onSubmit({
+      question_text: values.question_text,
+      category: values.category,
+      difficulty: values.difficulty
+    });
   };
 
   return (

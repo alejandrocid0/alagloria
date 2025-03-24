@@ -72,8 +72,18 @@ const GenerateGameForm = ({
     }
   });
 
+  // Aseguramos que los valores pasados a onSubmit no sean opcionales
   const handleSubmit = (values: FormValues) => {
-    onSubmit(values);
+    // Al usar FormValues y provenir de zodResolver, TypeScript garantiza que los valores 
+    // requeridos por el esquema existen y no son opcionales
+    onSubmit({
+      title: values.title,
+      description: values.description,
+      gameDate: values.gameDate,
+      gameTime: values.gameTime,
+      category: values.category,
+      numQuestions: values.numQuestions
+    });
   };
 
   return (
