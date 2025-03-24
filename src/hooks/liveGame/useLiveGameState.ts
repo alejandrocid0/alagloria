@@ -7,6 +7,7 @@ import { usePlayerAnswers } from './usePlayerAnswers';
 import { useLeaderboardData } from './useLeaderboardData';
 import { useGameQuestions } from './useGameQuestions';
 import { useGameInitialization } from './useGameInitialization';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useLiveGameState = () => {
   const { gameId } = useParams<{ gameId: string }>();

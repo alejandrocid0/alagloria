@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string
+          icon_name: string
+          id: string
+          name: string
+          required_correct_answers: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description: string
+          icon_name: string
+          id?: string
+          name: string
+          required_correct_answers: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          icon_name?: string
+          id?: string
+          name?: string
+          required_correct_answers?: number
+        }
+        Relationships: []
+      }
       admin_roles: {
         Row: {
           created_at: string
@@ -138,6 +171,42 @@ export type Database = {
         }
         Relationships: []
       }
+      live_game_answers: {
+        Row: {
+          answer_time_ms: number
+          created_at: string
+          game_id: string
+          id: string
+          is_correct: boolean
+          points: number
+          question_position: number
+          selected_option: string
+          user_id: string
+        }
+        Insert: {
+          answer_time_ms: number
+          created_at?: string
+          game_id: string
+          id?: string
+          is_correct: boolean
+          points: number
+          question_position: number
+          selected_option: string
+          user_id: string
+        }
+        Update: {
+          answer_time_ms?: number
+          created_at?: string
+          game_id?: string
+          id?: string
+          is_correct?: boolean
+          points?: number
+          question_position?: number
+          selected_option?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       live_games: {
         Row: {
           countdown: number
@@ -217,21 +286,27 @@ export type Database = {
       }
       profiles: {
         Row: {
+          correct_answers_by_category: Json | null
           created_at: string
           email: string
           id: string
+          is_admin: boolean | null
           name: string
         }
         Insert: {
+          correct_answers_by_category?: Json | null
           created_at?: string
           email: string
           id: string
+          is_admin?: boolean | null
           name: string
         }
         Update: {
+          correct_answers_by_category?: Json | null
           created_at?: string
           email?: string
           id?: string
+          is_admin?: boolean | null
           name?: string
         }
         Relationships: []
@@ -277,6 +352,35 @@ export type Database = {
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games_with_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
             referencedColumns: ["id"]
           },
         ]

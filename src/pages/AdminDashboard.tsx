@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import GameManagement from '@/components/admin/GameManagement';
 import GamesList from '@/components/admin/GamesList';
 import SuggestionsList from '@/components/admin/SuggestionsList';
+import AchievementsManager from '@/components/admin/achievements/AchievementsManager';
 
 const AdminDashboard = () => {
   const { user, profile, loading } = useAuth();
@@ -66,6 +67,7 @@ const AdminDashboard = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="games-list">Lista de Partidas</TabsTrigger>
             <TabsTrigger value="create-game">Crear Partida</TabsTrigger>
+            <TabsTrigger value="achievements">Logros</TabsTrigger>
             <TabsTrigger value="suggestions">Sugerencias</TabsTrigger>
             <TabsTrigger value="statistics">Estadísticas</TabsTrigger>
           </TabsList>
@@ -76,6 +78,10 @@ const AdminDashboard = () => {
           
           <TabsContent value="create-game">
             <GameManagement />
+          </TabsContent>
+          
+          <TabsContent value="achievements">
+            <AchievementsManager />
           </TabsContent>
           
           <TabsContent value="suggestions">

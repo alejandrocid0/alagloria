@@ -10,6 +10,7 @@ import StatsOverviewCard from '@/components/dashboard/StatsOverviewCard';
 import SuccessRatioCard from '@/components/dashboard/SuccessRatioCard';
 import SpendingCard from '@/components/dashboard/SpendingCard';
 import RecentGamesCard from '@/components/dashboard/RecentGamesCard';
+import AchievementsCard from '@/components/dashboard/AchievementsCard';
 
 const Dashboard = () => {
   const { user, profile, loading } = useAuth();
@@ -176,7 +177,7 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Gráfico de dinero invertido */}
             <SpendingCard 
               totalSpent={userStats.totalSpent}
@@ -188,6 +189,11 @@ const Dashboard = () => {
             
             {/* Historial de partidas */}
             <RecentGamesCard recentGames={formattedGameResults} />
+          </div>
+          
+          {/* Tarjeta de Logros */}
+          <div className="mt-6">
+            <AchievementsCard />
           </div>
         </div>
       </div>
