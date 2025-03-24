@@ -249,6 +249,41 @@ export type Database = {
           },
         ]
       }
+      option_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_correct: boolean
+          option_text: string
+          position: number
+          question_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_correct?: boolean
+          option_text: string
+          position: number
+          question_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_correct?: boolean
+          option_text?: string
+          position?: number
+          question_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_templates_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "question_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       options: {
         Row: {
           created_at: string
@@ -308,6 +343,33 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           name?: string
+        }
+        Relationships: []
+      }
+      question_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          difficulty: string | null
+          id: string
+          question_text: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          difficulty?: string | null
+          id?: string
+          question_text: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          difficulty?: string | null
+          id?: string
+          question_text?: string
         }
         Relationships: []
       }
@@ -439,6 +501,17 @@ export type Database = {
       check_scheduled_games: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_game_from_templates: {
+        Args: {
+          p_title: string
+          p_description: string
+          p_date: string
+          p_category: string
+          p_num_questions: number
+          p_created_by: string
+        }
+        Returns: string
       }
       get_game_leaderboard: {
         Args: {
