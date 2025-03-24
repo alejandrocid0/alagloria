@@ -23,6 +23,13 @@ export async function saveGameResult(data: GameResultData) {
 
     const userId = sessionData.session.user.id;
 
+    // Verificar si ya existe un resultado para evitar duplicados
+    const existingResult = await checkExistingGameResult(data.gameId);
+    if (existingResult) {
+      console.log('Ya existe un resultado para este juego y usuario');
+      return null;
+    }
+
     // Guardar resultados en la tabla game_results
     const { data: result, error } = await supabase
       .from('game_results')

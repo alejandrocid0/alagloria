@@ -1,4 +1,3 @@
-
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuizQuestion } from '@/types/quiz';
 import { Player } from '@/types/game';
@@ -63,8 +62,6 @@ const GameStateRenderer = ({
     return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
   }
   
-  // Renderizar la sala de espera si el juego aún no ha comenzado y estamos en momento previo
-  // Esta es una nueva condición que verifica si la partida programada aún no ha comenzado
   const currentTime = new Date();
   const scheduledTime = gameInfo.scheduledTime ? new Date(gameInfo.scheduledTime) : null;
   const isBeforeGameStart = scheduledTime && currentTime < scheduledTime;
@@ -136,6 +133,8 @@ const GameStateRenderer = ({
             }))}
             myPoints={myPoints}
             myRank={myRank}
+            questions={questions}
+            gameTitle={gameInfo.title}
           />
         )}
       </AnimatePresence>

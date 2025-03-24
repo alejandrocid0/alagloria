@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, ArrowRight, Award, BadgeCheck, Clock, Share2 } from 'lucide-react';
@@ -22,7 +23,7 @@ interface FinishedStateProps {
   ranking: Player[];
   myPoints: number;
   myRank: number;
-  questions: any[];
+  questions?: any[];
   gameTitle?: string;
 }
 

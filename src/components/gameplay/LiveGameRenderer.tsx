@@ -7,7 +7,8 @@ import GameStateRenderer from './GameStateRenderer';
 import { useGameInfo } from './hooks/useGameInfo';
 import { useGameStateValues } from './hooks/useGameStateValues';
 import { adaptQuestionToQuizFormat } from './utils/gameDataAdapters';
-import { Alert, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
 
 const LiveGameRenderer = () => {
   const { gameId } = useParams<{ gameId: string }>();
