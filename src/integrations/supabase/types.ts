@@ -60,6 +60,39 @@ export type Database = {
         }
         Relationships: []
       }
+      content_items: {
+        Row: {
+          content: string
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          page: string
+          section: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          page: string
+          section: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          page?: string
+          section?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       game_participants: {
         Row: {
           created_at: string | null

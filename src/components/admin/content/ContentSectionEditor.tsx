@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { ContentItem } from './ContentManager';
 import { Separator } from "@/components/ui/separator";
 import ContentItemEditor from './ContentItemEditor';
+import { ContentItem } from './ContentItemEditor';
 
 interface ContentSectionEditorProps {
   sectionName: string;

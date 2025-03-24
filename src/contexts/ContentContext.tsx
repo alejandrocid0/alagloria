@@ -2,6 +2,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Definir el tipo para los elementos de contenido
+interface ContentItem {
+  id: string;
+  key: string;
+  content: string;
+  description?: string;
+  section: string;
+  page: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface ContentContextType {
   content: Record<string, string>;
   isLoading: boolean;

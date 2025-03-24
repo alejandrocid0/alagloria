@@ -1,12 +1,22 @@
 
 import React, { useState } from 'react';
-import { ContentItem } from './ContentManager';
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { InfoIcon, SaveIcon, RotateCcw } from 'lucide-react';
+
+export interface ContentItem {
+  id: string;
+  key: string;
+  section: string;
+  page: string;
+  content: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface ContentItemEditorProps {
   contentItem: ContentItem;

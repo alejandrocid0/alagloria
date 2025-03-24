@@ -8,18 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ContentPageEditor from './ContentPageEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
-// Tipos para el contenido
-export interface ContentItem {
-  id: string;
-  key: string;
-  section: string;
-  page: string;
-  content: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-}
+import { ContentItem } from './ContentItemEditor';
 
 // Páginas disponibles para edición
 const availablePages = [

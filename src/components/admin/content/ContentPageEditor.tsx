@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { ContentItem } from './ContentManager';
 import ContentSectionEditor from './ContentSectionEditor';
 import { Skeleton } from "@/components/ui/skeleton";
+import { ContentItem } from './ContentItemEditor';
 
 interface ContentPageEditorProps {
   pageId: string;
