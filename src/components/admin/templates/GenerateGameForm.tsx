@@ -44,6 +44,9 @@ const formSchema = z.object({
   numQuestions: z.coerce.number().min(5, "Debe seleccionar al menos 5 preguntas").max(20, "No puede seleccionar más de 20 preguntas")
 });
 
+// Define el tipo basado en el schema de zod
+type FormValues = z.infer<typeof formSchema>;
+
 const GenerateGameForm = ({ 
   onSubmit, 
   isSubmitting,
@@ -57,7 +60,7 @@ const GenerateGameForm = ({
   const defaultDate = nextWeek.toISOString().split('T')[0];
   const defaultTime = '19:00';
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -69,7 +72,7 @@ const GenerateGameForm = ({
     }
   });
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = (values: FormValues) => {
     onSubmit(values);
   };
 

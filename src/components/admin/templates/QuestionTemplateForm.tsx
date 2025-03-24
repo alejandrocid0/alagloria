@@ -37,12 +37,15 @@ const formSchema = z.object({
   difficulty: z.string().min(1, "Seleccione una dificultad")
 });
 
+// Define el tipo basado en el schema de zod
+type FormValues = z.infer<typeof formSchema>;
+
 const QuestionTemplateForm = ({ 
   onSubmit, 
   isSubmitting,
   categories 
 }: QuestionTemplateFormProps) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       question_text: "",
@@ -51,7 +54,7 @@ const QuestionTemplateForm = ({
     }
   });
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = (values: FormValues) => {
     onSubmit(values);
   };
 
