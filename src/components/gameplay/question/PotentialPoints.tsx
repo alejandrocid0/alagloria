@@ -1,9 +1,9 @@
 
 import { AlertCircle } from 'lucide-react';
 
-interface PointsDisplayProps {
-  timeRemaining: number;
-  timeLimit: number;
+interface PotentialPointsProps {
+  potentialPoints: number;
+  isTimeRunningOut: boolean;
   selectedOption: string | null;
 }
 
@@ -11,11 +11,7 @@ const PotentialPoints = ({
   potentialPoints,
   isTimeRunningOut,
   selectedOption
-}: {
-  potentialPoints: number,
-  isTimeRunningOut: boolean,
-  selectedOption: string | null
-}) => {
+}: PotentialPointsProps) => {
   if (selectedOption) return null;
   
   return (
