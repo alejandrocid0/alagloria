@@ -21,6 +21,9 @@ interface QuestionCardProps {
   totalQuestions?: number;
 }
 
+// Define a type for our randomized options
+type RandomizedOption = string | { text: string; originalIndex: number };
+
 const QuestionCard = ({
   question,
   options,
@@ -90,7 +93,8 @@ const QuestionCard = ({
     if (answered) return;
     
     // Traducir el índice aleatorizado al índice original para mantener correcta la respuesta
-    const originalIndex = randomizedOptions[index].originalIndex;
+    const option = randomizedOptions[index];
+    const originalIndex = typeof option === 'string' ? index : option.originalIndex;
     
     setSelectedIdx(originalIndex);
     onAnswer(originalIndex, timeRemaining);
@@ -138,7 +142,9 @@ const QuestionCard = ({
       <div className="space-y-3">
         {randomizedOptions.map((option, index) => {
           // Si estamos mostrando resultados, usar los índices originales
-          const displayIndex = showResult ? option.originalIndex : index;
+          const displayIndex = showResult 
+            ? (typeof option === 'string' ? index : option.originalIndex) 
+            : index;
           const text = typeof option === 'string' ? option : option.text;
           
           return (
