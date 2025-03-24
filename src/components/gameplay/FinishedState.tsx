@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import HeaderSection from './finished/HeaderSection';
@@ -59,15 +59,6 @@ const FinishedState: React.FC<FinishedStateProps> = ({
     totalAnswers
   });
 
-  // Mostrar el diálogo de feedback después de un breve retraso
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFeedbackDialogOpen(true);
-    }, 1500); // Esperar 1.5 segundos para que el usuario vea primero los resultados
-    
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <motion.div
       key="finished"
@@ -93,7 +84,7 @@ const FinishedState: React.FC<FinishedStateProps> = ({
       {/* Estadísticas y acciones */}
       <div className="space-y-6">
         <UserStatsCards rank={myRank} points={myPoints} />
-        <ActionButtons />
+        <ActionButtons onExit={() => setFeedbackDialogOpen(true)} />
       </div>
 
       {/* Diálogo de feedback */}
