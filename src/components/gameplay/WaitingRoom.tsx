@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, MessageSquare, Award, AlertTriangle, Sparkles } from 'lucide-react';
+import { Clock, Users, MessageSquare, AlertTriangle, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Player } from '@/types/liveGame';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,6 @@ interface WaitingRoomProps {
   gameTitle: string;
   scheduledTime: string;
   playersOnline: Player[];
-  prizePool?: number;
   timeUntilStart: number; // en segundos
 }
 
@@ -18,7 +17,6 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   gameTitle,
   scheduledTime,
   playersOnline,
-  prizePool = 0,
   timeUntilStart,
 }) => {
   const { user } = useAuth();
@@ -120,7 +118,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
             />
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
             <motion.div 
               className="bg-gloria-purple/5 rounded-lg p-4 text-center hover:bg-gloria-purple/10 transition-colors"
               whileHover={{ scale: 1.03 }}
@@ -137,25 +135,6 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
                 {playersOnline.length}
-              </motion.div>
-            </motion.div>
-            
-            <motion.div 
-              className="bg-gloria-purple/5 rounded-lg p-4 text-center hover:bg-gloria-purple/10 transition-colors"
-              whileHover={{ scale: 1.03 }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <Award className="w-5 h-5 mx-auto mb-2 text-gloria-gold" />
-              <div className="text-sm text-gray-500">Premio</div>
-              <motion.div 
-                className="font-medium text-gloria-gold"
-                initial={{ scale: 0.8 }}
-                animate={{ scale: [0.8, 1.1, 1] }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-              >
-                {prizePool}€
               </motion.div>
             </motion.div>
             

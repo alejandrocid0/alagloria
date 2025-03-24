@@ -1,5 +1,5 @@
 
-import { Calendar, Users, Clock, Award, Play, Tag } from 'lucide-react';
+import { Calendar, Users, Clock, Play, Tag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Button from './Button';
@@ -138,11 +138,6 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
             <span>{participants} de {maxParticipants} participantes</span>
           </div>
           
-          <div className="flex items-center text-sm text-gray-600">
-            <Award size={16} className="mr-2 text-gloria-gold" />
-            <span className="font-medium text-gloria-gold">{prizePool.toFixed(2)}€ en premios</span>
-          </div>
-          
           {category && (
             <div className="flex items-center text-sm text-gray-600">
               <Tag size={16} className="mr-2 text-gloria-purple" />
@@ -153,7 +148,7 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
         
         <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
           <div 
-            className="bg-gloria-gold h-2 rounded-full" 
+            className="bg-gloria-purple h-2 rounded-full" 
             style={{ width: `${percentageFilled}%` }}
           />
         </div>
@@ -169,7 +164,7 @@ const GameCard = ({ id, title, date, participants, maxParticipants, prizePool, i
             disabled={isPastGame || isGameFull}
             href={isPastGame ? `/results/${id}` : isGameFull ? "#" : `/join/${id}`}
           >
-            {isPastGame ? "Ver resultados" : isGameFull ? "Completa" : "Unirse - 1€"}
+            {isPastGame ? "Ver resultados" : isGameFull ? "Completa" : "Unirse gratis"}
           </Button>
         </div>
 

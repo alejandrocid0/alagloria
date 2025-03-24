@@ -7,14 +7,12 @@ import { toast } from '@/hooks/use-toast';
 interface GameInfo {
   title: string;
   scheduledTime: string;
-  prizePool: number;
 }
 
 export const useGameInfo = (gameId: string | undefined) => {
   const [gameInfo, setGameInfo] = useState<GameInfo>({
     title: "Partida en vivo",
-    scheduledTime: "",
-    prizePool: 100
+    scheduledTime: ""
   });
 
   // Fetch game details
@@ -36,8 +34,7 @@ export const useGameInfo = (gameId: string | undefined) => {
           
           setGameInfo({
             title: data.title || "Partida en vivo",
-            scheduledTime: formattedDate,
-            prizePool: data.prizePool || 100
+            scheduledTime: formattedDate
           });
         }
       } catch (err) {

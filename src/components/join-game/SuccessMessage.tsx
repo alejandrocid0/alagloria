@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, Calendar, Clock, Award } from 'lucide-react';
+import { Check, Calendar, Clock } from 'lucide-react';
 import Button from '@/components/Button';
 import { Game } from '@/components/games/types';
 
@@ -30,7 +30,7 @@ const SuccessMessage: React.FC<SuccessMessageProps> = ({ gameData, formattedDate
         <div className="bg-gloria-cream/20 rounded-lg p-6 mb-8">
           <h3 className="font-semibold text-gloria-purple mb-4">Detalles de la partida</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="text-center">
               <Calendar className="h-6 w-6 text-gloria-purple mx-auto mb-2" />
               <div className="text-sm text-gray-500">Fecha</div>
@@ -41,12 +41,6 @@ const SuccessMessage: React.FC<SuccessMessageProps> = ({ gameData, formattedDate
               <Clock className="h-6 w-6 text-gloria-purple mx-auto mb-2" />
               <div className="text-sm text-gray-500">Hora</div>
               <div className="font-medium">{gameData.date.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}</div>
-            </div>
-            
-            <div className="text-center">
-              <Award className="h-6 w-6 text-gloria-gold mx-auto mb-2" />
-              <div className="text-sm text-gray-500">Premio total</div>
-              <div className="font-medium text-gloria-gold">{gameData.prizePool}€</div>
             </div>
           </div>
         </div>

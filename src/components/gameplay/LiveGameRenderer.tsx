@@ -11,7 +11,7 @@ import { adaptQuestionToQuizFormat } from './utils/gameDataAdapters';
 const LiveGameRenderer = () => {
   const { gameId } = useParams<{ gameId: string }>();
   
-  // Get game info (title, scheduled time, prize pool)
+  // Get game info (title, scheduled time)
   const gameInfo = useGameInfo(gameId);
   
   // Get the core game state from the live game hook

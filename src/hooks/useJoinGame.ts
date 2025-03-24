@@ -41,15 +41,6 @@ export const useJoinGame = (gameId: string | undefined) => {
         return;
       }
       
-      // Add mock prize distribution if not already present
-      if (!game.prizeDistribution) {
-        game.prizeDistribution = [
-          { position: 1, percentage: 50, amount: Math.round(game.prizePool * 0.5) },
-          { position: 2, percentage: 30, amount: Math.round(game.prizePool * 0.3) },
-          { position: 3, percentage: 20, amount: Math.round(game.prizePool * 0.2) }
-        ];
-      }
-      
       setGameData(game);
     } catch (error) {
       console.error("Error fetching game:", error);
@@ -119,7 +110,7 @@ export const useJoinGame = (gameId: string | undefined) => {
       await gameService.joinGame(gameId, user.id);
       
       toast({
-        title: "¡Pago completado!",
+        title: "¡Inscripción completada!",
         description: "Te has unido a la partida correctamente",
       });
     } catch (error) {
