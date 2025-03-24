@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { CheckCircle } from 'lucide-react';
@@ -16,6 +16,25 @@ const OptionsList: React.FC<OptionsListProps> = ({
   selectedOption,
   handleSelectOption
 }) => {
+  // Estado para almacenar opciones en orden aleatorio
+  const [randomizedOptions, setRandomizedOptions] = useState<QuizQuestion['options']>([]);
+  
+  // Aleatorizar el orden de las opciones cuando el componente se monta
+  useEffect(() => {
+    if (options && options.length > 0) {
+      // Crear una copia para no modificar la original
+      const shuffled = [...options];
+      
+      // Algoritmo de Fisher-Yates para mezclar el array
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      
+      setRandomizedOptions(shuffled);
+    }
+  }, [options]);
+  
   const optionsContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -33,6 +52,20 @@ const OptionsList: React.FC<OptionsListProps> = ({
 
   const isOptionSelected = (optionId: string) => selectedOption === optionId;
 
+  // Si aún no tenemos opciones aleatorizadas, mostrar un estado de carga
+  if (randomizedOptions.length === 0) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div 
+            key={i}
+            className="h-16 rounded-lg bg-gray-100 animate-pulse"
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       className="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -40,7 +73,7 @@ const OptionsList: React.FC<OptionsListProps> = ({
       initial="hidden"
       animate="visible"
     >
-      {options.map((option, index) => {
+      {randomizedOptions.map((option, index) => {
         const isSelected = isOptionSelected(option.id);
         
         return (

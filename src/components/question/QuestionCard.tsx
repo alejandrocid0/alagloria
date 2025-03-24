@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import TimerBar from './TimerBar';
 import OptionButton from './OptionButton';
@@ -37,6 +37,25 @@ const QuestionCard = ({
   const [selectedIdx, setSelectedIdx] = useState<number | undefined>(selectedOption);
   const [animateTimeWarning, setAnimateTimeWarning] = useState(false);
   
+  // Aleatorizar opciones al iniciar, pero mantener el índice correcto
+  const randomizedOptions = useMemo(() => {
+    // Si estamos mostrando resultados, no mezclar para no confundir al usuario
+    if (showResult || answered) {
+      return options;
+    }
+    
+    // Crear array de objetos con el texto y el índice original
+    const optionsWithIndex = options.map((text, index) => ({ text, originalIndex: index }));
+    
+    // Mezclar el array
+    for (let i = optionsWithIndex.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [optionsWithIndex[i], optionsWithIndex[j]] = [optionsWithIndex[j], optionsWithIndex[i]];
+    }
+    
+    return optionsWithIndex;
+  }, [options, showResult, answered]);
+  
   // Handle countdown timer
   useEffect(() => {
     if (answered || timeRemaining <= 0) return;
@@ -70,8 +89,11 @@ const QuestionCard = ({
   const handleOptionClick = (index: number) => {
     if (answered) return;
     
-    setSelectedIdx(index);
-    onAnswer(index, timeRemaining);
+    // Traducir el índice aleatorizado al índice original para mantener correcta la respuesta
+    const originalIndex = randomizedOptions[index].originalIndex;
+    
+    setSelectedIdx(originalIndex);
+    onAnswer(originalIndex, timeRemaining);
   };
   
   return (
@@ -114,18 +136,24 @@ const QuestionCard = ({
       )}
       
       <div className="space-y-3">
-        {options.map((option, index) => (
-          <OptionButton
-            key={index}
-            index={index}
-            text={option}
-            selectedIdx={selectedIdx}
-            correctAnswer={correctAnswer}
-            answered={answered}
-            showResult={showResult}
-            onClick={handleOptionClick}
-          />
-        ))}
+        {randomizedOptions.map((option, index) => {
+          // Si estamos mostrando resultados, usar los índices originales
+          const displayIndex = showResult ? option.originalIndex : index;
+          const text = typeof option === 'string' ? option : option.text;
+          
+          return (
+            <OptionButton
+              key={index}
+              index={displayIndex}
+              text={text}
+              selectedIdx={selectedIdx}
+              correctAnswer={correctAnswer}
+              answered={answered}
+              showResult={showResult}
+              onClick={() => handleOptionClick(index)}
+            />
+          );
+        })}
       </div>
       
       {showResult && (
