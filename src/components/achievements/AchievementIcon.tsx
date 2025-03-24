@@ -2,7 +2,8 @@
 import { Achievement } from '@/types/achievements';
 import { 
   Award, Star, Trophy, Medal, BookOpen, 
-  Heart, ThumbsUp, Target, CheckCircle, Clock 
+  Heart, ThumbsUp, Target, CheckCircle, Clock,
+  LucideProps
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -14,7 +15,7 @@ interface AchievementIconProps {
 }
 
 // Mapeo de nombres de iconos a componentes
-const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> = {
+const iconMap: Record<string, React.ComponentType<LucideProps>> = {
   'award': Award,
   'star': Star,
   'trophy': Trophy,

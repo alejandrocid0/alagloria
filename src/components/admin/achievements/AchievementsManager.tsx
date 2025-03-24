@@ -44,6 +44,7 @@ import {
 import AchievementForm from './AchievementForm';
 import AchievementIcon from '@/components/achievements/AchievementIcon';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const AchievementsManager = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
