@@ -43,22 +43,20 @@ export const useGameCountdown = ({
     }
     
     if (currentState === 'question') {
+      let currentTimeRemaining = 20; // Valor inicial
+      
       const timer = setInterval(() => {
-        // Use onTimeRemainingChange as a function instead of trying to directly update timeRemaining
-        onTimeRemainingChange(prevTimeRemaining => {
-          const newValue = prevTimeRemaining - 1;
-          if (newValue <= 0) {
-            clearInterval(timer);
-            // Auto advance when time runs out, regardless of user selection
-            onStateChange('result');
-            if (!selectedOption) {
-              onSelectedOptionChange('timeout'); // Mark as timeout
-            }
-            return 0;
-          } else {
-            return newValue;
+        currentTimeRemaining = currentTimeRemaining - 1;
+        onTimeRemainingChange(currentTimeRemaining);
+        
+        if (currentTimeRemaining <= 0) {
+          clearInterval(timer);
+          // Auto advance when time runs out, regardless of user selection
+          onStateChange('result');
+          if (!selectedOption) {
+            onSelectedOptionChange('timeout'); // Mark as timeout
           }
-        });
+        }
       }, 1000);
       
       return () => clearInterval(timer);
