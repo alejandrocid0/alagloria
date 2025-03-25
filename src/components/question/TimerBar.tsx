@@ -1,7 +1,6 @@
 
 import { motion } from 'framer-motion';
-import { Clock, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Clock } from 'lucide-react';
 
 interface TimerBarProps {
   timeRemaining: number;
@@ -9,103 +8,45 @@ interface TimerBarProps {
   animateTimeWarning: boolean;
 }
 
-const TimerBar = ({ 
-  timeRemaining, 
-  timeLimit, 
-  animateTimeWarning 
-}: TimerBarProps) => {
+const TimerBar = ({ timeRemaining, timeLimit, animateTimeWarning }: TimerBarProps) => {
   // Calculate progress bar width
   const progressWidth = (timeRemaining / timeLimit) * 100;
-  
-  // Determine color based on time remaining
-  const getProgressColor = () => {
-    if (progressWidth > 60) return 'bg-green-500';
-    if (progressWidth > 30) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-  
-  // Dynamic progress color
-  const progressColor = getProgressColor();
-  
-  // Time formatting for display
-  const formatTime = (seconds: number) => {
-    if (seconds < 10) return `0${seconds}s`;
-    return `${seconds}s`;
-  };
+  let progressColor = progressWidth > 50 
+    ? 'bg-green-500' 
+    : progressWidth > 20 
+      ? 'bg-yellow-500' 
+      : 'bg-red-500';
   
   // Progress variants for animation
   const progressVariants = {
-    normal: { 
-      width: `${progressWidth}%`,
-      transition: { duration: 0.3, ease: "linear" }
-    },
+    normal: { width: `${progressWidth}%` },
     warning: { 
       width: `${progressWidth}%`,
-      scale: [1, 1.02, 1],
+      scale: [1, 1.03, 1],
       transition: { 
         scale: { 
           repeat: Infinity,
           duration: 0.5
         },
         width: { 
-          duration: 0.3,
-          ease: "linear"
+          duration: 1
         }
       }
     }
   };
 
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center">
-          <Clock 
-            size={16} 
-            className={cn(
-              "mr-2 transition-colors",
-              timeRemaining < timeLimit * 0.3 
-                ? 'text-red-500' 
-                : 'text-gloria-purple'
-            )} 
-          />
-          <span className={cn(
-            "text-sm font-medium transition-colors",
-            timeRemaining < timeLimit * 0.3 ? 'text-red-500' : ''
-          )}>
-            {timeRemaining > 0 
-              ? `${formatTime(timeRemaining)} restantes` 
-              : "¡Tiempo agotado!"
-            }
-          </span>
-        </div>
-        
-        {timeRemaining <= timeLimit * 0.3 && timeRemaining > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center text-xs text-red-500"
-          >
-            <AlertCircle size={14} className="mr-1 animate-pulse" />
-            ¡Rápido!
-          </motion.div>
-        )}
-      </div>
-      
-      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+    <div className="flex items-center">
+      <Clock size={16} className={`mr-2 ${timeRemaining < timeLimit * 0.3 ? 'text-red-500' : 'text-gloria-purple'}`} />
+      <span className={`text-sm font-medium ${timeRemaining < timeLimit * 0.3 ? 'text-red-500' : ''}`}>
+        {timeRemaining > 0 ? `${timeRemaining}s restantes` : "¡Tiempo agotado!"}
+      </span>
+      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden ml-2">
         <motion.div 
-          className={cn("h-3 rounded-full", progressColor)}
+          className={`h-2 rounded-full ${progressColor}`}
           variants={progressVariants}
           animate={animateTimeWarning ? "warning" : "normal"}
         />
-      </div>
-      
-      {/* Time markers */}
-      <div className="flex justify-between mt-1 px-1">
-        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
       </div>
     </div>
   );

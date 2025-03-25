@@ -7,6 +7,8 @@ import ResultExplanation from './ResultExplanation';
 import PointsDisplay from './PointsDisplay';
 import QuestionProgress from './QuestionProgress';
 import AnswerResult from './AnswerResult';
+import useOptionsManager from './hooks/useOptionsManager';
+import useQuestionTimer from './hooks/useQuestionTimer';
 
 interface QuestionCardProps {
   question: string;
@@ -21,9 +23,6 @@ interface QuestionCardProps {
   totalQuestions?: number;
 }
 
-// Define a type for our randomized options
-type RandomizedOption = string | { text: string; originalIndex: number };
-
 const QuestionCard = ({
   question,
   options,
@@ -36,59 +35,23 @@ const QuestionCard = ({
   questionNumber,
   totalQuestions
 }: QuestionCardProps) => {
-  const [timeRemaining, setTimeRemaining] = useState(timeLimit);
-  const [selectedIdx, setSelectedIdx] = useState<number | undefined>(selectedOption);
-  const [animateTimeWarning, setAnimateTimeWarning] = useState(false);
+  // Extracting options randomization and selection logic to a custom hook
+  const { randomizedOptions, selectedIdx, setSelectedIdx } = useOptionsManager({
+    options,
+    selectedOption,
+    showResult,
+    answered
+  });
   
-  // Aleatorizar opciones al iniciar, pero mantener el índice correcto
-  const randomizedOptions = useMemo(() => {
-    // Si estamos mostrando resultados, no mezclar para no confundir al usuario
-    if (showResult || answered) {
-      return options;
-    }
-    
-    // Crear array de objetos con el texto y el índice original
-    const optionsWithIndex = options.map((text, index) => ({ text, originalIndex: index }));
-    
-    // Mezclar el array
-    for (let i = optionsWithIndex.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [optionsWithIndex[i], optionsWithIndex[j]] = [optionsWithIndex[j], optionsWithIndex[i]];
-    }
-    
-    return optionsWithIndex;
-  }, [options, showResult, answered]);
+  // Extracting timer logic to a custom hook
+  const { timeRemaining, animateTimeWarning } = useQuestionTimer({
+    timeLimit,
+    answered,
+    selectedIdx,
+    onAnswer
+  });
   
-  // Handle countdown timer
-  useEffect(() => {
-    if (answered || timeRemaining <= 0) return;
-    
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        
-        // Trigger warning animation when less than 30% time remaining
-        if (prev / timeLimit <= 0.3 && !animateTimeWarning) {
-          setAnimateTimeWarning(true);
-        }
-        
-        return prev - 1;
-      });
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [answered, timeRemaining, timeLimit, animateTimeWarning]);
-  
-  // Auto-submit when timer reaches zero
-  useEffect(() => {
-    if (timeRemaining === 0 && !answered && selectedIdx !== undefined) {
-      onAnswer(selectedIdx, 0);
-    }
-  }, [timeRemaining, answered, selectedIdx, onAnswer]);
-  
+  // Handle option selection
   const handleOptionClick = (index: number) => {
     if (answered) return;
     
