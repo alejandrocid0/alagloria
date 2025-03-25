@@ -15,7 +15,7 @@ const GamesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'upcoming', 'full', 'past'
+  const [filterStatus, setFilterStatus] = useState('upcoming'); // Cambiado de 'all' a 'upcoming'
   const [filterCategory, setFilterCategory] = useState('all');
 
   useEffect(() => {

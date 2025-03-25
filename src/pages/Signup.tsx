@@ -26,7 +26,7 @@ const Signup = () => {
   // Manejar la redirección si el usuario ya está autenticado
   useEffect(() => {
     if (session) {
-      navigate('/dashboard');
+      navigate('/games');
     }
   }, [session, navigate]);
 

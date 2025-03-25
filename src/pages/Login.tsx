@@ -23,7 +23,7 @@ const Login = () => {
   // Manejar la redirección si el usuario ya está autenticado
   useEffect(() => {
     if (session) {
-      navigate('/dashboard');
+      navigate('/games');
     }
   }, [session, navigate]);
 
@@ -36,8 +36,8 @@ const Login = () => {
       const { error } = await signIn(email, password);
       
       if (!error) {
-        // Redirección explícita al dashboard después de un inicio de sesión exitoso
-        navigate('/dashboard');
+        // Redirección a la página de partidas después de un inicio de sesión exitoso
+        navigate('/games');
       }
     } catch (err) {
       console.error("Error durante el inicio de sesión:", err);
