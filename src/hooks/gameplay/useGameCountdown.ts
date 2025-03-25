@@ -45,7 +45,8 @@ export const useGameCountdown = ({
     if (currentState === 'question') {
       const timer = setInterval(() => {
         onTimeRemainingChange(prev => {
-          if (prev <= 1) {
+          const newValue = typeof prev === 'number' ? prev - 1 : 0;
+          if (newValue <= 0) {
             clearInterval(timer);
             // Auto advance when time runs out, regardless of user selection
             onStateChange('result');
@@ -54,7 +55,7 @@ export const useGameCountdown = ({
             }
             return 0;
           }
-          return prev - 1;
+          return newValue;
         });
       }, 1000);
       

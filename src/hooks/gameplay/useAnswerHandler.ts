@@ -41,7 +41,9 @@ export const useAnswerHandler = ({
     
     // Calculate points based only on time percentage (max 200 points)
     const pointsPercent = timeRemaining / 20; // Assuming 20 seconds is the default time
-    const isCorrect = optionId === gameQuestions[currentQuestion]?.correctOption;
+    // Convert correctOption to string for proper comparison if needed
+    const correctOptionStr = String(gameQuestions[currentQuestion]?.correctOption);
+    const isCorrect = optionId === correctOptionStr;
     
     if (isCorrect) {
       const pointsEarned = Math.round(200 * pointsPercent);
@@ -49,13 +51,14 @@ export const useAnswerHandler = ({
       onMyPointsChange(myPoints + pointsEarned);
       
       const newRanking = [...ranking];
-      const myPosition = newRanking.findIndex(player => player.id === 2);
+      // Make sure we're comparing strings with strings or numbers with numbers
+      const myPosition = newRanking.findIndex(player => String(player.id) === "2");
       
       if (myPosition !== -1) {
         newRanking[myPosition].points += pointsEarned;
         
         newRanking.forEach((player, idx) => {
-          if (player.id !== 2) {
+          if (String(player.id) !== "2") {
             const randomBonus = Math.random() > 0.5 ? Math.floor(Math.random() * pointsEarned) : 0;
             player.points += randomBonus;
           }
@@ -64,7 +67,7 @@ export const useAnswerHandler = ({
         newRanking.sort((a, b) => b.points - a.points);
         onRankingChange(newRanking);
         
-        const newRank = newRanking.findIndex(player => player.id === 2) + 1;
+        const newRank = newRanking.findIndex(player => String(player.id) === "2") + 1;
         onMyRankChange(newRank);
       }
       
@@ -77,7 +80,7 @@ export const useAnswerHandler = ({
       if (gameId !== 'demo-123') {
         const newRanking = [...ranking];
         newRanking.forEach((player, idx) => {
-          if (player.id !== 2) {
+          if (String(player.id) !== "2") {
             const randomBonus = Math.random() > 0.3 ? Math.floor(Math.random() * 200) : 0;
             player.points += randomBonus;
           }
@@ -86,7 +89,7 @@ export const useAnswerHandler = ({
         newRanking.sort((a, b) => b.points - a.points);
         onRankingChange(newRanking);
         
-        const newRank = newRanking.findIndex(player => player.id === 2) + 1;
+        const newRank = newRanking.findIndex(player => String(player.id) === "2") + 1;
         onMyRankChange(newRank);
       }
       
