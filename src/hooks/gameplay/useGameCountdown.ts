@@ -44,19 +44,21 @@ export const useGameCountdown = ({
     
     if (currentState === 'question') {
       const timer = setInterval(() => {
-        // Corregido: Ahora actualizamos directamente con un número en lugar de usar una función callback
-        const newValue = timeRemaining - 1;
-        if (newValue <= 0) {
-          clearInterval(timer);
-          // Auto advance when time runs out, regardless of user selection
-          onStateChange('result');
-          if (!selectedOption) {
-            onSelectedOptionChange('timeout'); // Mark as timeout
+        // Use onTimeRemainingChange as a function instead of trying to directly update timeRemaining
+        onTimeRemainingChange(prevTimeRemaining => {
+          const newValue = prevTimeRemaining - 1;
+          if (newValue <= 0) {
+            clearInterval(timer);
+            // Auto advance when time runs out, regardless of user selection
+            onStateChange('result');
+            if (!selectedOption) {
+              onSelectedOptionChange('timeout'); // Mark as timeout
+            }
+            return 0;
+          } else {
+            return newValue;
           }
-          onTimeRemainingChange(0);
-        } else {
-          onTimeRemainingChange(newValue);
-        }
+        });
       }, 1000);
       
       return () => clearInterval(timer);
