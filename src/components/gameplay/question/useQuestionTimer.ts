@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 interface UseQuestionTimerProps {
   timeRemaining: number;
   selectedOption: string | null;
+  onTimeExpired?: () => void; // Nueva prop para manejar cuando el tiempo se agota
 }
 
 interface UseQuestionTimerReturn {
@@ -17,7 +18,8 @@ interface UseQuestionTimerReturn {
 
 export const useQuestionTimer = ({ 
   timeRemaining,
-  selectedOption 
+  selectedOption,
+  onTimeExpired
 }: UseQuestionTimerProps): UseQuestionTimerReturn => {
   const [secondsLeft, setSecondsLeft] = useState(timeRemaining);
   const [isWarning, setIsWarning] = useState(false);
@@ -52,6 +54,13 @@ export const useQuestionTimer = ({
           setTimeout(() => setFlashWarning(false), 200);
         }
         
+        // Si el tiempo llega a cero, llamar al callback de tiempo expirado
+        if (newValue <= 0 && onTimeExpired) {
+          clearInterval(timer);
+          onTimeExpired();
+          return 0;
+        }
+        
         // Calculate points based purely on time percentage with max 200 points
         const pointsPercent = Math.max(0, newValue / timeRemaining);
         setPotentialPoints(Math.round(200 * pointsPercent));
@@ -61,7 +70,7 @@ export const useQuestionTimer = ({
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [timeRemaining, selectedOption, isWarning, isUrgent, hasPulsed]);
+  }, [timeRemaining, selectedOption, isWarning, isUrgent, hasPulsed, onTimeExpired]);
 
   return {
     secondsLeft,

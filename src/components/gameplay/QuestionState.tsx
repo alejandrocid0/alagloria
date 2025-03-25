@@ -25,6 +25,16 @@ const QuestionState: React.FC<QuestionStateProps> = ({
   selectedOption,
   handleSelectOption,
 }) => {
+  // Creamos una función para manejar cuando el tiempo se agota
+  const handleTimeExpired = () => {
+    // Establecemos un tiempo de espera corto para permitir que la UI se actualice
+    setTimeout(() => {
+      // Enviamos un valor especial (podría ser cualquier string que no sea un ID de opción válido)
+      // para indicar que el tiempo expiró
+      handleSelectOption("time_expired");
+    }, 100);
+  };
+  
   const {
     secondsLeft,
     isWarning,
@@ -32,7 +42,11 @@ const QuestionState: React.FC<QuestionStateProps> = ({
     flashWarning,
     hasPulsed,
     potentialPoints
-  } = useQuestionTimer({ timeRemaining, selectedOption });
+  } = useQuestionTimer({ 
+    timeRemaining, 
+    selectedOption,
+    onTimeExpired: handleTimeExpired // Pasamos la función para manejar cuando el tiempo se agota
+  });
   
   const isTimeRunningOut = secondsLeft <= 5;
   
