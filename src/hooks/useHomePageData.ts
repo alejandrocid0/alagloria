@@ -19,7 +19,14 @@ export const useHomePageData = () => {
       try {
         const games = await fetchGamesFromSupabase();
         
-        const sortedGames = games.sort((a, b) => a.date.getTime() - b.date.getTime());
+        // Filtrar solo las partidas disponibles (fecha futura y no completas)
+        const availableGames = games.filter(game => 
+          game.date > new Date() && 
+          (game.participants || 0) < (game.maxParticipants || 100)
+        );
+        
+        // Ordenar por fecha más cercana primero
+        const sortedGames = availableGames.sort((a, b) => a.date.getTime() - b.date.getTime());
         
         const gamesForHomepage = sortedGames.slice(0, 3);
         

@@ -43,15 +43,15 @@ export const mockQuestions: Question[] = [
   },
   {
     id: '4',
-    text: '¿Qué hermandad hace estación de penitencia en la tarde del Viernes Santo y es conocida como "La Quinta Angustia"?',
+    text: '¿Qué hermandad sevillana es conocida popularmente como "La Quinta Angustia" y realiza su estación de penitencia el Jueves Santo?',
     options: [
-      'El Valle',
-      'Montserrat',
-      'La Sagrada Mortaja',
-      'La Carretería',
-      'El Descendimiento'
+      'Hermandad de la Sagrada Mortaja',
+      'Hermandad de Montesión',
+      'Hermandad del Valle',
+      'Hermandad del Descendimiento',
+      'Hermandad de los Negritos'
     ],
-    correctOption: '4', // Corregido a El Descendimiento
+    correctOption: '3', // La respuesta correcta es el Descendimiento
     timeLimit: 15
   },
   {
