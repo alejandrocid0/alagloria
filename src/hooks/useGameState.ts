@@ -38,10 +38,14 @@ const useGameState = (gameId: string | undefined) => {
     const currentQ = mockQuestions[currentQuestion];
     let pointsEarned = 0;
     
+    // If optionIndex is -1, it means time ran out without selection
+    const isTimeout = optionIndex === -1;
+    
     // Calculate points based on correct answer and time remaining
-    if (optionIndex.toString() === currentQ.correctOption) {
-      // Base points + time bonus
-      pointsEarned = 100 + Math.round((timeRemaining / currentQ.timeLimit) * 100);
+    // If we have a valid index (not timeout) and it matches the correct answer
+    if (!isTimeout && optionIndex.toString() === currentQ.correctOption) {
+      // Points based purely on time percentage
+      pointsEarned = Math.round((timeRemaining / currentQ.timeLimit) * 1000);
       
       // Update player score and last answer status
       setPlayers(prev => {
@@ -74,7 +78,7 @@ const useGameState = (gameId: string | undefined) => {
       
       setScore(prev => prev + pointsEarned);
     } else {
-      // Set incorrect answer for user
+      // Set incorrect answer for user (timeout or wrong answer)
       setPlayers(prev => {
         const updated = [...prev];
         const userIndex = updated.findIndex(p => p.id === '1');

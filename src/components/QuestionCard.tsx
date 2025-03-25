@@ -40,6 +40,11 @@ const QuestionCard = ({
       setTimeRemaining(prev => {
         if (prev <= 1) {
           clearInterval(timer);
+          // Auto-submit with time out when timer reaches zero, regardless of selection
+          if (!answered) {
+            // Pass -1 as the option index to indicate time out
+            onAnswer(-1, 0);
+          }
           return 0;
         }
         
@@ -48,19 +53,12 @@ const QuestionCard = ({
           setAnimateTimeWarning(true);
         }
         
-        return prev - 1;
+        return Math.max(0, prev - 1);
       });
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [answered, timeRemaining, timeLimit, animateTimeWarning]);
-  
-  // Auto-submit when timer reaches zero
-  useEffect(() => {
-    if (timeRemaining === 0 && !answered && selectedIdx !== undefined) {
-      onAnswer(selectedIdx, 0);
-    }
-  }, [timeRemaining, answered, selectedIdx, onAnswer]);
+  }, [answered, timeRemaining, timeLimit, animateTimeWarning, onAnswer]);
   
   const handleOptionClick = (index: number) => {
     if (answered) return;
@@ -114,12 +112,11 @@ const QuestionCard = ({
     }
   };
 
-  // Points calculation preview
+  // Points calculation preview - updated to remove base points
   const calculatePotentialPoints = () => {
     if (timeLimit === 0) return 0;
-    const basePoints = 100;
-    const timeBonus = Math.round((timeRemaining / timeLimit) * 100);
-    return basePoints + timeBonus;
+    const timePercentage = timeRemaining / timeLimit;
+    return Math.round(1000 * timePercentage);
   };
   
   return (
@@ -184,7 +181,7 @@ const QuestionCard = ({
         <div className="mb-4 flex items-center p-3 bg-blue-50 border border-blue-100 rounded-lg">
           <AlertCircle size={16} className="text-blue-500 mr-2" />
           <span className="text-sm text-blue-700">
-            Puntos posibles: <strong>{calculatePotentialPoints()}</strong> (100 base + {Math.round((timeRemaining / timeLimit) * 100)} por tiempo)
+            Puntos posibles: <strong>{calculatePotentialPoints()}</strong> (basado en tiempo restante)
           </span>
         </div>
       )}

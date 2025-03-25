@@ -43,15 +43,15 @@ export const mockQuestions: Question[] = [
   },
   {
     id: '4',
-    text: '¿Cuál de estas hermandades realiza su estación de penitencia el Viernes Santo?',
+    text: '¿Qué hermandad hace estación de penitencia en la tarde del Viernes Santo y es conocida como "La Quinta Angustia"?',
     options: [
-      'La Lanzada',
+      'El Valle',
+      'Montserrat',
+      'La Sagrada Mortaja',
       'La Carretería',
-      'La Soledad de San Buenaventura',
-      'El Cachorro',
-      'La Mortaja'
+      'El Descendimiento'
     ],
-    correctOption: '3', // Changed from number to string
+    correctOption: '1', // Corrected answer
     timeLimit: 15
   },
   {

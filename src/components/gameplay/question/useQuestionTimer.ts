@@ -52,6 +52,7 @@ export const useQuestionTimer = ({
           setTimeout(() => setFlashWarning(false), 200);
         }
         
+        // Calculate points based purely on time percentage (no base points)
         const pointsPercent = Math.max(0, newValue / timeRemaining);
         setPotentialPoints(Math.round(1000 * pointsPercent));
         

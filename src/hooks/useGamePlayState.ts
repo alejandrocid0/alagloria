@@ -126,10 +126,11 @@ export const useGamePlayState = () => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            if (!selectedOption) {
-              setSelectedOption('wrong');
-            }
+            // Auto advance when time runs out, regardless of user selection
             setCurrentState('result');
+            if (!selectedOption) {
+              setSelectedOption('timeout'); // Mark as timeout
+            }
             return 0;
           }
           return prev - 1;
@@ -166,13 +167,14 @@ export const useGamePlayState = () => {
   const handleSelectOption = (optionId: string) => {
     if (selectedOption || currentState !== 'question') return;
     
-    const timeBonus = timeRemaining * 10;
+    // Calculate points based only on time percentage (no base points)
+    const pointsPercent = timeRemaining / 20; // Assuming 20 seconds is the default time
     const isCorrect = optionId === gameQuestions[currentQuestion]?.correctOption;
     
     setSelectedOption(optionId);
     
     if (isCorrect) {
-      const pointsEarned = 100 + timeBonus;
+      const pointsEarned = Math.round(1000 * pointsPercent);
       setLastPoints(pointsEarned);
       setMyPoints(prev => prev + pointsEarned);
       
