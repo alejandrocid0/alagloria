@@ -22,7 +22,7 @@ export const useQuestionTimer = ({
   const [secondsLeft, setSecondsLeft] = useState(timeRemaining);
   const [isWarning, setIsWarning] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
-  const [potentialPoints, setPotentialPoints] = useState(1000);
+  const [potentialPoints, setPotentialPoints] = useState(200);
   const [flashWarning, setFlashWarning] = useState(false);
   const [hasPulsed, setHasPulsed] = useState(false);
   
@@ -52,9 +52,9 @@ export const useQuestionTimer = ({
           setTimeout(() => setFlashWarning(false), 200);
         }
         
-        // Calculate points based purely on time percentage (no base points)
+        // Calculate points based purely on time percentage with max 200 points
         const pointsPercent = Math.max(0, newValue / timeRemaining);
-        setPotentialPoints(Math.round(1000 * pointsPercent));
+        setPotentialPoints(Math.round(200 * pointsPercent));
         
         return Math.max(0, newValue);
       });

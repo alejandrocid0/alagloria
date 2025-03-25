@@ -51,7 +51,7 @@ export const mockQuestions: Question[] = [
       'La Carretería',
       'El Descendimiento'
     ],
-    correctOption: '1', // Corrected answer
+    correctOption: '4', // Corregido a El Descendimiento
     timeLimit: 15
   },
   {

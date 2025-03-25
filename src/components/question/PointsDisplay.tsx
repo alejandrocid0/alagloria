@@ -9,9 +9,9 @@ interface PointsDisplayProps {
 const PointsDisplay = ({ timeRemaining, timeLimit }: PointsDisplayProps) => {
   const calculatePotentialPoints = () => {
     if (timeLimit === 0) return 0;
-    // Calculate points directly based on time percentage
+    // Calculate points directly based on time percentage with max 200
     const timePercentage = timeRemaining / timeLimit;
-    return Math.round(1000 * timePercentage);
+    return Math.round(200 * timePercentage);
   };
   
   return (

@@ -25,6 +25,7 @@ const Game = () => {
   
   // Título del juego - en una aplicación real esto vendría de la base de datos
   const gameTitle = "Cuestionario de Semana Santa";
+  const isDemo = gameId === 'demo-123';
   
   return (
     <>
@@ -44,10 +45,13 @@ const Game = () => {
                   <span className="text-gray-600">{players.length} jugadores</span>
                 </div>
                 
-                <div className="flex items-center">
-                  <Award className="text-gloria-gold mr-2" size={18} />
-                  <span className="text-gray-600">160€ en premios</span>
-                </div>
+                {/* Eliminamos la referencia al premio en partidas demo */}
+                {!isDemo && (
+                  <div className="flex items-center">
+                    <Award className="text-gloria-gold mr-2" size={18} />
+                    <span className="text-gray-600">160€ en premios</span>
+                  </div>
+                )}
               </div>
             )}
             

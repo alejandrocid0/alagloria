@@ -167,14 +167,14 @@ export const useGamePlayState = () => {
   const handleSelectOption = (optionId: string) => {
     if (selectedOption || currentState !== 'question') return;
     
-    // Calculate points based only on time percentage (no base points)
+    // Calculate points based only on time percentage (max 200 points)
     const pointsPercent = timeRemaining / 20; // Assuming 20 seconds is the default time
     const isCorrect = optionId === gameQuestions[currentQuestion]?.correctOption;
     
     setSelectedOption(optionId);
     
     if (isCorrect) {
-      const pointsEarned = Math.round(1000 * pointsPercent);
+      const pointsEarned = Math.round(200 * pointsPercent);
       setLastPoints(pointsEarned);
       setMyPoints(prev => prev + pointsEarned);
       

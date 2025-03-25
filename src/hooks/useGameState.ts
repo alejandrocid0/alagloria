@@ -44,8 +44,8 @@ const useGameState = (gameId: string | undefined) => {
     // Calculate points based on correct answer and time remaining
     // If we have a valid index (not timeout) and it matches the correct answer
     if (!isTimeout && optionIndex.toString() === currentQ.correctOption) {
-      // Points based purely on time percentage
-      pointsEarned = Math.round((timeRemaining / currentQ.timeLimit) * 1000);
+      // Points based purely on time percentage with max 200 points
+      pointsEarned = Math.round((timeRemaining / currentQ.timeLimit) * 200);
       
       // Update player score and last answer status
       setPlayers(prev => {

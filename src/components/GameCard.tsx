@@ -1,9 +1,8 @@
 
-import { Calendar, Users, Clock, Play, Tag } from 'lucide-react';
+import { Calendar, Users, Clock, Tag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Button from './Button';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -25,8 +24,7 @@ const GameCard = ({ id, title, date, participants, maxParticipants, image, categ
   const isPastGame = date < new Date();
   const percentageFilled = (participants / maxParticipants) * 100;
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
-  const [showDemoButton, setShowDemoButton] = useState(false);
+  const { isAuthenticated } = useAuth();
   
   const formattedDate = date.toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -55,34 +53,34 @@ const GameCard = ({ id, title, date, participants, maxParticipants, image, categ
   };
 
   const handleCardClick = () => {
-    setShowDemoButton(prev => !prev);
-  };
-
-  const handleDemoGame = () => {
-    if (!isAuthenticated) {
+    if (isPastGame) {
+      navigate(`/results/${id}`);
+    } else if (isGameFull) {
       toast({
-        title: "Inicia sesión para jugar",
-        description: "Necesitas iniciar sesión para jugar en modo demostración",
+        title: "Partida completa",
+        description: "Esta partida ya ha alcanzado el número máximo de participantes",
         variant: "destructive"
       });
-      navigate("/login", { state: { redirectTo: `/games` } });
-      return;
+    } else {
+      if (!isAuthenticated) {
+        toast({
+          title: "Inicia sesión para unirte",
+          description: "Necesitas iniciar sesión para participar en las partidas",
+          variant: "destructive"
+        });
+        navigate("/login", { state: { redirectTo: `/join/${id}` } });
+      } else {
+        navigate(`/join/${id}`);
+      }
     }
-    
-    navigate(`/game/demo-123`);
-    
-    toast({
-      title: "Modo demostración activado",
-      description: "Estás jugando una partida de demostración",
-    });
   };
   
   return (
-    <div className="glass-panel overflow-hidden transition-all duration-300 hover:shadow-xl relative">
-      <div 
-        className="h-40 overflow-hidden relative cursor-pointer" 
-        onClick={handleCardClick}
-      >
+    <div 
+      className="glass-panel overflow-hidden transition-all duration-300 hover:shadow-xl relative cursor-pointer" 
+      onClick={handleCardClick}
+    >
+      <div className="h-40 overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gloria-deepPurple/40 z-10" />
         {image ? (
           <img 
@@ -159,23 +157,11 @@ const GameCard = ({ id, title, date, participants, maxParticipants, image, categ
             size="sm"
             disabled={isPastGame || isGameFull}
             href={isPastGame ? `/results/${id}` : isGameFull ? "#" : `/join/${id}`}
+            onClick={(e) => e.stopPropagation()} // Evita que el click en el botón dispare el handler del card
           >
             {isPastGame ? "Ver resultados" : isGameFull ? "Completa" : "Unirse gratis"}
           </Button>
         </div>
-
-        {showDemoButton && (
-          <div className="mt-4 w-full">
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full flex items-center justify-center gap-2"
-              onClick={handleDemoGame}
-            >
-              <Play size={16} /> Jugar Demo
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
