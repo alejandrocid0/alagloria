@@ -25,11 +25,11 @@ const ContentSectionEditor = ({
   const formattedSectionName = formatSectionName(sectionName);
   
   return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">{formattedSectionName}</h3>
-      <Separator className="mb-4" />
+    <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+      <h3 className="text-lg font-medium mb-4 text-gloria-purple">{formattedSectionName}</h3>
+      <Separator className="mb-6" />
       
-      <div className="space-y-6">
+      <div className="space-y-8">
         {contentItems.map(item => (
           <ContentItemEditor 
             key={item.key}

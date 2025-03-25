@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -34,11 +35,12 @@
     --input: 270 20% 90%;
     --ring: 270 45% 30%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
   }
 
   * {
     @apply border-border;
+    transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
   }
 
   body {
@@ -47,7 +49,64 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif;
+    @apply font-serif tracking-tight;
+  }
+
+  /* Animaciones modernas */
+  .animate-fadeIn {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .animate-slideUp {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
 
   .pulse-animation {
@@ -69,15 +128,15 @@
 
 @layer components {
   .gloria-card {
-    @apply bg-white bg-opacity-60 backdrop-blur-lg border border-gray-200 rounded-lg shadow-lg transition-all duration-300;
+    @apply bg-white bg-opacity-60 backdrop-blur-lg border border-gray-100 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl;
   }
   
   .gloria-button {
-    @apply rounded-md px-4 py-2 font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply rounded-xl px-4 py-2 font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
   
   .gloria-input {
-    @apply px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gloria-purple;
+    @apply px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gloria-purple focus:border-transparent;
   }
 
   .glass-panel {
@@ -98,7 +157,7 @@
   }
   
   .mobile-card {
-    @apply p-4 rounded-lg;
+    @apply p-4 rounded-xl;
   }
 }
 

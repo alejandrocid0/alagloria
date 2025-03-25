@@ -29,25 +29,25 @@ const ContentPageEditor = ({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-28 w-full" />
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
       </div>
     );
   }
 
   if (contentItems.length === 0) {
     return (
-      <div className="bg-slate-50 p-6 rounded-lg text-center">
+      <div className="bg-slate-50 p-8 rounded-xl text-center shadow-sm border border-slate-100">
         <p className="text-slate-500">No hay contenido disponible para esta página.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fadeIn">
       {Object.entries(groupedItems).map(([section, items]) => (
         <ContentSectionEditor 
           key={`${pageId}-${section}`}
