@@ -5,10 +5,10 @@ import { gameService } from '@/services/games';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const usePlayerAnswers = (
-  gameId?: string,
-  gameState: LiveGameState | null = null,
+  gameId: string | undefined,
+  gameState: LiveGameState | null,
   updateLeaderboard: (players: Player[]) => void,
-  isConnected: boolean = true,
+  isConnected: boolean,
   scheduleReconnect: () => void
 ) => {
   const { user } = useAuth();
