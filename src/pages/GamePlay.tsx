@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
 import WaitingRoom from '@/components/gameplay/WaitingRoom';
 import { useGameInfo } from '@/components/gameplay/hooks/useGameInfo';
-import { fetchGameState } from '@/hooks/liveGame/gameStateUtils'; // Updated import
+import { fetchGameState } from '@/hooks/liveGame/gameStateUtils'; // Fixed import
 import { gameNotifications } from '@/components/ui/notification-toast';
 
 const GamePlay = () => {

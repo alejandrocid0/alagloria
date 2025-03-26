@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { LiveGameState } from '@/types/liveGame';
 
@@ -34,6 +35,7 @@ export async function fetchGameState(gameId: string): Promise<LiveGameState | nu
   }
 }
 
+// Explicitly export getLiveGameState as an alias to fetchGameState
 export const getLiveGameState = fetchGameState;
 
 export function subscribeToGameStateUpdates(
