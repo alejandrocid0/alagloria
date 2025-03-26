@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGameStateSubscription } from './useGameStateSubscription';
 import { useNetworkStatus } from './useNetworkStatus';
@@ -7,11 +7,19 @@ import { usePlayerAnswers } from './usePlayerAnswers';
 import { useLeaderboardData } from './useLeaderboardData';
 import { useGameQuestions } from './useGameQuestions';
 import { useGameInitialization } from './useGameInitialization';
+import { useTimeSync } from './useTimeSync';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useLiveGameState = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Get time synchronization with server
+  const { 
+    clientTimeOffset, 
+    syncWithServer, 
+    getAdjustedTime 
+  } = useTimeSync();
 
   // Get game state and connection status
   const {
@@ -23,7 +31,11 @@ export const useLiveGameState = () => {
   } = useGameStateSubscription(gameId);
 
   // Monitor network status
-  useNetworkStatus(isConnected, fetchGameStateData, scheduleReconnect, gameId);
+  const { 
+    networkStatus, 
+    reconnectAttempts, 
+    checkNetworkStatus 
+  } = useNetworkStatus(isConnected, fetchGameStateData, scheduleReconnect, gameId);
 
   // Get leaderboard data
   const { leaderboard, setLeaderboard } = useLeaderboardData(gameId);
@@ -68,7 +80,12 @@ export const useLiveGameState = () => {
     lastAnswerResult,
     isLoading,
     error,
-    isConnected
+    isConnected,
+    reconnectAttempts,
+    networkStatus,
+    clientTimeOffset,
+    syncWithServer,
+    getAdjustedTime
   };
 };
 

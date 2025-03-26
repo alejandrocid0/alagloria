@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLiveGameState } from '@/hooks/useLiveGameState';
 import GameHeader from './GameHeader';
@@ -11,9 +11,15 @@ import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { motion, AnimatePresence } from 'framer-motion';
 import { gameNotifications } from '@/components/ui/notification-toast';
+import ConnectionStatus from './ConnectionStatus';
+import { useNavigate } from 'react-router-dom';
 
 const LiveGameRenderer = () => {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
+  
+  // Estado para controlar cuando redirigir a la sala de espera
+  const [redirectToWaiting, setRedirectToWaiting] = useState(false);
   
   // Get game info (title, scheduled time)
   const gameInfo = useGameInfo(gameId);
@@ -28,7 +34,10 @@ const LiveGameRenderer = () => {
     lastAnswerResult,
     isLoading,
     error,
-    isConnected
+    isConnected,
+    reconnectAttempts,
+    clientTimeOffset, // Nuevo: offset de tiempo entre cliente y servidor
+    syncWithServer // Nuevo: función para sincronizar tiempo con servidor
   } = useLiveGameState();
   
   // Get derived state values and handlers
@@ -47,6 +56,39 @@ const LiveGameRenderer = () => {
     lastAnswerResult,
     submitAnswer
   );
+  
+  // Sincronizar con el servidor al iniciar
+  useEffect(() => {
+    if (gameId) {
+      syncWithServer();
+    }
+  }, [gameId, syncWithServer]);
+  
+  // Comprobar si es el momento de la partida
+  useEffect(() => {
+    // Solo si tenemos información de la partida y no está cargando
+    if (!isLoading && gameInfo.scheduledTime) {
+      const currentTime = new Date();
+      const scheduledTime = new Date(gameInfo.scheduledTime);
+      const isBeforeGameStart = currentTime < scheduledTime;
+      
+      // Calcular el tiempo hasta el inicio (minutos)
+      const timeUntilStartInMinutes = Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60)));
+      
+      // Determinar si estamos más de 5 minutos antes del inicio de la partida
+      if (isBeforeGameStart && timeUntilStartInMinutes > 5) {
+        console.log(`Partida programada para dentro de ${timeUntilStartInMinutes} minutos, redirigiendo a sala de espera...`);
+        setRedirectToWaiting(true);
+      }
+    }
+  }, [isLoading, gameInfo.scheduledTime]);
+  
+  // Redireccionar a la sala de espera si es necesario
+  useEffect(() => {
+    if (redirectToWaiting && gameId) {
+      navigate(`/game/${gameId}/waiting`);
+    }
+  }, [redirectToWaiting, gameId, navigate]);
   
   // Mostrar notificaciones en cambios de estado importantes
   useEffect(() => {
@@ -75,7 +117,7 @@ const LiveGameRenderer = () => {
     } else if (gameState?.status === 'waiting' && gameState.countdown === 5) {
       gameNotifications.gameStarting();
     }
-  }, [gameState?.status, myRank]);
+  }, [gameState?.status, myRank, gameState?.countdown]);
   
   // Mock function for game host - would be implemented based on permissions
   const isGameHost = false;
@@ -96,38 +138,11 @@ const LiveGameRenderer = () => {
         isDemoGame={false} 
       />
       
-      <AnimatePresence>
-        {!isConnected && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-center space-x-3"
-          >
-            <div className="flex-shrink-0 relative">
-              <WifiOff className="h-5 w-5 text-yellow-500" />
-              <motion.div
-                className="absolute inset-0"
-                animate={{
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                }}
-              >
-                <Wifi className="h-5 w-5 text-yellow-500" />
-              </motion.div>
-            </div>
-            <div>
-              <p className="text-sm text-yellow-700">
-                Conexión perdida. Intentando reconectar...
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Componente de estado de conexión mejorado */}
+      <ConnectionStatus 
+        isConnected={isConnected} 
+        reconnectAttempts={reconnectAttempts} 
+      />
       
       <GameStateRenderer
         gameId={gameId}
@@ -147,6 +162,7 @@ const LiveGameRenderer = () => {
         handleSelectOption={handleSelectOption}
         isGameHost={isGameHost}
         startGame={startGame}
+        clientTimeOffset={clientTimeOffset}
       />
     </div>
   );
