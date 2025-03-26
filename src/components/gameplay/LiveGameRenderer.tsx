@@ -1,18 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useLiveGameState } from '@/hooks/useLiveGameState';
 import GameHeader from './GameHeader';
 import GameStateRenderer from './GameStateRenderer';
 import { useGameInfo } from './hooks/useGameInfo';
 import { useGameStateValues } from './hooks/useGameStateValues';
 import { adaptQuestionToQuizFormat } from './utils/gameDataAdapters';
-import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
-import { Alert } from '@/components/ui/alert';
 import { motion, AnimatePresence } from 'framer-motion';
 import { gameNotifications } from '@/components/ui/notification-toast';
 import ConnectionStatus from './ConnectionStatus';
-import { useNavigate } from 'react-router-dom';
 
 const LiveGameRenderer = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -36,8 +33,8 @@ const LiveGameRenderer = () => {
     error,
     isConnected,
     reconnectAttempts,
-    clientTimeOffset, // Nuevo: offset de tiempo entre cliente y servidor
-    syncWithServer // Nuevo: función para sincronizar tiempo con servidor
+    clientTimeOffset,
+    syncWithServer
   } = useLiveGameState();
   
   // Get derived state values and handlers
@@ -92,12 +89,12 @@ const LiveGameRenderer = () => {
   
   // Mostrar notificaciones en cambios de estado importantes
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && reconnectAttempts > 0) {
       gameNotifications.connectSuccess();
-    } else if (gameState && !isConnected) {
+    } else if (gameState && !isConnected && reconnectAttempts > 0) {
       gameNotifications.connectionLost();
     }
-  }, [isConnected]);
+  }, [isConnected, reconnectAttempts]);
 
   // Notificar cuando hay resultados de respuestas
   useEffect(() => {
@@ -114,8 +111,12 @@ const LiveGameRenderer = () => {
   useEffect(() => {
     if (gameState?.status === 'finished') {
       gameNotifications.gameCompleted(myRank);
+      gameNotifications.resultsSaved();
     } else if (gameState?.status === 'waiting' && gameState.countdown === 5) {
       gameNotifications.gameStarting();
+    } else if (gameState?.status === 'waiting' && gameState.countdown === 300) {
+      // 5 minutos de aviso
+      gameNotifications.fiveMinutesWarning();
     }
   }, [gameState?.status, myRank, gameState?.countdown]);
   
@@ -130,12 +131,17 @@ const LiveGameRenderer = () => {
   const adaptedCurrentQuestion = currentQuestion ? adaptQuestionToQuizFormat(currentQuestion) : null;
   
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="bg-white rounded-xl shadow-md overflow-hidden"
+    >
       <GameHeader 
         quizTitle={gameInfo.title} 
         playersCount={leaderboard.length} 
         myPoints={myPoints} 
-        isDemoGame={false} 
+        isDemoGame={gameId === 'demo-123'} 
       />
       
       {/* Componente de estado de conexión mejorado */}
@@ -144,27 +150,37 @@ const LiveGameRenderer = () => {
         reconnectAttempts={reconnectAttempts} 
       />
       
-      <GameStateRenderer
-        gameId={gameId}
-        gameState={gameState}
-        isLoading={isLoading}
-        error={error}
-        gameInfo={gameInfo}
-        questions={questions}
-        currentQuestion={currentQuestion}
-        adaptedCurrentQuestion={adaptedCurrentQuestion}
-        leaderboard={leaderboard}
-        myPoints={myPoints}
-        myRank={myRank}
-        lastPoints={lastPoints}
-        selectedOption={selectedOption}
-        setSelectedOption={setSelectedOption}
-        handleSelectOption={handleSelectOption}
-        isGameHost={isGameHost}
-        startGame={startGame}
-        clientTimeOffset={clientTimeOffset}
-      />
-    </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={gameState?.status || 'loading'}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+        >
+          <GameStateRenderer
+            gameId={gameId}
+            gameState={gameState}
+            isLoading={isLoading}
+            error={error}
+            gameInfo={gameInfo}
+            questions={questions}
+            currentQuestion={currentQuestion}
+            adaptedCurrentQuestion={adaptedCurrentQuestion}
+            leaderboard={leaderboard}
+            myPoints={myPoints}
+            myRank={myRank}
+            lastPoints={lastPoints}
+            selectedOption={selectedOption}
+            setSelectedOption={setSelectedOption}
+            handleSelectOption={handleSelectOption}
+            isGameHost={isGameHost}
+            startGame={startGame}
+            clientTimeOffset={clientTimeOffset}
+          />
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

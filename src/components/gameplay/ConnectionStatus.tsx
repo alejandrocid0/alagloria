@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wifi, WifiOff } from 'lucide-react';
+import { Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ConnectionStatusProps {
   isConnected: boolean;
@@ -9,61 +10,74 @@ interface ConnectionStatusProps {
 }
 
 const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ 
-  isConnected,
-  reconnectAttempts
+  isConnected, 
+  reconnectAttempts 
 }) => {
-  // Solo mostrar cuando se está desconectado o intentando reconectar
-  if (isConnected && reconnectAttempts === 0) {
-    return null;
-  }
+  const [showBanner, setShowBanner] = useState(false);
+  
+  // Mostrar el banner después de 2 intentos de reconexión o si ya está desconectado
+  useEffect(() => {
+    if (!isConnected || reconnectAttempts > 1) {
+      setShowBanner(true);
+    } else if (isConnected && reconnectAttempts === 0) {
+      // Si se reconecta, ocultar el banner después de un tiempo
+      const timer = setTimeout(() => {
+        setShowBanner(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, reconnectAttempts]);
   
   return (
     <AnimatePresence>
-      <motion.div 
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: 'auto' }}
-        exit={{ opacity: 0, height: 0 }}
-        transition={{ duration: 0.3 }}
-        className={`border-l-4 p-4 flex items-center space-x-3 ${
-          !isConnected ? 'bg-yellow-50 border-yellow-400' : 'bg-green-50 border-green-400'
-        }`}
-      >
-        <div className="flex-shrink-0 relative">
-          {!isConnected ? (
-            <>
-              <WifiOff className="h-5 w-5 text-yellow-500" />
-              <motion.div
-                className="absolute inset-0"
-                animate={{
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                }}
-              >
-                <Wifi className="h-5 w-5 text-yellow-500" />
-              </motion.div>
-            </>
-          ) : (
-            <Wifi className="h-5 w-5 text-green-500" />
+      {showBanner && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className={cn(
+            "relative px-4 py-2 mb-4 rounded-lg text-sm flex items-center justify-between",
+            isConnected ? "bg-green-50 text-green-700 border border-green-200" : 
+                         "bg-red-50 text-red-700 border border-red-200"
           )}
-        </div>
-        <div>
-          <p className="text-sm">
-            {!isConnected ? (
-              <span className="text-yellow-700">
-                Conexión perdida. Intentando reconectar...
-                {reconnectAttempts > 0 && ` (Intento ${reconnectAttempts})`}
-              </span>
+        >
+          <div className="flex items-center">
+            {isConnected ? (
+              <>
+                <Wifi className="w-4 h-4 mr-2" />
+                <span>Conectado al servidor</span>
+              </>
             ) : (
-              <span className="text-green-700">
-                Conexión recuperada
-              </span>
+              <>
+                <WifiOff className="w-4 h-4 mr-2" />
+                <span>
+                  {reconnectAttempts > 0 
+                    ? `Reconectando (intento ${reconnectAttempts})...` 
+                    : "Conexión perdida"}
+                </span>
+              </>
             )}
-          </p>
-        </div>
-      </motion.div>
+          </div>
+          
+          {reconnectAttempts > 3 && (
+            <div className="text-xs flex items-center">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              Problemas de red detectados
+            </div>
+          )}
+          
+          {isConnected && (
+            <motion.button 
+              onClick={() => setShowBanner(false)}
+              className="text-xs underline"
+              whileHover={{ scale: 1.05 }}
+            >
+              Cerrar
+            </motion.button>
+          )}
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };

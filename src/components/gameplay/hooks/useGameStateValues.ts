@@ -1,82 +1,78 @@
 
-import { useState, useEffect } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { adaptLeaderboardData } from '../utils/gameDataAdapters';
+import { useState, useEffect, useCallback } from 'react';
+import { gameNotifications } from '@/components/ui/notification-toast';
 
 export const useGameStateValues = (
   gameState: any,
   currentQuestion: any,
   leaderboardData: any[],
   lastAnswerResult: any,
-  submitAnswer: (optionId: string, answerTimeMs: number) => void
+  submitAnswer: (optionId: string) => void
 ) => {
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [myRank, setMyRank] = useState<number>(0);
-  const [myPoints, setMyPoints] = useState<number>(0);
-  const [lastPoints, setLastPoints] = useState<number>(0);
-
+  const [myRank, setMyRank] = useState(0);
+  const [myPoints, setMyPoints] = useState(0);
+  const [lastPoints, setLastPoints] = useState(0);
+  
+  // Reset selected option when question changes
   useEffect(() => {
-    // Log for debug
-    console.log("Game state:", gameState);
-    console.log("Current question:", currentQuestion);
-    console.log("Leaderboard:", leaderboardData);
-    console.log("Last answer result:", lastAnswerResult);
-
-    // Update leaderboard data
-    if (leaderboardData && leaderboardData.length > 0) {
-      const adaptedLeaderboard = adaptLeaderboardData(leaderboardData);
-      
-      setLeaderboard(adaptedLeaderboard);
-      
-      // Calculate my rank and points based on user ID
-      // This would be implemented in a real app
-      setMyRank(1);
-      if (adaptedLeaderboard[0]) {
-        setMyPoints(adaptedLeaderboard[0].points || 0);
-      }
-    }
-    
-    // Reset selected option when moving to a new question
     if (gameState?.status === 'question') {
       setSelectedOption(null);
     }
-    
-    // Set last points when we get an answer result
-    if (lastAnswerResult) {
-      setLastPoints(lastAnswerResult.points);
+  }, [gameState?.current_question, gameState?.status]);
+  
+  // Update my rank and points from leaderboard
+  useEffect(() => {
+    if (leaderboardData && leaderboardData.length > 0) {
+      // Encontrar mi jugador (supone que el primer jugador en la lista es el usuario actual)
+      const myPlayer = leaderboardData[0];
       
-      // Show toast notification for points earned
-      if (lastAnswerResult.isCorrect) {
-        toast({
-          title: "¡Respuesta correcta!",
-          description: `Has ganado ${lastAnswerResult.points} puntos`,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Respuesta incorrecta",
-          description: "No has sumado puntos en esta pregunta",
-          variant: "destructive",
-        });
+      if (myPlayer) {
+        setMyRank(myPlayer.rank);
+        setMyPoints(myPlayer.points);
       }
     }
-  }, [gameState, currentQuestion, leaderboardData, lastAnswerResult]);
-
-  // Handler for selecting an option
-  const handleSelectOption = (optionId: string) => {
-    if (selectedOption !== null) return; // Prevent multiple selections
+  }, [leaderboardData]);
+  
+  // Update last points gained from answer result
+  useEffect(() => {
+    if (lastAnswerResult && lastAnswerResult.pointsGained) {
+      setLastPoints(lastAnswerResult.pointsGained);
+      
+      // Mostrar notificación basada en el resultado
+      if (lastAnswerResult.isCorrect) {
+        gameNotifications.correctAnswer(lastAnswerResult.pointsGained);
+      } else {
+        gameNotifications.wrongAnswer();
+      }
+    }
+  }, [lastAnswerResult]);
+  
+  // Handle selecting an option
+  const handleSelectOption = useCallback((optionId: string) => {
+    // Si ya hay una opción seleccionada, no hacer nada
+    if (selectedOption) return;
     
+    // Establecer la opción seleccionada
     setSelectedOption(optionId);
-    // Sample answer time in milliseconds (could be calculated based on actual timing)
-    const answerTimeMs = 5000;
-    submitAnswer(optionId, answerTimeMs);
-  };
-
+    
+    // Enviar la respuesta al servidor
+    submitAnswer(optionId);
+    
+    // Aplicar efectos visuales o sonoros aquí si se desea
+  }, [selectedOption, submitAnswer]);
+  
+  // Crear un array de jugadores ordenado para el tablero de líderes
+  const leaderboard = leaderboardData?.map(player => ({
+    ...player,
+    // Añadir un campo para un avatar por defecto si no tiene
+    avatar: player.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
+  })) || [];
+  
   return {
-    leaderboard,
     selectedOption,
     setSelectedOption,
+    leaderboard,
     myRank,
     myPoints,
     lastPoints,

@@ -1,113 +1,109 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-interface UseQuestionTimerProps {
+interface QuestionTimerProps {
   timeRemaining: number;
   selectedOption: string | null;
   onTimeExpired?: () => void;
 }
 
-interface UseQuestionTimerReturn {
-  secondsLeft: number;
-  isWarning: boolean;
-  isUrgent: boolean;
-  flashWarning: boolean;
-  hasPulsed: boolean;
-  potentialPoints: number;
-}
-
-// Constants for timer thresholds
-const WARNING_THRESHOLD = 5;
-const URGENT_THRESHOLD = 3;
-const MAX_POTENTIAL_POINTS = 200;
-
 export const useQuestionTimer = ({ 
-  timeRemaining,
+  timeRemaining, 
   selectedOption,
   onTimeExpired
-}: UseQuestionTimerProps): UseQuestionTimerReturn => {
-  // State initialization
+}: QuestionTimerProps) => {
   const [secondsLeft, setSecondsLeft] = useState(timeRemaining);
+  const [potentialPoints, setPotentialPoints] = useState(200);
+  const [hasPulsed, setHasPulsed] = useState(false);
   const [isWarning, setIsWarning] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
-  const [potentialPoints, setPotentialPoints] = useState(MAX_POTENTIAL_POINTS);
   const [flashWarning, setFlashWarning] = useState(false);
-  const [hasPulsed, setHasPulsed] = useState(false);
   
-  // Pulse animation handler
-  const handlePulseAnimation = useCallback(() => {
-    if (!hasPulsed) {
-      document.body.classList.add('pulse-animation');
-      setTimeout(() => {
-        document.body.classList.remove('pulse-animation');
-      }, 300);
-      setHasPulsed(true);
-    }
-  }, [hasPulsed]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Calculate points based on remaining time
-  const calculatePoints = useCallback((secondsRemaining: number) => {
-    const pointsPercent = Math.max(0, secondsRemaining / timeRemaining);
-    return Math.round(MAX_POTENTIAL_POINTS * pointsPercent);
+  // Reiniciar cuando cambia el tiempo total
+  useEffect(() => {
+    setSecondsLeft(timeRemaining);
   }, [timeRemaining]);
   
-  // Check warning threshold
-  const checkWarningThreshold = useCallback((seconds: number) => {
-    if (seconds <= WARNING_THRESHOLD && !isWarning) {
-      setIsWarning(true);
-      handlePulseAnimation();
-    }
-    
-    if (seconds <= URGENT_THRESHOLD && !isUrgent) {
-      setIsUrgent(true);
-      setFlashWarning(true);
-      setTimeout(() => setFlashWarning(false), 200);
-    }
-  }, [isWarning, isUrgent, handlePulseAnimation]);
-  
-  // Main timer effect
+  // Temporizador principal
   useEffect(() => {
-    // Reset timer when timeRemaining changes
-    setSecondsLeft(timeRemaining);
+    // Si ya se seleccionó una opción o el tiempo se acabó, no necesitamos el temporizador
+    if (selectedOption || secondsLeft <= 0) {
+      if (secondsLeft <= 0 && onTimeExpired) {
+        onTimeExpired();
+      }
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      };
+    }
     
-    // Don't start timer if an option is already selected
-    if (selectedOption) return;
-    
-    const timer = setInterval(() => {
+    // Empezar temporizador
+    timerRef.current = setInterval(() => {
       setSecondsLeft(prev => {
         const newValue = prev - 1;
         
-        // Check for warning thresholds
-        checkWarningThreshold(newValue);
-        
-        // Calculate points based on time percentage
-        setPotentialPoints(calculatePoints(newValue));
-        
-        // Check if time has expired
+        // Si llegamos a cero, limpiar el intervalo y llamar a onTimeExpired
         if (newValue <= 0) {
-          clearInterval(timer);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
           if (onTimeExpired) {
             onTimeExpired();
           }
           return 0;
         }
         
-        return Math.max(0, newValue);
+        return newValue;
       });
     }, 1000);
     
-    // Clean up timer on unmount or when dependencies change
-    return () => clearInterval(timer);
-  }, [timeRemaining, selectedOption, onTimeExpired, checkWarningThreshold, calculatePoints]);
-
+    // Limpiar temporizador al desmontar
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [selectedOption, secondsLeft, onTimeExpired]);
+  
+  // Calcular puntos potenciales basados en el tiempo
+  useEffect(() => {
+    // Solo actualizar si no se ha seleccionado respuesta
+    if (!selectedOption) {
+      const percentage = secondsLeft / timeRemaining;
+      setPotentialPoints(Math.round(200 * percentage));
+    }
+  }, [secondsLeft, timeRemaining, selectedOption]);
+  
+  // Gestionar estados de advertencia
+  useEffect(() => {
+    const warningThreshold = timeRemaining * 0.3; // 30% del tiempo
+    const urgentThreshold = timeRemaining * 0.15; // 15% del tiempo
+    
+    setIsWarning(secondsLeft <= warningThreshold);
+    setIsUrgent(secondsLeft <= urgentThreshold);
+    
+    // Flash warning cuando queda poco tiempo
+    if (secondsLeft <= 5 && !hasPulsed) {
+      setFlashWarning(true);
+      setHasPulsed(true);
+      
+      const flashTimer = setTimeout(() => {
+        setFlashWarning(false);
+      }, 500);
+      
+      return () => clearTimeout(flashTimer);
+    }
+  }, [secondsLeft, timeRemaining, hasPulsed]);
+  
   return {
     secondsLeft,
+    potentialPoints,
+    hasPulsed,
     isWarning,
     isUrgent,
-    flashWarning,
-    hasPulsed,
-    potentialPoints
+    flashWarning
   };
 };
-
-export default useQuestionTimer;

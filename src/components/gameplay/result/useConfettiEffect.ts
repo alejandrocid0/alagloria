@@ -5,33 +5,37 @@ import confetti from 'canvas-confetti';
 export const useConfettiEffect = (isCorrect: boolean, points: number) => {
   useEffect(() => {
     if (isCorrect && points > 0) {
-      // Confetti más elaborado para respuestas correctas
-      const duration = 3000;
-      const end = Date.now() + duration;
+      // Más confetti para puntajes altos
+      const isHighScore = points > 150;
       
-      const frame = () => {
-        confetti({
-          particleCount: 2,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 },
-          colors: ['#5D3891', '#9747FF', '#8235F3'],
-        });
-        
-        confetti({
-          particleCount: 2,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 },
-          colors: ['#5D3891', '#9747FF', '#8235F3'],
-        });
-        
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      };
+      // Lanzar confetti central
+      confetti({
+        particleCount: isHighScore ? 100 : 50,
+        spread: isHighScore ? 90 : 60,
+        origin: { y: 0.6 },
+        colors: ['#5D3891', '#9D76C1', '#E5B8F4', '#FACBEA'],
+      });
       
-      frame();
+      // Para puntajes muy altos, añadir efectos adicionales
+      if (points > 180) {
+        setTimeout(() => {
+          confetti({
+            particleCount: 30,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0, y: 0.5 },
+            colors: ['#5D3891', '#9D76C1', '#E5B8F4', '#FACBEA'],
+          });
+          
+          confetti({
+            particleCount: 30,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1, y: 0.5 },
+            colors: ['#5D3891', '#9D76C1', '#E5B8F4', '#FACBEA'],
+          });
+        }, 300);
+      }
     }
   }, [isCorrect, points]);
 };
