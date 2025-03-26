@@ -1,3 +1,4 @@
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuizQuestion } from '@/types/quiz';
 import { Player } from '@/types/game';
@@ -62,11 +63,28 @@ const GameStateRenderer = ({
     return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
   }
   
+  // Comprobar si es el momento de la partida
   const currentTime = new Date();
   const scheduledTime = gameInfo.scheduledTime ? new Date(gameInfo.scheduledTime) : null;
   const isBeforeGameStart = scheduledTime && currentTime < scheduledTime;
+  
+  // Calcular el tiempo hasta el inicio (para determinar si estamos en los 5 minutos previos)
+  const timeUntilStartInMinutes = scheduledTime 
+    ? Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60))) 
+    : 0;
+  
+  // Determinar si estamos en los 5 minutos previos al inicio (sala de espera inmediata)
+  const isWithinFiveMinutes = timeUntilStartInMinutes <= 5;
 
-  if (isBeforeGameStart) {
+  // Si estamos más de 5 minutos antes del inicio de la partida
+  if (isBeforeGameStart && !isWithinFiveMinutes) {
+    // Redirigir a la sala de espera previa
+    window.location.href = `/game/${gameId}/waiting`;
+    return <LoadingState />;
+  }
+
+  // Si estamos dentro de los 5 minutos previos, mostrar la sala de espera inmediata (Kahoot-style)
+  if (isBeforeGameStart && isWithinFiveMinutes) {
     const timeUntilStart = Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / 1000));
     
     return (
@@ -79,6 +97,7 @@ const GameStateRenderer = ({
     );
   }
 
+  // Si ya es la hora de la partida o está en curso, mostrar la interfaz de juego
   return (
     <div className="p-4 md:p-6">
       {gameState.status !== 'waiting' && gameState.status !== 'finished' && (

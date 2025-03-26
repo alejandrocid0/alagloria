@@ -22,10 +22,63 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({
   hasJoined,
   gameId
 }) => {
+  // Calcular si estamos a menos de 5 minutos del inicio de la partida
+  const isNearGameStart = () => {
+    const now = new Date();
+    const gameStartTime = new Date(gameData.date);
+    const timeDiff = gameStartTime.getTime() - now.getTime();
+    const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+    return minutesDiff <= 5 && minutesDiff >= 0;
+  };
+
+  // Determinar qué botón mostrar
+  const renderButton = () => {
+    if (!hasJoined) {
+      return (
+        <Button
+          variant="secondary"
+          size="lg"
+          className="w-full flex items-center justify-center"
+          isLoading={isProcessing}
+          onClick={handleJoinGame}
+          disabled={gameData.participants >= gameData.maxParticipants}
+        >
+          {gameData.participants >= gameData.maxParticipants 
+            ? "Partida completa" 
+            : "Unirse gratis"}
+        </Button>
+      );
+    }
+    
+    if (isNearGameStart()) {
+      return (
+        <Button
+          variant="primary"
+          size="lg"
+          className="w-full"
+          href={`/game/${gameId}`}
+        >
+          Jugar ahora
+        </Button>
+      );
+    }
+    
+    return (
+      <Button
+        variant="primary"
+        size="lg"
+        className="w-full"
+        href={`/game/${gameId}/waiting`}
+      >
+        Entrar a la sala
+      </Button>
+    );
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 sticky top-24">
       <h2 className="text-xl font-serif font-bold text-gloria-purple mb-6">
-        Unirse a la partida
+        {hasJoined ? "Información de la partida" : "Unirse a la partida"}
       </h2>
       
       <div className="mb-8">
@@ -51,33 +104,11 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({
         </div>
       </div>
       
-      {hasJoined ? (
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          href={`/game/${gameId}`}
-        >
-          Ya estás inscrito - Ir a la sala
-        </Button>
-      ) : (
-        <Button
-          variant="secondary"
-          size="lg"
-          className="w-full flex items-center justify-center"
-          isLoading={isProcessing}
-          onClick={handleJoinGame}
-          disabled={gameData.participants >= gameData.maxParticipants}
-        >
-          {gameData.participants >= gameData.maxParticipants 
-            ? "Partida completa" 
-            : "Unirse gratis"}
-        </Button>
-      )}
+      {renderButton()}
       
       <div className="mt-4 text-center">
         <Link to="/games" className="text-sm text-gloria-purple hover:text-gloria-gold transition-colors">
-          Cancelar y volver a partidas
+          {hasJoined ? "Ver más partidas" : "Cancelar y volver a partidas"}
         </Link>
       </div>
     </div>

@@ -1,14 +1,19 @@
 
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
+import WaitingRoom from '@/components/gameplay/WaitingRoom';
 
 const GamePlay = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { gameId, mode } = useParams<{ gameId: string; mode?: string }>();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Determinar si estamos en modo sala de espera o juego
+  const isWaitingMode = mode === 'waiting';
   
   // Manejar estado de carga y redirigir a login si no hay usuario autenticado
   useEffect(() => {
@@ -46,7 +51,20 @@ const GamePlay = () => {
       
       <div className="pt-20 md:pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-5xl">
-          <LiveGameRenderer />
+          {isWaitingMode ? (
+            // Renderizar la sala de espera previa
+            <div className="min-h-[70vh] flex items-center justify-center">
+              <WaitingRoom 
+                gameTitle={gameId ? `Partida #${gameId}` : "Partida"}
+                scheduledTime={new Date().toLocaleDateString()} // Esto debería venir de la base de datos
+                playersOnline={[]} // Esto debería venir de la base de datos
+                timeUntilStart={300} // 5 minutos (300 segundos)
+              />
+            </div>
+          ) : (
+            // Renderizar el juego en vivo
+            <LiveGameRenderer />
+          )}
         </div>
       </div>
     </div>
