@@ -88,20 +88,26 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
     // Cargar participantes iniciales
     const loadInitialParticipants = async () => {
       try {
-        const { data: gameParticipants } = await supabase
+        const { data: gameParticipants, error } = await supabase
           .from('game_participants')
-          .select('user_id, users(name, avatar_url)')
+          .select('user_id, users:user_id(name, avatar_url)')
           .eq('game_id', gameId);
         
+        if (error) throw error;
+        
         if (gameParticipants && gameParticipants.length > 0) {
-          const players = gameParticipants.map((p, index) => ({
-            id: p.user_id,
-            name: p.users?.name || `Jugador ${index + 1}`,
-            points: 0,
-            rank: index + 1,
-            avatar: p.users?.avatar_url || undefined,
-            lastAnswer: null
-          }));
+          const players = gameParticipants.map((p, index) => {
+            // Safely access properties using optional chaining
+            const userData = p.users as any;
+            return {
+              id: p.user_id,
+              name: userData?.name || `Jugador ${index + 1}`,
+              points: 0,
+              rank: index + 1,
+              avatar: userData?.avatar_url || undefined,
+              lastAnswer: null
+            };
+          });
           
           setPlayersOnline(players);
         }

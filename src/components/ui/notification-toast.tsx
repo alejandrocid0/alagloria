@@ -1,136 +1,57 @@
 
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from '@/hooks/use-toast';
-import { AlertCircle, CheckCircle, XCircle, Info, Bell } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { toast } from "@/hooks/use-toast";
 
-type NotificationType = 'success' | 'error' | 'info' | 'warning';
-
-interface NotificationProps {
-  title: string;
-  message: string;
-  type?: NotificationType;
-  duration?: number;
-}
-
-/**
- * Muestra una notificación personalizada con animación
- */
-export const showNotification = ({
-  title,
-  message,
-  type = 'info',
-  duration = 5000,
-}: NotificationProps) => {
-  const icons = {
-    success: <CheckCircle className="w-5 h-5" />,
-    error: <XCircle className="w-5 h-5" />,
-    info: <Info className="w-5 h-5" />,
-    warning: <AlertCircle className="w-5 h-5" />,
-  };
-
-  const colors = {
-    success: "bg-green-50 border-green-200 text-green-800",
-    error: "bg-red-50 border-red-200 text-red-800",
-    info: "bg-blue-50 border-blue-200 text-blue-800",
-    warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
-  };
-
-  const iconColors = {
-    success: "text-green-500",
-    error: "text-red-500",
-    info: "text-blue-500",
-    warning: "text-yellow-500",
-  };
-
-  return toast({
-    title: title,
-    description: (
-      <div className="flex items-start">
-        <span className={cn("mr-2", iconColors[type])}>
-          {icons[type]}
-        </span>
-        <span>{message}</span>
-      </div>
-    ),
-    className: cn(
-      "rounded-lg border p-4",
-      colors[type]
-    ),
-    duration: duration,
-  });
-};
-
-/**
- * Componentes para mostrar notificaciones en momentos clave
- */
+// Game notifications helper
 export const gameNotifications = {
-  connectSuccess: () => 
-    showNotification({
-      title: "¡Conectado!",
-      message: "Conexión a la partida establecida con éxito",
-      type: "success"
-    }),
+  // Success notifications
+  connectSuccess: () => toast({
+    title: "Conexión establecida",
+    description: "Has conectado correctamente con la partida",
+    variant: "default",
+  }),
   
-  connectionLost: () => 
-    showNotification({
-      title: "Conexión perdida",
-      message: "Intentando reconectar automáticamente...",
-      type: "warning",
-      duration: 8000
-    }),
+  // Error notifications
+  connectionLost: () => toast({
+    title: "Conexión perdida",
+    description: "Intentando reconectar...",
+    variant: "destructive",
+  }),
   
-  reconnected: () => 
-    showNotification({
-      title: "¡Reconectado!",
-      message: "Se ha reestablecido la conexión con la partida",
-      type: "success"
-    }),
+  // Game state notifications
+  correctAnswer: (points: number) => toast({
+    title: "¡Respuesta correcta!",
+    description: `Has sumado ${points} puntos`,
+    variant: "default",
+  }),
   
-  correctAnswer: (points: number) => 
-    showNotification({
-      title: "¡Respuesta correcta!",
-      message: `Has ganado ${points} puntos`,
-      type: "success",
-      duration: 3000
-    }),
+  wrongAnswer: () => toast({
+    title: "Respuesta incorrecta",
+    description: "No has sumado puntos en esta pregunta",
+    variant: "destructive",
+  }),
   
-  wrongAnswer: () => 
-    showNotification({
-      title: "Respuesta incorrecta",
-      message: "Sigue intentándolo en la próxima pregunta",
-      type: "error",
-      duration: 3000
-    }),
+  gameStarting: () => toast({
+    title: "¡La partida va a comenzar!",
+    description: "Prepárate para la primera pregunta",
+    variant: "default",
+  }),
   
-  gameStarting: () => 
-    showNotification({
-      title: "¡Partida iniciando!",
-      message: "Prepárate para la primera pregunta",
-      type: "info",
-      duration: 3000
-    }),
+  gameCompleted: (rank: number) => toast({
+    title: "Partida finalizada",
+    description: `Has finalizado en posición ${rank}`,
+    variant: "default",
+  }),
   
-  gameCompleted: (position: number) => 
-    showNotification({
-      title: "¡Partida completada!",
-      message: `Has quedado en la posición #${position}`,
-      type: "info",
-      duration: 5000
-    }),
+  joinedGame: (gameTitle: string) => toast({
+    title: "¡Te has unido a la partida!",
+    description: `Esperando a que comience: ${gameTitle}`,
+    variant: "default",
+  }),
   
-  resultsSaved: () => 
-    showNotification({
-      title: "Resultados guardados",
-      message: "Tus estadísticas han sido actualizadas",
-      type: "success"
-    }),
-  
-  joinedGame: (gameTitle: string) => 
-    showNotification({
-      title: "¡Te has unido a la partida!",
-      message: `Te has unido correctamente a "${gameTitle}"`,
-      type: "success"
-    }),
+  // Add the missing notification
+  fiveMinutesWarning: () => toast({
+    title: "5 minutos para el inicio",
+    description: "La partida comenzará en breve",
+    variant: "default",
+  })
 };

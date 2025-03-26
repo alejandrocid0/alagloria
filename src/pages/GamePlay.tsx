@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
 import WaitingRoom from '@/components/gameplay/WaitingRoom';
 import { useGameInfo } from '@/components/gameplay/hooks/useGameInfo';
-import { getLiveGameState } from '@/hooks/liveGame/gameStateUtils';
+import { fetchGameState } from '@/hooks/liveGame/gameStateUtils'; // Updated import
 import { gameNotifications } from '@/components/ui/notification-toast';
 
 const GamePlay = () => {
@@ -29,7 +29,7 @@ const GamePlay = () => {
       if (!gameId) return;
       
       try {
-        const gameState = await getLiveGameState(gameId);
+        const gameState = await fetchGameState(gameId); // Updated function call
         
         if (gameState) {
           setIsGameActive(true);
