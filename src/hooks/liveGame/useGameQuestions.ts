@@ -12,13 +12,15 @@ export const useGameQuestions = (
   
   // Fetch questions data
   const fetchQuestionsData = useCallback(async () => {
-    if (!gameId) return;
+    if (!gameId) return [];
     
     try {
       const data = await fetchQuestions(gameId);
       setQuestions(data);
+      return data;
     } catch (err) {
       console.error('Error fetching questions:', err);
+      return [];
     }
   }, [gameId]);
   
@@ -36,5 +38,5 @@ export const useGameQuestions = (
     fetchQuestionsData();
   }, [fetchQuestionsData]);
 
-  return { questions, currentQuestion };
+  return { questions, currentQuestion, fetchQuestionsData };
 };

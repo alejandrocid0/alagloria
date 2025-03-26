@@ -113,7 +113,13 @@ export const useLiveGameState = () => {
     // Show notification if network is poor
     if (networkStatus !== 'online' || !isConnected) {
       console.log('[Answer] Submitting with poor connection, showing notification');
-      gameNotifications.connectionIssue();
+      
+      // Use toast directly instead of connectionIssue
+      toast({
+        title: "Problemas de conexión",
+        description: "Estamos experimentando problemas de conexión. Tu respuesta se enviará cuando se recupere la conexión.",
+        variant: "destructive",
+      });
     }
     
     try {
@@ -153,7 +159,7 @@ export const useLiveGameState = () => {
   const fetchLeaderboardDataWrapper = useCallback(async (): Promise<void> => {
     if (gameId && isConnected) {
       try {
-        const data = await fetchLeaderboardData();
+        await fetchLeaderboardData();
         setLastSyncTimestamp(Date.now());
         return Promise.resolve();
       } catch (error) {

@@ -30,7 +30,7 @@ const JoinGame = () => {
         <div className="pt-20 md:pt-24 pb-16 bg-gray-50 min-h-screen">
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="flex justify-center items-center min-h-[300px] md:min-h-[400px]">
-              <LoadingState message="Cargando información de la partida..." />
+              <LoadingState />
             </div>
           </div>
         </div>

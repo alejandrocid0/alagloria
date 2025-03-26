@@ -9,13 +9,15 @@ export const useLeaderboardData = (gameId: string | undefined) => {
 
   // Fetch leaderboard data
   const fetchLeaderboardData = useCallback(async () => {
-    if (!gameId) return;
+    if (!gameId) return [];
     
     try {
       const data = await fetchGameLeaderboard(gameId);
       setLeaderboard(data);
+      return data;
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
+      return [];
     }
   }, [gameId]);
   
@@ -42,5 +44,5 @@ export const useLeaderboardData = (gameId: string | undefined) => {
     };
   }, [gameId, fetchLeaderboardData, handleLeaderboardUpdate]);
 
-  return { leaderboard, setLeaderboard };
+  return { leaderboard, setLeaderboard, fetchLeaderboardData };
 };

@@ -51,7 +51,13 @@ const LiveGameRenderer = () => {
     currentQuestion,
     leaderboardData,
     lastAnswerResult,
-    submitAnswer
+    (optionId: string, answerTimeMs: number) => {
+      // Adapter function to match the expected signature
+      if (currentQuestion && gameState) {
+        return submitAnswer(gameState.current_question, optionId, answerTimeMs);
+      }
+      return Promise.resolve(null);
+    }
   );
   
   // Sincronizar con el servidor al iniciar
@@ -99,9 +105,9 @@ const LiveGameRenderer = () => {
   // Notificar cuando hay resultados de respuestas
   useEffect(() => {
     if (lastAnswerResult) {
-      if (lastAnswerResult.isCorrect && lastPoints > 0) {
+      if (lastAnswerResult.is_correct && lastPoints > 0) {
         gameNotifications.correctAnswer(lastPoints);
-      } else if (!lastAnswerResult.isCorrect) {
+      } else if (!lastAnswerResult.is_correct) {
         gameNotifications.wrongAnswer();
       }
     }
