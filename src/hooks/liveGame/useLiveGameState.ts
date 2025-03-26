@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGameStateSubscription } from './useGameStateSubscription';
 import { useNetworkStatus } from './useNetworkStatus';
@@ -8,17 +8,21 @@ import { useLeaderboardData } from './useLeaderboardData';
 import { useGameQuestions } from './useGameQuestions';
 import { useGameInitialization } from './useGameInitialization';
 import { useTimeSync } from './useTimeSync';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { gameNotifications } from '@/components/ui/notification-toast';
+import { AnswerResult } from '@/types/liveGame';
 
 export const useLiveGameState = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const [isLoading, setIsLoading] = useState(true);
+  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<number>(Date.now());
 
   // Get time synchronization with server
   const { 
     clientTimeOffset, 
     syncWithServer, 
-    getAdjustedTime 
+    getAdjustedTime,
+    syncAttempts
   } = useTimeSync();
 
   // Get game state and connection status
@@ -27,21 +31,27 @@ export const useLiveGameState = () => {
     error,
     isConnected,
     fetchGameStateData,
-    scheduleReconnect
+    scheduleReconnect,
+    reconnectAttempts
   } = useGameStateSubscription(gameId);
 
   // Monitor network status
   const { 
     networkStatus, 
-    reconnectAttempts, 
+    reconnectAttempts: networkReconnectAttempts,
     checkNetworkStatus 
   } = useNetworkStatus(isConnected, fetchGameStateData, scheduleReconnect, gameId);
 
   // Get leaderboard data
-  const { leaderboard, setLeaderboard } = useLeaderboardData(gameId);
+  const { leaderboard, setLeaderboard, fetchLeaderboardData } = useLeaderboardData(gameId);
 
   // Get player answer submission functionality
-  const { lastAnswerResult, submitAnswer } = usePlayerAnswers(
+  const { 
+    lastAnswerResult, 
+    submitAnswer,
+    submitError, 
+    isSubmitting 
+  } = usePlayerAnswers(
     gameId,
     gameState,
     setLeaderboard,
@@ -50,16 +60,109 @@ export const useLiveGameState = () => {
   );
 
   // Get questions data
-  const { questions, currentQuestion } = useGameQuestions(gameId, gameState);
+  const { questions, currentQuestion, fetchQuestionsData } = useGameQuestions(gameId, gameState);
+  
+  // Monitor system health and log activity
+  useEffect(() => {
+    // Log system health every minute
+    const monitorInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastSync = now - lastSyncTimestamp;
+      
+      console.log('[System Monitor] Status Report:', {
+        gameId,
+        gameState: gameState?.status,
+        currentQuestion: gameState?.current_question,
+        networkStatus,
+        isConnected,
+        reconnectAttempts,
+        networkReconnectAttempts,
+        clientTimeOffset,
+        syncAttempts,
+        timeSinceLastSync: `${Math.round(timeSinceLastSync / 1000)}s ago`,
+        leaderboardSize: leaderboard.length,
+        questionsLoaded: questions.length
+      });
+      
+      // Trigger reconnection if we haven't synced in more than 2 minutes
+      if (timeSinceLastSync > 120000 && gameState && gameState.status !== 'finished') {
+        console.log('[System Monitor] Detected stale data, forcing refresh');
+        fetchGameStateData();
+        fetchLeaderboardData();
+        fetchQuestionsData();
+        syncWithServer();
+        setLastSyncTimestamp(now);
+      }
+    }, 60000);
+    
+    return () => clearInterval(monitorInterval);
+  }, [clientTimeOffset, fetchGameStateData, fetchLeaderboardData, fetchQuestionsData, 
+      gameId, gameState, isConnected, lastSyncTimestamp, leaderboard.length, 
+      networkReconnectAttempts, networkStatus, questions.length, reconnectAttempts, 
+      syncAttempts, syncWithServer]);
+  
+  // Enhanced answer submission with better error handling and monitoring
+  const enhancedSubmitAnswer = useCallback(async (
+    questionPosition: number,
+    selectedOption: string,
+    answerTimeMs: number
+  ): Promise<AnswerResult | null> => {
+    // Update last sync timestamp
+    setLastSyncTimestamp(Date.now());
+    
+    // Show notification if network is poor
+    if (networkStatus !== 'online' || !isConnected) {
+      console.log('[Answer] Submitting with poor connection, showing notification');
+      gameNotifications.connectionIssue();
+    }
+    
+    try {
+      const result = await submitAnswer(questionPosition, selectedOption, answerTimeMs);
+      
+      if (result) {
+        // Log successful submission
+        console.log('[Answer] Submission successful', result);
+        return result;
+      }
+      
+      // Handle submission failure
+      if (submitError) {
+        console.error('[Answer] Submission failed with error:', submitError);
+        toast({
+          title: "Error al enviar respuesta",
+          description: submitError,
+          variant: "destructive",
+        });
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('[Answer] Unexpected error during submission:', err);
+      
+      toast({
+        title: "Error inesperado",
+        description: "Ocurrió un error al enviar tu respuesta. Intentaremos guardarla cuando se recupere la conexión.",
+        variant: "destructive",
+      });
+      
+      return null;
+    }
+  }, [isConnected, networkStatus, setLastSyncTimestamp, submitAnswer, submitError]);
 
   // Create a proper Promise-returning function for leaderboard data fetching
-  const fetchLeaderboardDataWrapper = async (): Promise<void> => {
-    if (leaderboard.length > 0) {
-      return Promise.resolve();
-    } else {
-      return Promise.resolve(setLeaderboard([]));
+  const fetchLeaderboardDataWrapper = useCallback(async (): Promise<void> => {
+    if (gameId && isConnected) {
+      try {
+        const data = await fetchLeaderboardData();
+        setLastSyncTimestamp(Date.now());
+        return Promise.resolve();
+      } catch (error) {
+        console.error('Error fetching leaderboard data:', error);
+        return Promise.reject(error);
+      }
     }
-  };
+    return Promise.resolve();
+  }, [fetchLeaderboardData, gameId, isConnected]);
 
   // Initialize game data
   useGameInitialization({
@@ -76,7 +179,7 @@ export const useLiveGameState = () => {
     questions,
     currentQuestion,
     leaderboard,
-    submitAnswer,
+    submitAnswer: enhancedSubmitAnswer,
     lastAnswerResult,
     isLoading,
     error,
@@ -85,7 +188,9 @@ export const useLiveGameState = () => {
     networkStatus,
     clientTimeOffset,
     syncWithServer,
-    getAdjustedTime
+    getAdjustedTime,
+    isSubmitting,
+    submitError
   };
 };
 

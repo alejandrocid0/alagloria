@@ -1,125 +1,107 @@
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { useState, useEffect, useCallback } from 'react';
 
-/**
- * Hook para monitorear el estado de la conexión de red y
- * manejar reconexiones automáticas.
- */
 export const useNetworkStatus = (
   isConnected: boolean,
-  fetchGameStateData: () => Promise<void>,
-  scheduleReconnect: () => void,
+  onReconnect: () => Promise<void>,
+  onScheduleReconnect: () => void,
   gameId?: string
 ) => {
-  const [networkStatus, setNetworkStatus] = useState(true);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const monitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'reconnecting'>('online');
+  const [reconnectAttempts, setReconnectAttempts] = useState<number>(0);
   
-  // Función para verificar la conexión a internet
+  // Function to check network status
   const checkNetworkStatus = useCallback(async () => {
-    try {
-      const online = navigator.onLine;
-      
-      // Si no hay conexión a Internet, marcar como desconectado
-      if (!online) {
-        setNetworkStatus(false);
-        return false;
-      }
-      
-      // Verificar también capacidad de alcanzar el servidor
-      // Usando un endpoint ligero o imagen para verificar
-      const response = await fetch('/ping', { 
-        method: 'HEAD',
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      
-      const isOnline = response.ok;
-      setNetworkStatus(isOnline);
-      return isOnline;
-    } catch (err) {
-      // Si hay error al verificar, asumimos desconexión
-      setNetworkStatus(false);
+    if (!navigator.onLine) {
+      setNetworkStatus('offline');
       return false;
     }
-  }, []);
-  
-  // Manejar cambio en el estado de la conexión
-  useEffect(() => {
-    if (!isConnected && networkStatus) {
-      console.log('Estado de la aplicación desconectado pero red disponible, intentando reconexión');
-      setReconnectAttempts(prev => prev + 1);
-      scheduleReconnect();
+    
+    try {
+      // Try to contact server with a lightweight request
+      const response = await fetch('/api/health-check', { 
+        method: 'HEAD',
+        cache: 'no-store'
+      });
       
-      // Mostrar notificación solo en los primeros intentos
-      if (reconnectAttempts <= 3) {
-        toast({
-          title: "Problemas de conexión",
-          description: `Intentando reconectar (intento ${reconnectAttempts + 1})...`,
-          variant: "destructive",
-        });
-      }
-    } else if (isConnected && reconnectAttempts > 0) {
-      setReconnectAttempts(0);
-    }
-  }, [isConnected, networkStatus, scheduleReconnect, reconnectAttempts]);
-  
-  // Configurar listeners para eventos de conexión online/offline
-  useEffect(() => {
-    const handleOnline = async () => {
-      console.log('Navegador reporta conexión online');
-      const isConnected = await checkNetworkStatus();
-      
-      if (isConnected) {
-        console.log('Conexión de red restaurada, intentando reconectar con el juego');
-        // Permitir un pequeño retraso para que la conexión se estabilice
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
+      if (response.ok) {
+        if (networkStatus !== 'online') {
+          console.log('[NetworkMonitor] Connection restored');
+          setNetworkStatus('online');
+          
+          // Try to reconnect to game state
+          if (gameId) {
+            console.log('[NetworkMonitor] Attempting to reconnect to game state');
+            setNetworkStatus('reconnecting');
+            
+            try {
+              await onReconnect();
+              setNetworkStatus('online');
+            } catch (error) {
+              console.error('[NetworkMonitor] Failed to reconnect to game state:', error);
+              setNetworkStatus('offline');
+              onScheduleReconnect();
+            }
+          }
         }
-        
-        reconnectTimeoutRef.current = setTimeout(() => {
-          fetchGameStateData();
-        }, 1000);
+        return true;
+      } else {
+        setNetworkStatus('offline');
+        return false;
       }
+    } catch (error) {
+      console.error('[NetworkMonitor] Network check failed:', error);
+      setNetworkStatus('offline');
+      return false;
+    }
+  }, [gameId, networkStatus, onReconnect, onScheduleReconnect]);
+  
+  // Listen for online/offline events
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('[NetworkMonitor] Browser reports online status');
+      checkNetworkStatus();
     };
     
     const handleOffline = () => {
-      console.log('Navegador reporta conexión offline');
-      setNetworkStatus(false);
+      console.log('[NetworkMonitor] Browser reports offline status');
+      setNetworkStatus('offline');
     };
     
-    // Agregar listeners para eventos de online/offline
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Configurar monitor periódico de estado de red
-    monitorIntervalRef.current = setInterval(async () => {
-      if (gameId) {
-        await checkNetworkStatus();
-      }
-    }, 30000); // Cada 30 segundos
-    
-    // Verificar estado inicial
+    // Initial check
     checkNetworkStatus();
     
-    // Limpiar al desmontar
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      
-      if (monitorIntervalRef.current) {
-        clearInterval(monitorIntervalRef.current);
-        monitorIntervalRef.current = null;
-      }
-      
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
     };
-  }, [checkNetworkStatus, fetchGameStateData, gameId]);
+  }, [checkNetworkStatus]);
+  
+  // Update reconnect attempts based on connection state
+  useEffect(() => {
+    if (isConnected) {
+      if (reconnectAttempts > 0) {
+        setReconnectAttempts(0);
+      }
+    } else {
+      setReconnectAttempts(prev => prev + 1);
+    }
+  }, [isConnected, reconnectAttempts]);
+  
+  // Periodic check for network status every 30 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (networkStatus !== 'online' || !isConnected) {
+        console.log('[NetworkMonitor] Performing periodic network check');
+        checkNetworkStatus();
+      }
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [checkNetworkStatus, isConnected, networkStatus]);
   
   return {
     networkStatus,
@@ -127,5 +109,3 @@ export const useNetworkStatus = (
     checkNetworkStatus
   };
 };
-
-export default useNetworkStatus;

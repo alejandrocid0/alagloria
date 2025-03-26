@@ -1,133 +1,111 @@
 
-import { useState, useRef } from 'react';
+import { useState, useCallback } from 'react';
+import { LiveGameState, AnswerResult, Player } from '@/types/liveGame';
+import { gameService } from '@/services/games';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitPlayerAnswer } from './playerUtils';
-import { fetchUserAchievements } from '@/services/achievementService';
-import { toast } from 'sonner';
 
 export const usePlayerAnswers = (
-  gameId: string | undefined,
-  gameState: any,
-  setLeaderboard: (leaderboard: any[]) => void,
-  isConnected: boolean,
+  gameId?: string,
+  gameState: LiveGameState | null = null,
+  updateLeaderboard: (players: Player[]) => void,
+  isConnected: boolean = true,
   scheduleReconnect: () => void
 ) => {
   const { user } = useAuth();
-  const [lastAnswerResult, setLastAnswerResult] = useState<any>(null);
-  const [previousAchievements, setPreviousAchievements] = useState<string[]>([]);
-  const [isFetchingAchievements, setIsFetchingAchievements] = useState(false);
+  const [lastAnswerResult, setLastAnswerResult] = useState<AnswerResult | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
-  // Referencias para la protección contra bots
-  const lastSubmitTime = useRef<number>(0);
-  const submissionCount = useRef<number>(0);
-  const resetCounterTimeout = useRef<any>(null);
-
-  // Función para enviar respuesta con protección contra bots
-  const submitAnswer = async (optionId: string, answerTimeMs: number) => {
-    if (!gameId || !user || !gameState || !isConnected) {
-      console.error('No se puede enviar respuesta: falta información necesaria');
-      return;
+  // Function to handle answer submission with retry mechanism
+  const submitAnswer = useCallback(async (
+    questionPosition: number,
+    selectedOption: string,
+    answerTimeMs: number,
+    retryCount: number = 0
+  ): Promise<AnswerResult | null> => {
+    // Clear previous state
+    setSubmitError(null);
+    
+    // Don't submit if we're already submitting or not connected
+    if (isSubmitting) {
+      console.log('[Answer] Already submitting an answer, ignoring');
+      return null;
     }
     
-    // Implementación de rate limiting básico
-    const now = Date.now();
-    const timeSinceLastSubmit = now - lastSubmitTime.current;
-    
-    // Si han pasado menos de 500ms desde la última respuesta, es sospechoso
-    if (timeSinceLastSubmit < 500) {
-      submissionCount.current += 1;
-      
-      // Si hay más de 3 respuestas rápidas consecutivas, es probablemente un bot
-      if (submissionCount.current >= 3) {
-        toast.error('Has enviado demasiadas respuestas muy rápido. Espera un momento.');
-        console.warn('Posible actividad de bot detectada - demasiadas respuestas rápidas');
-        return;
-      }
-    } else {
-      // Reiniciar el contador si ha pasado suficiente tiempo
-      submissionCount.current = 0;
+    if (!isConnected) {
+      console.error('[Answer] Cannot submit answer: not connected to server');
+      setSubmitError('No hay conexión al servidor. Intenta de nuevo cuando se restablezca la conexión.');
+      scheduleReconnect();
+      return null;
     }
     
-    // Establecer un temporizador para reiniciar el contador después de 10 segundos
-    if (resetCounterTimeout.current) {
-      clearTimeout(resetCounterTimeout.current);
+    // Check if we have all the required data
+    if (!gameId || !user || !user.id || !gameState) {
+      console.error('[Answer] Cannot submit answer: missing required data', {
+        gameId, userId: user?.id, gameState: !!gameState
+      });
+      setSubmitError('No se puede enviar la respuesta: faltan datos requeridos');
+      return null;
     }
-    
-    resetCounterTimeout.current = setTimeout(() => {
-      submissionCount.current = 0;
-    }, 10000);
-    
-    // Actualizar el tiempo de la última respuesta
-    lastSubmitTime.current = now;
     
     try {
-      // Si no hemos cargado los logros previos, los cargamos
-      if (!isFetchingAchievements && previousAchievements.length === 0) {
-        setIsFetchingAchievements(true);
-        const userAchievements = await fetchUserAchievements(user.id);
-        setPreviousAchievements(userAchievements.map(ua => ua.achievement_id));
-        setIsFetchingAchievements(false);
-      }
+      setIsSubmitting(true);
+      console.log(`[Answer] Submitting answer for question ${questionPosition}, option ${selectedOption}, time ${answerTimeMs}ms`);
       
-      // Enviar respuesta
-      const result = await submitPlayerAnswer(
+      // Submit the answer
+      const result = await gameService.submitAnswer(
         gameId,
         user.id,
-        gameState.current_question,
-        optionId,
+        questionPosition,
+        selectedOption,
         answerTimeMs
       );
       
-      setLastAnswerResult({
-        isCorrect: result.is_correct,
-        points: result.points,
-        correctOption: result.correctOption
-      });
+      console.log('[Answer] Result:', result);
       
-      // Verificar si hay nuevos logros obtenidos
-      setTimeout(async () => {
+      if (result) {
+        // Update the last answer result
+        setLastAnswerResult(result);
+        
+        // Update the leaderboard
         try {
-          const newAchievements = await fetchUserAchievements(user.id);
-          const newAchievementsIds = newAchievements.map(ua => ua.achievement_id);
-          
-          const justEarnedAchievements = newAchievements.filter(
-            ua => !previousAchievements.includes(ua.achievement_id)
-          );
-          
-          // Mostrar notificaciones para los nuevos logros
-          justEarnedAchievements.forEach(achievement => {
-            if (achievement.achievement) {
-              toast.success(
-                `¡Nuevo logro desbloqueado: ${achievement.achievement.name}!`,
-                {
-                  description: achievement.achievement.description,
-                  duration: 5000
-                }
-              );
-            }
-          });
-          
-          // Actualizar la lista de logros previos
-          setPreviousAchievements(newAchievementsIds);
-        } catch (err) {
-          console.error('Error al verificar nuevos logros:', err);
+          const updatedLeaderboard = await gameService.getGameLeaderboard(gameId);
+          console.log('[Answer] Updated leaderboard:', updatedLeaderboard);
+          updateLeaderboard(updatedLeaderboard);
+        } catch (error) {
+          console.error('[Answer] Failed to fetch updated leaderboard:', error);
         }
-      }, 1000); // Esperar 1 segundo después de enviar la respuesta
-      
-    } catch (err) {
-      console.error('Error al enviar respuesta:', err);
-      if (isConnected) {
-        scheduleReconnect(); // Programar reconexión en caso de error
+        
+        return result;
+      } else {
+        throw new Error('No se recibió respuesta del servidor');
       }
+    } catch (error) {
+      console.error('[Answer] Error submitting answer:', error);
+      
+      // Implement retry logic
+      if (retryCount < 2) {
+        console.log(`[Answer] Retrying submission (attempt ${retryCount + 1})...`);
+        setIsSubmitting(false);
+        
+        // Wait a short time before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        return submitAnswer(questionPosition, selectedOption, answerTimeMs, retryCount + 1);
+      }
+      
+      setSubmitError(`Error al enviar respuesta: ${error instanceof Error ? error.message : 'error desconocido'}`);
+      scheduleReconnect();
+      return null;
+    } finally {
+      setIsSubmitting(false);
     }
+  }, [gameId, user, gameState, isConnected, isSubmitting, scheduleReconnect, updateLeaderboard]);
+  
+  return {
+    lastAnswerResult,
+    submitAnswer,
+    submitError,
+    isSubmitting
   };
-
-  // Limpiar el timeout cuando el componente se desmonte
-  const cleanup = () => {
-    if (resetCounterTimeout.current) {
-      clearTimeout(resetCounterTimeout.current);
-    }
-  };
-
-  return { lastAnswerResult, submitAnswer, cleanup };
 };

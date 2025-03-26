@@ -1,100 +1,75 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Hook para sincronizar el tiempo del cliente con el servidor
- * y calcular la diferencia (offset) para ajustes precisos
- */
 export const useTimeSync = () => {
-  const [clientTimeOffset, setClientTimeOffset] = useState(0);
-  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
-  const syncAttemptsRef = useRef(0);
-  const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Función para obtener el tiempo del servidor
-  const getServerTime = useCallback(async (): Promise<number | null> => {
+  const [clientTimeOffset, setClientTimeOffset] = useState<number>(0);
+  const [lastSyncAt, setLastSyncAt] = useState<number>(0);
+  const [syncAttempts, setSyncAttempts] = useState<number>(0);
+  
+  // Function to synchronize client time with server time
+  const syncWithServer = useCallback(async () => {
     try {
+      // Record the time before making the request
       const startTime = Date.now();
       
-      // Usar una función edge para obtener el tiempo del servidor
+      // Call the server time function
       const { data, error } = await supabase.functions.invoke('get-server-time');
       
       if (error) {
-        console.error('Error obteniendo tiempo del servidor:', error);
-        return null;
+        console.error('Error syncing time with server:', error);
+        return false;
       }
       
-      // El tiempo que tomó la ida y vuelta
-      const roundTripTime = Date.now() - startTime;
+      // Record the time after getting the response
+      const endTime = Date.now();
       
-      if (!data?.serverTime) {
-        console.error('No se recibió tiempo del servidor');
-        return null;
-      }
+      // Calculate latency (round trip / 2)
+      const latency = Math.floor((endTime - startTime) / 2);
       
-      // Compensar por el tiempo de ida (aproximadamente la mitad del roundtrip)
-      const serverTime = data.serverTime + Math.floor(roundTripTime / 2);
-      return serverTime;
-    } catch (err) {
-      console.error('Error inesperado al sincronizar tiempo:', err);
-      return null;
-    }
-  }, []);
-
-  // Sincronizar con el servidor
-  const syncWithServer = useCallback(async () => {
-    const serverTime = await getServerTime();
-    
-    if (serverTime) {
-      const clientTime = Date.now();
-      const offset = serverTime - clientTime;
+      // Calculate offset (server time + latency) - client time
+      const serverTime = new Date(data.timestamp).getTime();
+      const adjustedServerTime = serverTime + latency;
+      const offset = adjustedServerTime - endTime;
       
-      // Actualizar el offset y el último tiempo de sincronización
+      console.log(`[TimeSync] Server time: ${new Date(serverTime).toISOString()}`);
+      console.log(`[TimeSync] Client time: ${new Date(endTime).toISOString()}`);
+      console.log(`[TimeSync] Latency: ${latency}ms`);
+      console.log(`[TimeSync] Offset: ${offset}ms`);
+      
+      // Update state
       setClientTimeOffset(offset);
-      setLastSyncTime(clientTime);
-      syncAttemptsRef.current = 0;
+      setLastSyncAt(Date.now());
+      setSyncAttempts(prev => prev + 1);
       
-      console.log(`Tiempo sincronizado. Offset: ${offset}ms`);
       return true;
-    } else {
-      // Si falló la sincronización, incrementar contador de intentos
-      syncAttemptsRef.current += 1;
-      console.warn(`Falló la sincronización de tiempo (intento ${syncAttemptsRef.current})`);
+    } catch (err) {
+      console.error('Unexpected error during time sync:', err);
+      setSyncAttempts(prev => prev + 1);
       return false;
     }
-  }, [getServerTime]);
-
-  // Obtener el tiempo del servidor ajustado
+  }, []);
+  
+  // Re-sync every 5 minutes to ensure accuracy
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log('[TimeSync] Performing periodic time sync');
+      syncWithServer();
+    }, 5 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [syncWithServer]);
+  
+  // Function to get current time adjusted by the offset
   const getAdjustedTime = useCallback(() => {
     return Date.now() + clientTimeOffset;
   }, [clientTimeOffset]);
-
-  // Configurar sincronización periódica
-  useEffect(() => {
-    // Sincronizar al inicio
-    syncWithServer();
-    
-    // Programar sincronización periódica (cada 5 minutos)
-    syncIntervalRef.current = setInterval(() => {
-      console.log('Ejecutando sincronización periódica de tiempo');
-      syncWithServer();
-    }, 5 * 60 * 1000); // 5 minutos
-    
-    return () => {
-      if (syncIntervalRef.current) {
-        clearInterval(syncIntervalRef.current);
-        syncIntervalRef.current = null;
-      }
-    };
-  }, [syncWithServer]);
-
+  
   return {
     clientTimeOffset,
-    lastSyncTime,
     syncWithServer,
-    getAdjustedTime
+    getAdjustedTime,
+    lastSyncAt,
+    syncAttempts
   };
 };
-
-export default useTimeSync;
