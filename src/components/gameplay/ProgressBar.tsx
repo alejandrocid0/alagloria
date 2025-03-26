@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect } from 'react';
+import { motion, useAnimation } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface ProgressBarProps {
@@ -15,6 +15,23 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   myPoints 
 }) => {
   const progress = ((currentQuestion + 1) / totalQuestions) * 100;
+  const controls = useAnimation();
+  
+  // Animar cuando cambian los puntos o la pregunta actual
+  useEffect(() => {
+    controls.start({
+      scale: [1, 1.03, 1],
+      transition: { duration: 0.3 }
+    });
+  }, [myPoints, currentQuestion, controls]);
+  
+  // Determinar el color según el progreso
+  const getProgressColor = () => {
+    if (progress < 33) return "bg-gloria-purple";
+    if (progress < 66) return "bg-blue-500";
+    if (progress < 90) return "bg-green-500";
+    return "bg-gloria-gold";
+  };
   
   return (
     <div className="mb-6">
@@ -22,22 +39,27 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         <div className="text-sm text-gray-500">
           Pregunta {currentQuestion + 1} de {totalQuestions}
         </div>
-        <div className="text-sm font-medium text-gloria-purple">
+        <motion.div 
+          className="text-sm font-medium text-gloria-purple"
+          animate={controls}
+        >
           {myPoints} puntos
-        </div>
+        </motion.div>
       </div>
       
       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
         <motion.div 
           className={cn(
             "h-full rounded-full",
-            progress < 33 ? "bg-gloria-purple" : 
-            progress < 66 ? "bg-blue-500" : 
-            progress < 90 ? "bg-green-500" : "bg-gloria-gold"
+            getProgressColor()
           )}
           initial={{ width: '0%' }}
           animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ 
+            duration: 0.5, 
+            ease: "easeOut" 
+          }}
+          layout
         />
       </div>
     </div>

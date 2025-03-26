@@ -1,81 +1,82 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { gameNotifications } from '@/components/ui/notification-toast';
+import { LiveGameState } from '@/types/liveGame';
+import { Player } from '@/types/game';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useGameStateValues = (
-  gameState: any,
+  gameState: LiveGameState | null,
   currentQuestion: any,
-  leaderboardData: any[],
+  leaderboardData: Player[],
   lastAnswerResult: any,
-  submitAnswer: (optionId: string) => void
+  submitAnswerFunction: (optionId: string, answerTimeMs: number) => Promise<any>
 ) => {
+  const { user } = useAuth();
+  const [leaderboard, setLeaderboard] = useState<Player[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [myRank, setMyRank] = useState(0);
   const [myPoints, setMyPoints] = useState(0);
   const [lastPoints, setLastPoints] = useState(0);
-  
-  // Reset selected option when question changes
-  useEffect(() => {
-    if (gameState?.status === 'question') {
-      setSelectedOption(null);
-    }
-  }, [gameState?.current_question, gameState?.status]);
-  
-  // Update my rank and points from leaderboard
+  const [answerStartTime, setAnswerStartTime] = useState<number | null>(null);
+
+  // Update leaderboard when data changes
   useEffect(() => {
     if (leaderboardData && leaderboardData.length > 0) {
-      // Encontrar mi jugador (supone que el primer jugador en la lista es el usuario actual)
-      const myPlayer = leaderboardData[0];
+      setLeaderboard(leaderboardData);
       
-      if (myPlayer) {
-        setMyRank(myPlayer.rank);
-        setMyPoints(myPlayer.points);
+      // Find user's rank and points
+      const userPlayer = leaderboardData.find(player => player.id === user?.id);
+      if (userPlayer) {
+        setMyRank(userPlayer.rank);
+        setMyPoints(userPlayer.points);
       }
     }
-  }, [leaderboardData]);
-  
-  // Update last points gained from answer result
+  }, [leaderboardData, user?.id]);
+
+  // Update when we get answer results
   useEffect(() => {
-    if (lastAnswerResult && lastAnswerResult.pointsGained) {
-      setLastPoints(lastAnswerResult.pointsGained);
-      
-      // Mostrar notificación basada en el resultado
-      if (lastAnswerResult.isCorrect) {
-        gameNotifications.correctAnswer(lastAnswerResult.pointsGained);
-      } else {
-        gameNotifications.wrongAnswer();
-      }
+    if (lastAnswerResult) {
+      const points = lastAnswerResult.points || 0;
+      setLastPoints(points);
     }
   }, [lastAnswerResult]);
-  
-  // Handle selecting an option
-  const handleSelectOption = useCallback((optionId: string) => {
-    // Si ya hay una opción seleccionada, no hacer nada
-    if (selectedOption) return;
+
+  // Reset selected option when question changes
+  useEffect(() => {
+    if (gameState?.status === 'question' && currentQuestion) {
+      setSelectedOption(null);
+      
+      // Store the time when question was presented
+      setAnswerStartTime(Date.now());
+    }
+  }, [gameState?.status, currentQuestion]);
+
+  // Handler for selecting an option
+  const handleSelectOption = useCallback(async (optionId: string) => {
+    if (selectedOption || !gameState || gameState.status !== 'question') return;
     
-    // Establecer la opción seleccionada
     setSelectedOption(optionId);
     
-    // Enviar la respuesta al servidor
-    submitAnswer(optionId);
-    
-    // Aplicar efectos visuales o sonoros aquí si se desea
-  }, [selectedOption, submitAnswer]);
-  
-  // Crear un array de jugadores ordenado para el tablero de líderes
-  const leaderboard = leaderboardData?.map(player => ({
-    ...player,
-    // Añadir un campo para un avatar por defecto si no tiene
-    avatar: player.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`
-  })) || [];
-  
+    try {
+      // Calculate time taken to answer
+      const answerTime = answerStartTime ? Date.now() - answerStartTime : 0;
+      
+      // Submit answer with time taken
+      await submitAnswerFunction(optionId, answerTime);
+    } catch (error) {
+      console.error('Error submitting answer:', error);
+    }
+  }, [selectedOption, gameState, submitAnswerFunction, answerStartTime]);
+
   return {
+    leaderboard,
     selectedOption,
     setSelectedOption,
-    leaderboard,
     myRank,
     myPoints,
     lastPoints,
     handleSelectOption
   };
 };
+
+export default useGameStateValues;
