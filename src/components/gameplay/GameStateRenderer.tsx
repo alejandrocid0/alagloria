@@ -34,7 +34,7 @@ interface GameStateRendererProps {
   handleSelectOption: (optionId: string) => void;
   isGameHost: boolean;
   startGame: () => Promise<void>;
-  clientTimeOffset?: number; // Add the missing prop
+  clientTimeOffset?: number;
 }
 
 const GameStateRenderer = ({
@@ -54,7 +54,8 @@ const GameStateRenderer = ({
   setSelectedOption,
   handleSelectOption,
   isGameHost,
-  startGame
+  startGame,
+  clientTimeOffset
 }: GameStateRendererProps) => {
   if (isLoading) {
     return <LoadingState />;

@@ -65,18 +65,22 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
       try {
         const { data: gameParticipants } = await supabase
           .from('game_participants')
-          .select('user_id, users(name, avatar_url)')
+          .select('user_id, profiles:user_id(name, avatar_url)')
           .eq('game_id', gameId);
         
         if (gameParticipants) {
-          const players = gameParticipants.map((p, index) => ({
-            id: p.user_id,
-            name: p.users?.name || `Jugador ${index + 1}`,
-            points: 0,
-            rank: index + 1,
-            avatar: p.users?.avatar_url || undefined,
-            lastAnswer: null
-          }));
+          const players = gameParticipants.map((p, index) => {
+            // Safely access properties using optional chaining
+            const profileData = p.profiles as any;
+            return {
+              id: p.user_id,
+              name: profileData?.name || `Jugador ${index + 1}`,
+              points: 0,
+              rank: index + 1,
+              avatar: profileData?.avatar_url || undefined,
+              lastAnswer: null
+            };
+          });
           
           setPlayersOnline(players);
         }
@@ -90,7 +94,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
       try {
         const { data: gameParticipants, error } = await supabase
           .from('game_participants')
-          .select('user_id, users:user_id(name, avatar_url)')
+          .select('user_id, profiles:user_id(name, avatar_url)')
           .eq('game_id', gameId);
         
         if (error) throw error;
@@ -98,13 +102,13 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         if (gameParticipants && gameParticipants.length > 0) {
           const players = gameParticipants.map((p, index) => {
             // Safely access properties using optional chaining
-            const userData = p.users as any;
+            const profileData = p.profiles as any;
             return {
               id: p.user_id,
-              name: userData?.name || `Jugador ${index + 1}`,
+              name: profileData?.name || `Jugador ${index + 1}`,
               points: 0,
               rank: index + 1,
-              avatar: userData?.avatar_url || undefined,
+              avatar: profileData?.avatar_url || undefined,
               lastAnswer: null
             };
           });

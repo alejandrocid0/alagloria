@@ -48,10 +48,16 @@ export const gameNotifications = {
     variant: "default",
   }),
   
-  // Add the missing notification
+  // Add the missing notifications
   fiveMinutesWarning: () => toast({
     title: "5 minutos para el inicio",
     description: "La partida comenzará en breve",
+    variant: "default",
+  }),
+  
+  resultsSaved: () => toast({
+    title: "Resultados guardados",
+    description: "Tus resultados han sido guardados correctamente",
     variant: "default",
   })
 };
