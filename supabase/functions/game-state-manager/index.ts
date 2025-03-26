@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     if (gamesError) {
       console.error('Error al obtener juegos activos:', gamesError);
       return new Response(
-        JSON.stringify({ error: 'Error al obtener juegos activos' }),
+        JSON.stringify({ error: 'Error al obtener juegos activos', details: gamesError.message }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: 500 
@@ -47,28 +47,45 @@ Deno.serve(async (req) => {
       const lastUpdate = new Date(game.updated_at);
       const elapsedSeconds = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
       
+      // Registrar el estado actual y el tiempo transcurrido
+      console.log(`Juego ${game.id}: Estado ${game.status}, Pregunta ${game.current_question}, Tiempo transcurrido: ${elapsedSeconds}s/${game.countdown}s`);
+      
       // Si el tiempo transcurrido excede el countdown, avanzar el estado
       if (elapsedSeconds >= game.countdown) {
         console.log(`Avanzando automáticamente el juego ${game.id} desde el estado ${game.status} (${elapsedSeconds}s transcurridos > ${game.countdown}s countdown)`);
         
-        const advanceResult = await advanceGameState(game.id);
-        results.push({
-          gameId: game.id,
-          previousStatus: game.status,
-          newStatus: advanceResult.newStatus,
-          autoAdvanced: true
-        });
+        try {
+          const advanceResult = await advanceGameState(game.id);
+          results.push({
+            gameId: game.id,
+            previousStatus: game.status,
+            newStatus: advanceResult.newStatus,
+            autoAdvanced: true,
+            success: advanceResult.success,
+            details: advanceResult.message
+          });
+        } catch (error) {
+          console.error(`Error al avanzar juego ${game.id}:`, error);
+          results.push({
+            gameId: game.id,
+            previousStatus: game.status,
+            autoAdvanced: false,
+            success: false,
+            error: error.message
+          });
+        }
       }
     }
     
     // También comprobamos juegos programados que deberían iniciarse
-    await checkScheduledGames();
+    const scheduledResult = await checkScheduledGames();
     
     return new Response(
       JSON.stringify({ 
         success: true,
         message: `Comprobados ${activeGames.length} juegos activos`,
-        advancedGames: results
+        advancedGames: results,
+        scheduledGamesResult: scheduledResult
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -78,7 +95,10 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error('Error inesperado:', err);
     return new Response(
-      JSON.stringify({ error: 'Error interno del servidor' }),
+      JSON.stringify({ 
+        error: 'Error interno del servidor', 
+        details: err.message 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
         status: 500 
@@ -96,7 +116,7 @@ async function advanceGameState(gameId) {
 
     if (getError) {
       console.error('Error al obtener el estado del juego:', getError);
-      throw new Error('Error al obtener el estado del juego');
+      throw new Error(`Error al obtener el estado del juego: ${getError.message}`);
     }
 
     if (!gameState || gameState.length === 0) {
@@ -157,6 +177,8 @@ async function advanceGameState(gameId) {
         throw new Error(`Estado no reconocido: ${currentState.status}`);
     }
 
+    console.log(`Actualizando juego ${gameId} de estado ${currentState.status} a ${nextState}, pregunta ${currentQuestion}, cuenta atrás ${countdown}s`);
+
     // Actualizar al siguiente estado
     const { error: updateError } = await supabaseClient
       .from('live_games')
@@ -170,7 +192,7 @@ async function advanceGameState(gameId) {
 
     if (updateError) {
       console.error('Error al actualizar el estado del juego:', updateError);
-      throw new Error('Error al actualizar el estado del juego');
+      throw new Error(`Error al actualizar el estado del juego: ${updateError.message}`);
     }
 
     return {
@@ -197,14 +219,33 @@ async function checkScheduledGames() {
     
     if (error) {
       console.error('Error al comprobar juegos programados:', error);
-      return false;
+      return { success: false, error: error.message };
+    }
+    
+    // Obtener las partidas que se han activado recientemente (últimos 5 minutos)
+    const { data: recentGames, error: recentError } = await supabaseClient
+      .from('live_games')
+      .select('id, status, created_at')
+      .gt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    
+    if (recentError) {
+      console.error('Error al obtener partidas recientes:', recentError);
+    } else {
+      console.log(`Se encontraron ${recentGames?.length || 0} partidas activadas en los últimos 5 minutos`);
     }
     
     console.log('Juegos programados comprobados correctamente');
-    return true;
+    return { 
+      success: true, 
+      recently_activated_games: recentGames?.length || 0,
+      recent_games: recentGames || []
+    };
   } catch (err) {
     console.error('Error inesperado al comprobar juegos programados:', err);
-    return false;
+    return { 
+      success: false, 
+      error: err.message 
+    };
   }
 }
 
@@ -221,6 +262,7 @@ async function getTotalQuestions(gameId) {
       return null;
     }
     
+    console.log(`Juego ${gameId} tiene ${count} preguntas totales`);
     return count || 0;
   } catch (err) {
     console.error('Error al obtener total de preguntas:', err);

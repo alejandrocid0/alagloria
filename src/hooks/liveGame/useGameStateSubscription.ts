@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { LiveGameState } from '@/types/liveGame';
-import { fetchGameState, subscribeToGameStateUpdates } from './gameStateUtils';
+import { fetchGameState, subscribeToGameStateUpdates, runGameStateManager, checkScheduledGames } from './gameStateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -11,11 +11,12 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
   
-  // References for reconnection logic
+  // Referencias para reconexión y verificación
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastConnectionAttemptRef = useRef<number>(0);
   const reconnectAttemptsRef = useRef<number>(0);
   const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gameCheckerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Fetch game state from the server
   const fetchGameStateData = useCallback(async () => {
@@ -25,26 +26,9 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       const state = await fetchGameState(gameId);
       
       if (state) {
+        console.log(`Estado del juego ${gameId} obtenido:`, state);
         setGameState(state);
-        
-        // Set up auto-advancement if needed
-        if (state.countdown > 0) {
-          // Clear any existing timer
-          if (autoAdvanceTimerRef.current) {
-            clearTimeout(autoAdvanceTimerRef.current);
-          }
-          
-          // Set up new timer for auto-advancement
-          autoAdvanceTimerRef.current = setupAutoAdvance(
-            gameId, 
-            state.status, 
-            state.countdown,
-            () => {
-              console.log(`State auto-advanced from ${state.status}`);
-              // Additional callback logic if needed
-            }
-          );
-        }
+        setIsLoading(false);
         
         // Update connection state to connected if we successfully fetched the state
         if (!isConnected) {
@@ -56,10 +40,14 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
           });
           reconnectAttemptsRef.current = 0;
         }
+      } else {
+        console.log(`No se encontró estado para el juego ${gameId}`);
+        setIsLoading(false);
       }
     } catch (err) {
       console.error('Error fetching game state:', err);
       setError('No se pudo cargar el estado del juego');
+      setIsLoading(false);
       
       // Mark as disconnected if fetch fails
       if (isConnected) {
@@ -96,11 +84,13 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       maxDelay
     );
     
+    console.log(`Programando reconexión en ${delay}ms (intento ${reconnectAttemptsRef.current + 1})`);
+    
     // Schedule reconnection
     reconnectTimerRef.current = setTimeout(() => {
       lastConnectionAttemptRef.current = Date.now();
       reconnectAttemptsRef.current += 1;
-      console.log(`Reconnection attempt ${reconnectAttemptsRef.current} after ${delay}ms`);
+      console.log(`Intento de reconexión ${reconnectAttemptsRef.current} después de ${delay}ms`);
       
       // Attempt to fetch data and reestablish subscriptions
       fetchGameStateData();
@@ -109,53 +99,85 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
 
   // Handle game state changes
   const handleGameStateChange = useCallback((payload: any) => {
-    console.log('Game state changed:', payload);
+    console.log('Cambio en el estado del juego detectado:', payload);
     fetchGameStateData();
   }, [fetchGameStateData]);
 
-  // Function to trigger automatic state advancement based on countdown
-  const setupAutoAdvance = (gameId: string, status: string, countdown: number, callback?: () => void) => {
-    if (!gameId || countdown <= 0) return null;
+  // Initialize periodic check for game state
+  const initializeGameChecker = useCallback(() => {
+    if (gameCheckerIntervalRef.current) {
+      clearInterval(gameCheckerIntervalRef.current);
+    }
     
-    console.log(`Setting up auto-advance for ${status} state in ${countdown} seconds`);
+    console.log('Inicializando verificador periódico de estado de juego...');
     
-    // Set a timer that will advance the state when countdown reaches zero
-    const timer = setTimeout(async () => {
-      console.log(`Auto-advancing game ${gameId} from ${status} state after ${countdown} seconds`);
+    // Check immediately
+    runGameStateManager()
+      .then(result => console.log('Resultado de verificación inicial:', result))
+      .catch(err => console.error('Error en verificación inicial:', err));
+    
+    checkScheduledGames()
+      .then(result => console.log('Resultado de verificación de partidas programadas:', result))
+      .catch(err => console.error('Error en verificación de partidas programadas:', err));
+    
+    // Set up periodic check (every 30 seconds)
+    gameCheckerIntervalRef.current = setInterval(() => {
+      console.log('Ejecutando verificación periódica de estado de juego...');
       
-      // Call the callback if it exists
-      if (callback) {
-        callback();
+      // Solo ejecutar si hay un gameId
+      if (gameId) {
+        runGameStateManager().catch(err => console.error('Error en verificación periódica:', err));
+        checkScheduledGames().catch(err => console.error('Error en verificación periódica de partidas programadas:', err));
       }
-    }, countdown * 1000); // Convert seconds to milliseconds
+    }, 30000); // 30 seconds
     
-    // Return the timer so it can be cleared if needed
-    return timer;
-  };
+    return () => {
+      if (gameCheckerIntervalRef.current) {
+        clearInterval(gameCheckerIntervalRef.current);
+        gameCheckerIntervalRef.current = null;
+      }
+    };
+  }, [gameId]);
 
   // Set up subscriptions for real-time updates
   useEffect(() => {
     let gameStateChannel: any = null;
     
     if (gameId) {
+      console.log(`Suscribiendo a actualizaciones para el juego ${gameId}`);
       gameStateChannel = subscribeToGameStateUpdates(gameId, handleGameStateChange);
+      
+      // Fetch initial state
+      fetchGameStateData();
+      
+      // Initialize game checker
+      const cleanupGameChecker = initializeGameChecker();
+      
+      return () => {
+        console.log(`Cancelando suscripción para el juego ${gameId}`);
+        if (gameStateChannel) supabase.removeChannel(gameStateChannel);
+        
+        // Clean up game checker
+        cleanupGameChecker();
+        
+        // Clear any auto-advance timer
+        if (autoAdvanceTimerRef.current) {
+          clearTimeout(autoAdvanceTimerRef.current);
+          autoAdvanceTimerRef.current = null;
+        }
+        
+        // Clear reconnect timer
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
+      };
     }
     
-    // Clean up subscriptions when unmounting
     return () => {
       if (gameStateChannel) supabase.removeChannel(gameStateChannel);
-      
-      // Clear any auto-advance timer
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      
-      // Clear reconnect timer
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-      }
     };
-  }, [gameId, handleGameStateChange]);
+  }, [gameId, handleGameStateChange, fetchGameStateData, initializeGameChecker]);
 
   return {
     gameState,

@@ -122,6 +122,25 @@ export async function runGameStateManager() {
   }
 }
 
+// Function to check scheduled games
+export async function checkScheduledGames() {
+  try {
+    // Llamar a la edge function para verificar partidas programadas
+    const { data, error } = await supabase.functions.invoke('check-scheduled-games');
+    
+    if (error) {
+      console.error('Error checking scheduled games:', error);
+      return false;
+    }
+    
+    console.log('Check scheduled games result:', data);
+    return true;
+  } catch (err) {
+    console.error('Error checking scheduled games:', err);
+    return false;
+  }
+}
+
 // Function to trigger automatic state advancement based on countdown
 export function setupAutoAdvance(gameId: string, status: string, countdown: number, callback?: () => void) {
   if (!gameId || countdown <= 0) return null;
@@ -147,4 +166,27 @@ export function setupAutoAdvance(gameId: string, status: string, countdown: numb
   
   // Return the timer so it can be cleared if needed
   return timer;
+}
+
+// Initialize periodic check for scheduled games
+export function initializeGameChecker() {
+  console.log('Initializing game state checker...');
+  
+  // Check immediately on startup
+  checkScheduledGames()
+    .then(result => console.log('Initial check result:', result))
+    .catch(err => console.error('Initial check error:', err));
+  
+  // Set up periodic check (every 60 seconds)
+  const intervalId = setInterval(async () => {
+    console.log('Running periodic game state check...');
+    try {
+      await checkScheduledGames();
+      await runGameStateManager();
+    } catch (error) {
+      console.error('Error in periodic game check:', error);
+    }
+  }, 60000); // 60 seconds
+  
+  return intervalId;
 }

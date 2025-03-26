@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 type GameState = 'waiting' | 'question' | 'result' | 'leaderboard' | 'finished';
 
@@ -25,64 +25,132 @@ export const useGameCountdown = ({
   onTimeRemainingChange
 }: UseGameCountdownProps) => {
   const [countdown, setCountdown] = useState(5);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Limpiar cualquier timer existente cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
+    // Limpiar cualquier timer existente cuando cambie el estado
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
     if (currentState === 'waiting') {
-      const timer = setInterval(() => {
+      console.log('Estado: waiting - Iniciando cuenta atrás de 5 segundos');
+      setCountdown(5);
+      
+      timerRef.current = setInterval(() => {
         setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
+          const newValue = prev - 1;
+          console.log(`Cuenta atrás de espera: ${newValue} segundos`);
+          
+          if (newValue <= 1) {
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            
+            console.log('Cuenta atrás finalizada - Cambiando a estado question');
             onStateChange('question');
             return 0;
           }
-          return prev - 1;
+          return newValue;
         });
       }, 1000);
       
-      return () => clearInterval(timer);
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
     }
     
     if (currentState === 'question') {
+      console.log('Estado: question - Iniciando cuenta atrás de 20 segundos');
       let currentTimeRemaining = 20; // Valor inicial
+      onTimeRemainingChange(currentTimeRemaining);
       
-      const timer = setInterval(() => {
+      timerRef.current = setInterval(() => {
         currentTimeRemaining = currentTimeRemaining - 1;
+        console.log(`Tiempo restante para responder: ${currentTimeRemaining} segundos`);
         onTimeRemainingChange(currentTimeRemaining);
         
         if (currentTimeRemaining <= 0) {
-          clearInterval(timer);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          
+          console.log('Tiempo agotado para responder - Cambiando a estado result');
           // Auto advance when time runs out, regardless of user selection
           onStateChange('result');
           if (!selectedOption) {
+            console.log('No se seleccionó ninguna opción - Marcando como timeout');
             onSelectedOptionChange('timeout'); // Mark as timeout
           }
         }
       }, 1000);
       
-      return () => clearInterval(timer);
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
     }
     
     if (currentState === 'result') {
-      const timer = setTimeout(() => {
+      console.log('Estado: result - Mostrando resultado por 3 segundos');
+      
+      timerRef.current = setTimeout(() => {
+        console.log(`Fin de mostrar resultado - ${currentQuestion < gameQuestionsLength - 1 ? 'Mostrando leaderboard' : 'Finalizando partida'}`);
+        
         if (currentQuestion < gameQuestionsLength - 1) {
           onStateChange('leaderboard');
         } else {
           onStateChange('finished');
         }
+        
+        timerRef.current = null;
       }, 3000);
       
-      return () => clearTimeout(timer);
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+      };
     }
     
     if (currentState === 'leaderboard') {
-      const timer = setTimeout(() => {
+      console.log('Estado: leaderboard - Mostrando clasificación por 5 segundos');
+      
+      timerRef.current = setTimeout(() => {
+        console.log('Fin de mostrar leaderboard - Pasando a siguiente pregunta');
         onCurrentQuestionChange(currentQuestion + 1);
         onSelectedOptionChange(null);
         onTimeRemainingChange(20);
         onStateChange('question');
+        
+        timerRef.current = null;
       }, 5000);
       
-      return () => clearTimeout(timer);
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+      };
     }
   }, [
     currentState, 
