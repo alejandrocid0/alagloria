@@ -30,8 +30,8 @@ export const useGamePlayRoute = () => {
       
       if (gameState) {
         console.log('[GamePlayRoute] Estado del juego:', gameState.status);
-        // Si el juego está en cualquier estado diferente a "pending", se considera activo
-        const active = gameState.status !== 'pending';
+        // Si el juego está en estado 'waiting' pero con countdown bajo o en otros estados, se considera activo
+        const active = gameState.status !== 'waiting' || (gameState.status === 'waiting' && gameState.countdown <= 30);
         setIsGameActive(active);
         
         // Si estamos en modo espera pero el juego ya está activo, redirigir a juego en vivo
