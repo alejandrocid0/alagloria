@@ -15,6 +15,7 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   
   // Obtenemos la función para sincronizar tiempo
   const { syncWithServer } = useTimeSync();
@@ -23,6 +24,15 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
   const fetchGameStateData = useCallback(async () => {
     if (!gameId) return;
 
+    // Throttle requests - don't allow more than one fetch every 2 seconds
+    const now = Date.now();
+    if (now - lastFetchTime < 2000) {
+      console.log(`[GameState] Throttling fetch request (${Math.floor((now - lastFetchTime)/1000)}s since last fetch)`);
+      return;
+    }
+    
+    setLastFetchTime(now);
+
     try {
       // Sincronizar con el servidor antes de obtener el estado
       await syncWithServer();
@@ -30,12 +40,28 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       const state = await fetchGameState(gameId);
       
       if (state) {
-        console.log(`Estado del juego ${gameId} obtenido:`, state);
-        setGameState(state);
-        setIsLoading(false);
+        console.log(`[GameState] Estado del juego ${gameId} obtenido:`, state);
         
-        // Update stale data checker
-        updateLastStateTimestamp();
+        // Only update state if it's actually different from current state
+        // or if it's the same status but the updated_at timestamp is newer
+        if (!gameState || 
+            gameState.status !== state.status || 
+            gameState.current_question !== state.current_question ||
+            gameState.countdown !== state.countdown ||
+            new Date(state.updated_at) > new Date(gameState.updated_at)) {
+          
+          console.log(`[GameState] Actualizando estado del juego:`, state);
+          setGameState(state);
+          setIsLoading(false);
+          
+          // Update stale data checker
+          updateLastStateTimestamp();
+          
+          // Configurar un timer para auto-avanzar basado en el countdown
+          autoAdvanceTimer.setupAutoAdvanceTimer(state);
+        } else {
+          console.log(`[GameState] El estado no ha cambiado significativamente, omitiendo actualización`);
+        }
         
         // Update connection state to connected if we successfully fetched the state
         if (!isConnected) {
@@ -47,15 +73,12 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
           });
           reconnection.reconnectAttemptsRef.current = 0;
         }
-        
-        // Configurar un timer para auto-avanzar basado en el countdown
-        autoAdvanceTimer.setupAutoAdvanceTimer(state);
       } else {
-        console.log(`No se encontró estado para el juego ${gameId}`);
+        console.log(`[GameState] No se encontró estado para el juego ${gameId}`);
         setIsLoading(false);
       }
     } catch (err) {
-      console.error('Error fetching game state:', err);
+      console.error('[GameState] Error fetching game state:', err);
       setError('No se pudo cargar el estado del juego');
       setIsLoading(false);
       
@@ -72,7 +95,7 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       // Schedule reconnection attempt with exponential backoff
       reconnection.scheduleReconnect();
     }
-  }, [gameId, isConnected, syncWithServer]);
+  }, [gameId, isConnected, syncWithServer, lastFetchTime, gameState]);
 
   // Initialize reconnection handler
   const reconnection = useReconnection(isConnected, fetchGameStateData);
@@ -87,15 +110,27 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
   const gameChecker = useGameChecker(gameId);
 
   // Handle game state changes from subscription
-  const handleGameStateChange = useCallback(() => {
-    // Update timestamp and fetch new state
+  const handleGameStateChange = useCallback((payload: any) => {
+    console.log('[GameState] Cambio detectado por suscripción:', payload);
+    
+    // Check if this is a new state by comparing timestamps
+    if (gameState && payload.new && new Date(payload.new.updated_at) <= new Date(gameState.updated_at)) {
+      console.log('[GameState] El estado recibido es más antiguo o igual que el actual, ignorando');
+      return;
+    }
+    
+    // Update timestamp
     updateLastStateTimestamp();
     
+    // Fetch new state rather than directly using payload to ensure consistency
     // Sync with server before fetching new state
     syncWithServer().then(() => {
-      fetchGameStateData();
+      // Add small delay to allow database to settle
+      setTimeout(() => {
+        fetchGameStateData();
+      }, 300);
     });
-  }, [fetchGameStateData, syncWithServer]);
+  }, [fetchGameStateData, syncWithServer, updateLastStateTimestamp, gameState]);
 
   // Set up subscription to game state changes
   useGameSubscription(gameId, handleGameStateChange);
@@ -109,6 +144,12 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       // Initialize game checker
       const cleanupGameChecker = gameChecker.initializeGameChecker();
       
+      // Set up a periodic refresh to make sure we stay in sync (every 15s)
+      const periodicRefreshInterval = setInterval(() => {
+        console.log('[GameState] Realizando actualización periódica');
+        fetchGameStateData();
+      }, 15000);
+      
       return () => {
         // Clean up game checker
         cleanupGameChecker();
@@ -118,6 +159,9 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
         
         // Clean up reconnection timer
         reconnection.cleanup();
+        
+        // Clean up periodic refresh
+        clearInterval(periodicRefreshInterval);
       };
     }
   }, [gameId, fetchGameStateData, gameChecker, autoAdvanceTimer, reconnection]);

@@ -12,9 +12,9 @@ export const useGameSubscription = (
 ) => {
   // Handle game state changes
   const handleGameStateChange = useCallback((payload: any) => {
-    console.log('Cambio en el estado del juego detectado:', payload);
+    console.log('[GameSubscription] Cambio en el estado del juego detectado:', payload);
     
-    // Call the provided callback
+    // Call the provided callback with the payload
     onGameStateChange(payload);
   }, [onGameStateChange]);
 
@@ -23,17 +23,31 @@ export const useGameSubscription = (
     let gameStateChannel: any = null;
     
     if (gameId) {
-      console.log(`Suscribiendo a actualizaciones para el juego ${gameId}`);
+      console.log(`[GameSubscription] Suscribiendo a actualizaciones para el juego ${gameId}`);
+      
+      // Create subscription
       gameStateChannel = subscribeToGameStateUpdates(gameId, handleGameStateChange);
       
+      // Check if subscription was successful
+      if (gameStateChannel) {
+        console.log(`[GameSubscription] Suscripción creada con éxito`);
+      } else {
+        console.error(`[GameSubscription] Error al crear la suscripción`);
+      }
+      
       return () => {
-        console.log(`Cancelando suscripción para el juego ${gameId}`);
-        if (gameStateChannel) supabase.removeChannel(gameStateChannel);
+        console.log(`[GameSubscription] Cancelando suscripción para el juego ${gameId}`);
+        if (gameStateChannel) {
+          const result = supabase.removeChannel(gameStateChannel);
+          console.log('[GameSubscription] Resultado de cancelar suscripción:', result);
+        }
       };
     }
     
     return () => {
-      if (gameStateChannel) supabase.removeChannel(gameStateChannel);
+      if (gameStateChannel) {
+        supabase.removeChannel(gameStateChannel);
+      }
     };
   }, [gameId, handleGameStateChange]);
 };
