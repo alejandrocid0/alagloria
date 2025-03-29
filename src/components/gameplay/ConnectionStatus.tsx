@@ -12,6 +12,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   isConnected, 
   reconnectAttempts 
 }) => {
+  // Only show the component if we're disconnected or recently reconnected
   if (isConnected && reconnectAttempts === 0) return null;
   
   return (
