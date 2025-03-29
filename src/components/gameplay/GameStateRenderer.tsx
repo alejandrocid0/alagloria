@@ -1,7 +1,7 @@
-
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuizQuestion } from '@/types/quiz';
 import { Player } from '@/types/game';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 import WaitingState from './WaitingState';
 import QuestionState from './QuestionState';
 import ResultState from './ResultState';
@@ -12,7 +12,6 @@ import ErrorState from './ErrorState';
 import WaitingRoom from './WaitingRoom';
 import ProgressBar from './ProgressBar';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2 } from 'lucide-react';
 
 interface GameStateRendererProps {
   gameId: string | undefined;
@@ -67,25 +66,20 @@ const GameStateRenderer = ({
     return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
   }
   
-  // Comprobar si es el momento de la partida
   const currentTime = new Date();
   const scheduledTime = gameInfo.scheduledTime ? new Date(gameInfo.scheduledTime) : null;
   const isBeforeGameStart = scheduledTime && currentTime < scheduledTime;
   
-  // Calcular el tiempo hasta el inicio (para determinar si estamos en los 5 minutos previos)
   const timeUntilStartInMinutes = scheduledTime 
     ? Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60))) 
     : 0;
   
-  // Calcular segundos exactos para más precisión en la sala de espera dinámica
   const timeUntilStartInSeconds = scheduledTime 
     ? Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / 1000)) 
     : 0;
   
-  // Determinar si estamos en los 5 minutos previos al inicio (sala de espera inmediata)
   const isWithinFiveMinutes = timeUntilStartInMinutes <= 5;
 
-  // Si estamos más de 5 minutos antes del inicio de la partida
   if (isBeforeGameStart && !isWithinFiveMinutes) {
     return (
       <div className="text-center p-8">
@@ -106,7 +100,6 @@ const GameStateRenderer = ({
     );
   }
 
-  // Si estamos dentro de los 5 minutos previos, mostrar la sala de espera inmediata (Kahoot-style)
   if (isBeforeGameStart && isWithinFiveMinutes) {
     return (
       <div className="p-4 md:p-6 text-center">
@@ -144,7 +137,6 @@ const GameStateRenderer = ({
     );
   }
 
-  // Si ya es la hora de la partida o está en curso, mostrar la interfaz de juego
   return (
     <div className="p-4 md:p-6">
       {gameState.status !== 'waiting' && gameState.status !== 'finished' && (
