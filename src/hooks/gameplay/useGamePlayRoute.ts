@@ -74,8 +74,16 @@ export const useGamePlayRoute = () => {
       const scheduledTime = new Date(gameInfo.scheduledTime);
       const timeUntilStart = Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / 1000));
       
-      setIsWithinFiveMinutes(timeUntilStart <= 300); // 5 minutes = 300 seconds
-      console.log(`[GamePlayRoute] Tiempo hasta el inicio: ${timeUntilStart}s, dentro de 5 minutos: ${timeUntilStart <= 300}`);
+      // Actualizar el estado isWithinFiveMinutes
+      const withinFiveMinutes = timeUntilStart <= 300; // 5 minutos = 300 segundos
+      setIsWithinFiveMinutes(withinFiveMinutes);
+      
+      console.log(`[GamePlayRoute] Tiempo hasta el inicio: ${timeUntilStart}s, dentro de 5 minutos: ${withinFiveMinutes}`);
+      
+      // Si estamos dentro de los 5 minutos por primera vez, mostrar notificación
+      if (withinFiveMinutes && !isWithinFiveMinutes) {
+        gameNotifications.fiveMinutesWarning();
+      }
     }
     
     // Periodically check if game became active
@@ -83,10 +91,10 @@ export const useGamePlayRoute = () => {
       if (isWaitingMode) {
         checkGameActive();
       }
-    }, 30000); // Every 30 seconds
+    }, 15000); // Cada 15 segundos (reducido de 30s para mayor precisión)
     
     return () => clearInterval(intervalId);
-  }, [gameId, isWaitingMode, navigate, checkGameActive, gameInfo.scheduledTime]);
+  }, [gameId, isWaitingMode, navigate, checkGameActive, gameInfo.scheduledTime, isWithinFiveMinutes]);
   
   // Check if we should redirect based on scheduled time
   useEffect(() => {
@@ -100,7 +108,7 @@ export const useGamePlayRoute = () => {
         ? Math.ceil((scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60)) 
         : 0;
       
-      // If more than 5 minutes before start and not in waiting room, redirect
+      // Si faltan más de 5 minutos y no estamos en sala de espera, redirigir a sala de espera
       if (isBeforeGameStart && minutesUntilStart > 5 && !isWaitingMode) {
         console.log(`[GamePlayRoute] Partida programada para dentro de ${minutesUntilStart} minutos, redirigiendo a sala de espera...`);
         navigate(`/game/${gameId}/waiting`);

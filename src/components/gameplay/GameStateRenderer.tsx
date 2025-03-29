@@ -11,6 +11,8 @@ import LoadingState from './LoadingState';
 import ErrorState from './ErrorState';
 import WaitingRoom from './WaitingRoom';
 import ProgressBar from './ProgressBar';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2 } from 'lucide-react';
 
 interface GameStateRendererProps {
   gameId: string | undefined;
@@ -75,6 +77,11 @@ const GameStateRenderer = ({
     ? Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60))) 
     : 0;
   
+  // Calcular segundos exactos para más precisión en la sala de espera dinámica
+  const timeUntilStartInSeconds = scheduledTime 
+    ? Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / 1000)) 
+    : 0;
+  
   // Determinar si estamos en los 5 minutos previos al inicio (sala de espera inmediata)
   const isWithinFiveMinutes = timeUntilStartInMinutes <= 5;
 
@@ -101,15 +108,39 @@ const GameStateRenderer = ({
 
   // Si estamos dentro de los 5 minutos previos, mostrar la sala de espera inmediata (Kahoot-style)
   if (isBeforeGameStart && isWithinFiveMinutes) {
-    const timeUntilStart = Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / 1000));
-    
     return (
-      <WaitingRoom 
-        gameTitle={gameInfo.title} 
-        scheduledTime={gameInfo.scheduledTime}
-        playersOnline={leaderboard || []}
-        timeUntilStart={timeUntilStart}
-      />
+      <div className="p-4 md:p-6 text-center">
+        <div className="bg-green-50 border border-green-100 rounded-lg p-4 mb-6 inline-flex items-center">
+          <CheckCircle2 className="text-green-500 mr-2 h-5 w-5" />
+          <p className="text-green-700 font-medium">
+            Estás en la sala de espera dinámica
+          </p>
+        </div>
+        
+        <WaitingRoom 
+          gameTitle={gameInfo.title} 
+          scheduledTime={gameInfo.scheduledTime}
+          playersOnline={leaderboard || []}
+          timeUntilStart={timeUntilStartInSeconds}
+          isGameActive={gameState.status !== 'waiting'}
+        />
+        
+        {gameState.status === 'waiting' && (
+          <div className="mt-6">
+            <p className="text-sm text-gray-600 mb-3">
+              La partida comenzará automáticamente al llegar la hora programada
+            </p>
+            <Button 
+              disabled 
+              className="opacity-70"
+              variant="outline"
+            >
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Esperando inicio...
+            </Button>
+          </div>
+        )}
+      </div>
     );
   }
 

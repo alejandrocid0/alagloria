@@ -1,12 +1,17 @@
 
-import Navbar from '@/components/Navbar';
+import { Loader2 } from 'lucide-react';
 
 const GamePlayLoading = () => {
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="pt-20 md:pt-24 pb-16 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-gloria-purple/20 border-t-gloria-purple rounded-full"></div>
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+      <div className="bg-white p-8 rounded-xl shadow-md text-center">
+        <Loader2 className="w-12 h-12 mx-auto text-gloria-purple animate-spin" />
+        <h3 className="mt-4 text-xl font-medium text-gray-800">
+          Cargando partida...
+        </h3>
+        <p className="mt-2 text-gray-600">
+          Preparando la sala de espera para ti.
+        </p>
       </div>
     </div>
   );
