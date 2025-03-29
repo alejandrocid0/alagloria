@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import WaitingRoom from './WaitingRoom';
 import { Button } from '@/components/ui/button';
-import { Loader2, Clock, ArrowRight } from 'lucide-react';
+import { Loader2, Clock, ArrowRight, RefreshCw } from 'lucide-react';
 import { Player } from '@/types/liveGame';
 import { gameNotifications } from '@/components/ui/notification-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface WaitingModeDisplayProps {
   gameId: string | undefined;
@@ -26,6 +27,17 @@ const WaitingModeDisplay = ({
 }: WaitingModeDisplayProps) => {
   const [isWithinFiveMinutes, setIsWithinFiveMinutes] = useState(timeUntilStart <= 300);
   const [minutesRemaining, setMinutesRemaining] = useState(Math.ceil(timeUntilStart / 60));
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+  
+  // Función para refrescar la página para cargar nuevos datos
+  const handleRefresh = () => {
+    setLastUpdateTime(Date.now());
+    toast({
+      title: "Actualizando",
+      description: "Actualizando información de la partida..."
+    });
+    window.location.reload();
+  };
   
   // Actualizar los estados cuando cambie timeUntilStart
   useEffect(() => {
@@ -38,8 +50,33 @@ const WaitingModeDisplay = ({
     }
   }, [timeUntilStart]);
   
+  // Configurar refresco automático cada 5 minutos si falta mucho tiempo para el inicio
+  useEffect(() => {
+    if (!isWithinFiveMinutes && minutesRemaining > 15) {
+      const refreshTimeout = setTimeout(() => {
+        console.log("[WaitingMode] Realizando actualización automática");
+        handleRefresh();
+      }, 300000); // 5 minutos
+      
+      return () => clearTimeout(refreshTimeout);
+    }
+  }, [isWithinFiveMinutes, minutesRemaining, lastUpdateTime]);
+  
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center">
+      {/* Botón de refrescar */}
+      <div className="self-end mb-4">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleRefresh}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" /> 
+          Actualizar
+        </Button>
+      </div>
+      
       {/* Mensaje para sala de espera estática vs dinámica */}
       {!isWithinFiveMinutes ? (
         <div className="mb-4 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg">

@@ -1,18 +1,21 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchGameState } from '@/hooks/liveGame/gameStateUtils';
 import { gameNotifications } from '@/components/ui/notification-toast';
 import { useGameInfo } from '@/components/gameplay/hooks/useGameInfo';
+import { toast } from '@/hooks/use-toast';
 
 export const useGamePlayRoute = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { gameId, mode } = useParams<{ gameId: string; mode?: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const [isGameActive, setIsGameActive] = useState(false);
   const [isWithinFiveMinutes, setIsWithinFiveMinutes] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState(0);
   
   // Get game info
   const gameInfo = useGameInfo(gameId);
@@ -23,6 +26,15 @@ export const useGamePlayRoute = () => {
   // Check if game is active
   const checkGameActive = useCallback(async () => {
     if (!gameId) return;
+    
+    // Limitar comprobaciones frecuentes
+    const now = Date.now();
+    if (now - lastCheckTime < 5000) { // No comprobar más de una vez cada 5 segundos
+      console.log('[GamePlayRoute] Comprobación limitada, último check hace', Math.floor((now - lastCheckTime)/1000), 'segundos');
+      return;
+    }
+    
+    setLastCheckTime(now);
     
     try {
       console.log('[GamePlayRoute] Verificando estado del juego:', gameId);
@@ -43,11 +55,26 @@ export const useGamePlayRoute = () => {
             navigate(`/game/${gameId}`);
           }, 1500);
         }
+        
+        // Si estamos en juego en vivo pero el juego está en espera y falta mucho tiempo, redirigir a sala de espera
+        if (!isWaitingMode && gameState.status === 'waiting' && gameState.countdown > 60) {
+          console.log('[GamePlayRoute] Juego en espera detectado, redirigiendo a sala de espera');
+          
+          // Solo notificar si no acabamos de llegar a esta página
+          if (location.key !== 'default') {
+            toast({
+              title: "La partida aún no ha comenzado",
+              description: "Has sido redirigido a la sala de espera"
+            });
+          }
+          
+          navigate(`/game/${gameId}/waiting`);
+        }
       }
     } catch (err) {
       console.error('[GamePlayRoute] Error al verificar estado del juego:', err);
     }
-  }, [gameId, isWaitingMode, navigate]);
+  }, [gameId, isWaitingMode, navigate, lastCheckTime, location.key]);
   
   // Handle redirect to login if not authenticated
   useEffect(() => {
@@ -62,7 +89,7 @@ export const useGamePlayRoute = () => {
       }, 1000);
       return () => clearTimeout(timeout);
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.pathname]);
   
   // Check if game is active and update isWithinFiveMinutes
   useEffect(() => {
@@ -88,10 +115,8 @@ export const useGamePlayRoute = () => {
     
     // Periodically check if game became active
     const intervalId = setInterval(() => {
-      if (isWaitingMode) {
-        checkGameActive();
-      }
-    }, 15000); // Cada 15 segundos (reducido de 30s para mayor precisión)
+      checkGameActive();
+    }, 15000); // Cada 15 segundos
     
     return () => clearInterval(intervalId);
   }, [gameId, isWaitingMode, navigate, checkGameActive, gameInfo.scheduledTime, isWithinFiveMinutes]);

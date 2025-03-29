@@ -2,12 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Player } from '@/types/liveGame';
+import { toast } from '@/hooks/use-toast';
 
 export const useGameParticipants = (gameId: string | undefined) => {
   const [playersCount, setPlayersCount] = useState(0);
   const [playersOnline, setPlayersOnline] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
   
   // Función para cargar los participantes
   const loadParticipants = useCallback(async () => {
@@ -43,14 +45,30 @@ export const useGameParticipants = (gameId: string | undefined) => {
         
         setPlayersOnline(formattedPlayers);
         setPlayersCount(data.length);
+        setLastRefreshTime(Date.now());
       }
     } catch (err) {
       console.error('[GameParticipants] Error al cargar participantes:', err);
       setError('Error al cargar participantes');
+      
+      // Notificar al usuario del error solo si no se ha notificado recientemente
+      const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+      if (timeSinceLastRefresh > 30000) { // Solo mostrar toast cada 30 segundos
+        toast({
+          title: "Error al cargar participantes",
+          description: "No se pudieron cargar los participantes. Intenta refrescar la página.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [gameId]);
+  }, [gameId, lastRefreshTime]);
+  
+  // Función para reintentar la carga después de un error
+  const retryLoading = useCallback(() => {
+    loadParticipants();
+  }, [loadParticipants]);
   
   // Carga inicial y suscripción a cambios
   useEffect(() => {
@@ -59,7 +77,7 @@ export const useGameParticipants = (gameId: string | undefined) => {
     // Carga inicial
     loadParticipants();
     
-    // Suscribirse a cambios en participantes
+    // Suscribirse a cambios en participantes con una mejor configuración
     const participantsChannel = supabase
       .channel(`game-participants-${gameId}`)
       .on('postgres_changes', 
@@ -71,14 +89,32 @@ export const useGameParticipants = (gameId: string | undefined) => {
         }, 
         (payload) => {
           console.log('[GameParticipants] Cambio en participantes detectado:', payload);
-          loadParticipants();
+          // Usar un pequeño delay para permitir que la base de datos se actualice completamente
+          setTimeout(() => {
+            loadParticipants();
+          }, 300);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[GameParticipants] Estado de suscripción:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[GameParticipants] Suscripción a participantes activa');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[GameParticipants] Error en canal de suscripción');
+          setError('Error en la conexión en tiempo real');
+        }
+      });
       
+    // Configurar un refresco periódico como respaldo
+    const refreshInterval = setInterval(() => {
+      console.log('[GameParticipants] Refresco periódico de participantes');
+      loadParticipants();
+    }, 30000); // Cada 30 segundos
+    
     return () => {
       console.log('[GameParticipants] Cancelando suscripción a participantes');
       supabase.removeChannel(participantsChannel);
+      clearInterval(refreshInterval);
     };
   }, [gameId, loadParticipants]);
   
@@ -87,6 +123,7 @@ export const useGameParticipants = (gameId: string | undefined) => {
     playersOnline,
     isLoading,
     error,
-    reloadParticipants: loadParticipants
+    reloadParticipants: loadParticipants,
+    retryLoading
   };
 };
