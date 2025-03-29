@@ -80,9 +80,23 @@ const GameStateRenderer = ({
 
   // Si estamos más de 5 minutos antes del inicio de la partida
   if (isBeforeGameStart && !isWithinFiveMinutes) {
-    // Redirigir a la sala de espera previa
-    window.location.href = `/game/${gameId}/waiting`;
-    return <LoadingState />;
+    return (
+      <div className="text-center p-8">
+        <h2 className="text-xl font-medium text-gloria-purple mb-4">
+          La partida aún no ha comenzado
+        </h2>
+        <p className="text-gray-600 mb-4">
+          Esta partida está programada para comenzar en más de 5 minutos. 
+          Por favor, ve a la sala de espera hasta que sea el momento.
+        </p>
+        <a 
+          href={`/game/${gameId}/waiting`} 
+          className="inline-block bg-gloria-purple text-white px-4 py-2 rounded hover:bg-gloria-purple/90 transition-colors"
+        >
+          Ir a la sala de espera
+        </a>
+      </div>
+    );
   }
 
   // Si estamos dentro de los 5 minutos previos, mostrar la sala de espera inmediata (Kahoot-style)

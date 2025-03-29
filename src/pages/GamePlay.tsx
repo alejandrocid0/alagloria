@@ -6,8 +6,9 @@ import { useEffect, useState } from 'react';
 import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
 import WaitingRoom from '@/components/gameplay/WaitingRoom';
 import { useGameInfo } from '@/components/gameplay/hooks/useGameInfo';
-import { fetchGameState } from '@/hooks/liveGame/gameStateUtils'; // Fixed import
+import { fetchGameState } from '@/hooks/liveGame/gameStateUtils';
 import { gameNotifications } from '@/components/ui/notification-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const GamePlay = () => {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ const GamePlay = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [playersCount, setPlayersCount] = useState(0);
   const [isGameActive, setIsGameActive] = useState(false);
+  const [playersOnline, setPlayersOnline] = useState([]);
   
   // Obtener información del juego
   const gameInfo = useGameInfo(gameId);
@@ -23,13 +25,72 @@ const GamePlay = () => {
   // Determinar si estamos en modo sala de espera o juego
   const isWaitingMode = mode === 'waiting';
   
+  // Cargar participantes de la partida
+  useEffect(() => {
+    if (!gameId) return;
+    
+    const loadParticipants = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('game_participants')
+          .select('user_id, profiles:user_id(name, avatar_url)')
+          .eq('game_id', gameId);
+          
+        if (error) throw error;
+        
+        if (data) {
+          console.log('Participantes cargados:', data);
+          const formattedPlayers = data.map((p, index) => {
+            const profileData = p.profiles as any;
+            return {
+              id: p.user_id,
+              name: profileData?.name || `Jugador ${index + 1}`,
+              points: 0,
+              rank: index + 1,
+              avatar: profileData?.avatar_url || undefined,
+              lastAnswer: null
+            };
+          });
+          
+          setPlayersOnline(formattedPlayers);
+          setPlayersCount(data.length);
+        }
+      } catch (err) {
+        console.error('Error al cargar participantes:', err);
+      }
+    };
+    
+    loadParticipants();
+    
+    // Suscribirse a cambios en los participantes
+    const participantsChannel = supabase
+      .channel(`game-participants-${gameId}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'game_participants',
+          filter: `game_id=eq.${gameId}`
+        }, 
+        () => {
+          console.log('Cambio en participantes detectado, recargando');
+          loadParticipants();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(participantsChannel);
+    };
+  }, [gameId]);
+  
   // Comprobar si el juego está activo para redireccionar automáticamente
   useEffect(() => {
     const checkGameActive = async () => {
       if (!gameId) return;
       
       try {
-        const gameState = await fetchGameState(gameId); // Updated function call
+        const gameState = await fetchGameState(gameId);
         
         if (gameState) {
           setIsGameActive(true);
@@ -123,7 +184,7 @@ const GamePlay = () => {
               <WaitingRoom 
                 gameTitle={gameInfo.title || (gameId ? `Partida #${gameId}` : "Partida")}
                 scheduledTime={gameInfo.scheduledTime || new Date().toLocaleDateString()}
-                playersOnline={[]} // Esto vendrá del hook que actualizaremos más adelante
+                playersOnline={playersOnline} // Usar la lista actualizada de jugadores
                 timeUntilStart={
                   gameInfo.scheduledTime 
                     ? Math.max(0, Math.floor((new Date(gameInfo.scheduledTime).getTime() - new Date().getTime()) / 1000)) 
