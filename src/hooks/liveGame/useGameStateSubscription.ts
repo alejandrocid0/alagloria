@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { LiveGameState } from '@/types/liveGame';
 import { fetchGameState } from './gameStateUtils';
 import { toast } from '@/hooks/use-toast';

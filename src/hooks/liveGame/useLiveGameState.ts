@@ -8,7 +8,7 @@ import { useLeaderboardData } from './useLeaderboardData';
 import { useGameQuestions } from './useGameQuestions';
 import { useGameInitialization } from './useGameInitialization';
 import { useTimeSync } from './useTimeSync';
-import { AnswerResult } from '@/types/liveGame';
+import { AnswerResult, Player, Question } from '@/types/liveGame';
 import { useGameStateMonitor } from './state/useGameStateMonitor';
 import { useEnhancedAnswerSubmission } from './state/useEnhancedAnswerSubmission';
 import { useLeaderboardFetcher } from './state/useLeaderboardFetcher';
@@ -80,6 +80,17 @@ export const useLiveGameState = () => {
     setLastSyncTimestamp
   );
 
+  // Create wrapper functions to ensure correct return types
+  const fetchQuestionsDataWrapper = useCallback(async (): Promise<void> => {
+    if (gameId) {
+      try {
+        await fetchQuestionsData();
+      } catch (err) {
+        console.error('Error fetching questions data:', err);
+      }
+    }
+  }, [gameId, fetchQuestionsData]);
+
   // Monitor system health and log activity
   useGameStateMonitor(
     gameId,
@@ -97,7 +108,7 @@ export const useLiveGameState = () => {
     {
       fetchGameStateData,
       fetchLeaderboardData: fetchLeaderboardDataWrapper,
-      fetchQuestionsData,
+      fetchQuestionsData: fetchQuestionsDataWrapper,
       syncWithServer
     }
   );
