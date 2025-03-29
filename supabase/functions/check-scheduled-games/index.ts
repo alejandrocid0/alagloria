@@ -40,6 +40,8 @@ Deno.serve(async (req) => {
     const waitingGamesResult = await checkWaitingGames();
     
     // Verificar las partidas que deberían avanzar de estado automáticamente
+    // Solo avanzamos las partidas en estado "waiting" que han excedido su tiempo de espera
+    // Las demás transiciones de estado deberían ocurrir mediante la interacción del usuario
     const autoAdvanceResult = await checkAutoAdvanceGames();
     
     console.log('Verificación de partidas programadas completada con éxito')
@@ -119,7 +121,8 @@ async function checkWaitingGames() {
   }
 }
 
-// Función para verificar partidas que necesitan avanzar a su siguiente estado automáticamente
+// Función modificada para verificar partidas que necesitan avanzar a su siguiente estado automáticamente
+// Ahora sólo avanza automáticamente desde ciertos estados y con condiciones específicas
 async function checkAutoAdvanceGames() {
   try {
     // Obtener todas las partidas activas (no finalizadas)
@@ -141,10 +144,34 @@ async function checkAutoAdvanceGames() {
       const lastUpdate = new Date(game.updated_at);
       const elapsedSeconds = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
       
-      // Si el tiempo transcurrido excede el countdown, avanzar el estado
-      if (elapsedSeconds >= game.countdown) {
-        console.log(`Partida ${game.id} necesita avanzar de estado ${game.status} después de ${elapsedSeconds}s (countdown: ${game.countdown}s)`);
-        
+      // Para seguimiento, registrar el tiempo restante
+      console.log(`Partida ${game.id} en estado ${game.status}: tiempo transcurrido ${elapsedSeconds}s / countdown ${game.countdown}s`);
+      
+      // CAMBIO IMPORTANTE: Solo avanzar automáticamente ciertos estados
+      // - Avanzar "waiting" a "question" cuando expire el tiempo de espera
+      // - Avanzar "question" a "result" sólo si la pregunta ha expirado
+      // - Otros estados no se avanzan automáticamente para permitir la interacción del usuario
+      let shouldAdvance = false;
+      
+      if (game.status === 'waiting' && elapsedSeconds >= game.countdown) {
+        // El tiempo de espera ha terminado, avanzar a pregunta
+        shouldAdvance = true;
+        console.log(`Avanzando partida ${game.id} de "waiting" a "question" porque el tiempo de espera ha terminado`);
+      }
+      else if (game.status === 'question' && elapsedSeconds >= game.countdown) {
+        // El tiempo para responder la pregunta ha terminado, avanzar a resultados
+        shouldAdvance = true;
+        console.log(`Avanzando partida ${game.id} de "question" a "result" porque el tiempo para responder ha terminado`);
+      }
+      else {
+        // Para los estados "result" y "leaderboard", NO avanzamos automáticamente
+        // Estos estados deben avanzar mediante interacción del cliente
+        // Esto permite que los jugadores vean los resultados y la clasificación
+        console.log(`No avanzando partida ${game.id} en estado ${game.status} automáticamente para permitir interacción del usuario`);
+      }
+      
+      // Si se debe avanzar, invocar la edge function
+      if (shouldAdvance) {
         try {
           // Invocar edge function para avanzar el estado
           const { data: advanceData, error: advanceError } = await supabaseClient.functions.invoke('advance-game-state', {
@@ -167,9 +194,6 @@ async function checkAutoAdvanceGames() {
           console.error(`Error inesperado al avanzar partida ${game.id}:`, err);
           results.push({ gameId: game.id, success: false, error: err.message });
         }
-      } else {
-        // Para seguimiento, registrar el tiempo restante
-        console.log(`Partida ${game.id} en estado ${game.status}: faltan ${game.countdown - elapsedSeconds}s para avanzar`);
       }
     }
     
