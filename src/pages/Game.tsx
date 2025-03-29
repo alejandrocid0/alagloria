@@ -28,9 +28,9 @@ const Game = () => {
         // Intentar obtener el estado del juego
         const gameState = await fetchGameState(gameId);
         
-        // Si el juego no existe aún o no está activo, y tiene una fecha programada
-        if (!gameState || gameState.status === 'pending') {
-          console.log('El juego aún no está activo, redirigiendo a la sala de espera');
+        // Si el juego no existe aún o está en estado de espera
+        if (!gameState || gameState.status === 'waiting') {
+          console.log('El juego aún no está activo o está en espera, redirigiendo a la sala de espera');
           navigate(`/game/${gameId}/waiting`);
         }
       } catch (err) {
