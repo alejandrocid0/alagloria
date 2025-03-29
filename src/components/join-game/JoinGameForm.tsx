@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
@@ -74,6 +74,11 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({
       </Button>
     );
   };
+
+  // Depuración para ver los cambios en las props
+  useEffect(() => {
+    console.log('JoinGameForm rendered with hasJoined:', hasJoined);
+  }, [hasJoined]);
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 sticky top-24">

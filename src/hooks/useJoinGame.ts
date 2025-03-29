@@ -16,12 +16,24 @@ export const useJoinGame = (gameId: string | undefined) => {
   const [gameData, setGameData] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [internalHasJoined, setInternalHasJoined] = useState(false);
 
   // Use our custom hook to check if the user has already joined
-  const { hasJoined: paymentComplete, checkingStatus } = useCheckGameJoin(
+  const { hasJoined: initialHasJoined, checkingStatus } = useCheckGameJoin(
     gameId || '', 
     user?.id || null
   );
+  
+  // Store the joined status from the hook in our internal state to allow immediate updates
+  useEffect(() => {
+    if (!checkingStatus) {
+      setInternalHasJoined(initialHasJoined);
+      console.log('useJoinGame: Setting initial joined status:', initialHasJoined);
+    }
+  }, [initialHasJoined, checkingStatus]);
+  
+  // Calculated property for the joined status
+  const paymentComplete = internalHasJoined;
   
   const fetchGameData = useCallback(async () => {
     try {
@@ -84,11 +96,23 @@ export const useJoinGame = (gameId: string | undefined) => {
             table: 'game_participants',
             filter: `game_id=eq.${gameId}`
           }, 
-          () => {
+          (payload) => {
+            console.log('Subscription payload received:', payload);
+            
+            // Check if this is an insert for the current user
+            if (payload.eventType === 'INSERT' && 
+                payload.new && 
+                payload.new.user_id === user?.id) {
+              console.log('Current user joined the game, updating state');
+              setInternalHasJoined(true);
+            }
+            
+            // Always refresh the game data to get updated participant count
             fetchGameData();
           }
         )
         .subscribe((status) => {
+          console.log('Subscription status:', status);
           if (status === 'CHANNEL_ERROR') {
             console.error('Subscription error');
             // Handle subscription error silently without disrupting UX
@@ -108,6 +132,10 @@ export const useJoinGame = (gameId: string | undefined) => {
     
     try {
       await gameService.joinGame(gameId, user.id);
+      
+      // Update local state immediately without waiting for subscription
+      setInternalHasJoined(true);
+      console.log('User joined game, setting hasJoined to true');
       
       toast({
         title: "¡Inscripción completada!",
