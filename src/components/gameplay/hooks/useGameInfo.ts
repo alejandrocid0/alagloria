@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 interface GameInfo {
   title: string;
   scheduledTime: string;
+  prizePool?: number;
 }
 
 export const useGameInfo = (gameId: string | undefined) => {
@@ -34,7 +35,8 @@ export const useGameInfo = (gameId: string | undefined) => {
           
           setGameInfo({
             title: data.title || "Partida en vivo",
-            scheduledTime: formattedDate
+            scheduledTime: data.date,
+            prizePool: data.prize_pool
           });
         }
       } catch (err) {

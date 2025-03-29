@@ -78,5 +78,3 @@ export const useGameStateValues = (
     handleSelectOption
   };
 };
-
-export default useGameStateValues;
