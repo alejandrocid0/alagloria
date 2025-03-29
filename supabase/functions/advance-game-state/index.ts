@@ -88,6 +88,23 @@ Deno.serve(async (req) => {
 
     // Si se especifica un estado forzado, actualizar a ese estado
     if (forceState) {
+      // Necesitamos verificaciones adicionales para prevenir transiciones inválidas
+      // Por ejemplo, no permitir forzar a "finished" si no se han respondido todas las preguntas
+      if (forceState === 'finished' && currentState.current_question < totalQuestions - 1) {
+        console.log(`Intento de forzar a estado "finished" detenido. Solo se han contestado ${currentState.current_question + 1} de ${totalQuestions} preguntas.`);
+        return new Response(
+          JSON.stringify({ 
+            error: 'No se puede finalizar el juego porque no se han completado todas las preguntas',
+            currentQuestion: currentState.current_question + 1,
+            totalQuestions: totalQuestions
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 400 
+          }
+        );
+      }
+
       const { error: updateError } = await supabaseClient
         .from('live_games')
         .update({
@@ -148,9 +165,11 @@ Deno.serve(async (req) => {
           nextState = 'question';
           countdown = 20; // 20 segundos para la siguiente pregunta
           currentQuestion = currentQuestion + 1;
+          console.log(`Avanzando a la siguiente pregunta: ${currentQuestion + 1} de ${totalQuestions}`);
         } else {
           nextState = 'finished';
           countdown = 0;
+          console.log(`Todas las preguntas completadas (${totalQuestions}). Finalizando juego.`);
         }
         break;
         
@@ -210,7 +229,8 @@ Deno.serve(async (req) => {
         message: `Estado del juego actualizado a ${nextState}`,
         previousStatus: currentState.status,
         newStatus: nextState,
-        currentQuestion: currentQuestion
+        currentQuestion: currentQuestion,
+        totalQuestions: totalQuestions
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
