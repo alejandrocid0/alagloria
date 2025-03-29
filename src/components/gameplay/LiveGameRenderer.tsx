@@ -78,13 +78,17 @@ const LiveGameRenderer = () => {
       // Calcular el tiempo hasta el inicio (minutos)
       const timeUntilStartInMinutes = Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60)));
       
+      // Log para depuración
+      console.log(`Estado del juego: ${gameState?.status}, tiempo hasta inicio: ${timeUntilStartInMinutes} minutos`);
+      
       // Determinar si estamos más de 5 minutos antes del inicio de la partida
-      if (isBeforeGameStart && timeUntilStartInMinutes > 5) {
-        console.log(`Partida programada para dentro de ${timeUntilStartInMinutes} minutos, redirigiendo a sala de espera...`);
+      // O si el juego está en estado de espera/waiting
+      if ((isBeforeGameStart && timeUntilStartInMinutes > 5) || (gameState && gameState.status === 'waiting')) {
+        console.log(`Redirigiendo a sala de espera: ${timeUntilStartInMinutes} minutos para inicio o estado de espera`);
         setRedirectToWaiting(true);
       }
     }
-  }, [isLoading, gameInfo.scheduledTime]);
+  }, [isLoading, gameInfo.scheduledTime, gameState]);
   
   // Redireccionar a la sala de espera si es necesario
   useEffect(() => {
@@ -147,7 +151,7 @@ const LiveGameRenderer = () => {
         quizTitle={gameInfo.title} 
         playersCount={leaderboard.length} 
         myPoints={myPoints} 
-        isDemoGame={gameId === 'demo-123'} 
+        isDemoGame={false} 
       />
       
       {/* Componente de estado de conexión mejorado */}
