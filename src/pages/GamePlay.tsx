@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
-import WaitingModeDisplay from '@/components/gameplay/WaitingModeDisplay';
+import WaitingModeDisplay from '@/components/gameplay/waiting-mode';
 import GamePlayLoading from '@/components/gameplay/GamePlayLoading';
 import { useGamePlayRoute } from '@/hooks/gameplay/useGamePlayRoute';
 import { useGameParticipants } from '@/hooks/gameplay/useGameParticipants';
