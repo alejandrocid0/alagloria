@@ -1,42 +1,34 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.2.0'
 
-// Configuración de CORS
+// CORS configuration
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Crear el cliente de Supabase
+// Initialize Supabase client
 const supabaseClient = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
 Deno.serve(async (req) => {
-  // Manejar peticiones OPTIONS (CORS preflight)
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    console.log('Comenzando verificación de partidas programadas...')
-
-    // 1. Verificamos partidas que deberían inicializarse
-    await initializeScheduledGames();
+    console.log('Starting scheduled games check...')
     
-    // 2. Verificamos partidas que deberían comenzar ahora (de waiting a question)
-    await startScheduledGames();
+    // Run all scheduled tasks
+    const results = await runScheduledGamesTasks()
     
-    // 3. Verificamos partidas que deberían avanzar de estado automáticamente
-    const autoAdvanceResult = await checkAutoAdvanceGames();
-    
-    console.log('Verificación de partidas programadas completada con éxito')
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Verificación de partidas programadas completada',
-        auto_advance_games_checked: autoAdvanceResult 
+        message: 'Scheduled games check completed',
+        results
       }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -44,9 +36,9 @@ Deno.serve(async (req) => {
       }
     )
   } catch (err) {
-    console.error('Error inesperado:', err)
+    console.error('Unexpected error:', err)
     return new Response(
-      JSON.stringify({ error: 'Error interno del servidor', details: err.message }), 
+      JSON.stringify({ error: 'Internal server error', details: err.message }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
         status: 500 
@@ -55,48 +47,73 @@ Deno.serve(async (req) => {
   }
 })
 
-// 1. Inicialización: Crear registros 'live_games' para partidas programadas
+/**
+ * Run all scheduled game tasks and return the combined results
+ */
+async function runScheduledGamesTasks() {
+  // 1. Initialize upcoming games
+  const initResults = await initializeScheduledGames()
+  
+  // 2. Start games ready to begin
+  const startResults = await startScheduledGames()
+  
+  // 3. Auto-advance active games
+  const advanceResults = await checkAutoAdvanceGames()
+  
+  return {
+    games_initialized: initResults,
+    games_started: startResults,
+    games_advanced: advanceResults
+  }
+}
+
+/**
+ * Initialize new live_game records for upcoming scheduled games
+ */
 async function initializeScheduledGames() {
   try {
-    // Buscar partidas programadas para los próximos 10 minutos que aún no están en live_games
-    const nowPlus10Min = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const now = new Date().toISOString();
+    // Find games scheduled in the next 10 minutes not yet in live_games
+    const nowPlus10Min = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    const now = new Date().toISOString()
     
     const { data, error } = await supabaseClient
       .from('games')
       .select('id, title, date')
       .gte('date', now)
       .lte('date', nowPlus10Min)
-      .order('date', { ascending: true });
+      .order('date', { ascending: true })
     
     if (error) {
-      console.error('Error al buscar partidas programadas:', error);
-      return { success: false, error: error.message };
+      console.error('Error finding scheduled games:', error)
+      return { success: false, error: error.message }
     }
     
-    console.log(`Encontradas ${data?.length || 0} partidas programadas para los próximos 10 minutos`);
+    console.log(`Found ${data?.length || 0} games scheduled for the next 10 minutes`)
     
-    // Para cada partida, verificar si ya existe en live_games
+    const results = []
+    
+    // Process each game
     for (const game of data || []) {
+      // Check if game already exists in live_games
       const { data: existingGame, error: checkError } = await supabaseClient
         .from('live_games')
         .select('id')
         .eq('id', game.id)
-        .maybeSingle();
+        .maybeSingle()
       
       if (checkError) {
-        console.error(`Error al verificar si la partida ${game.id} ya existe:`, checkError);
-        continue;
+        console.error(`Error checking if game ${game.id} exists:`, checkError)
+        results.push({ gameId: game.id, success: false, error: checkError.message })
+        continue
       }
       
-      // Si no existe, crear un registro en live_games con estado "waiting"
+      // If game doesn't exist, create it in live_games with "waiting" status
       if (!existingGame) {
-        // Calcular el tiempo de espera: tiempo hasta la fecha programada en segundos
-        const scheduledTime = new Date(game.date).getTime();
-        const currentTime = Date.now();
-        const timeUntilStart = Math.max(5, Math.floor((scheduledTime - currentTime) / 1000));
+        const scheduledTime = new Date(game.date).getTime()
+        const currentTime = Date.now()
+        const timeUntilStart = Math.max(5, Math.floor((scheduledTime - currentTime) / 1000))
         
-        const { data: insertData, error: insertError } = await supabaseClient
+        const { error: insertError } = await supabaseClient
           .from('live_games')
           .insert({
             id: game.id,
@@ -105,197 +122,129 @@ async function initializeScheduledGames() {
             countdown: timeUntilStart,
             started_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          });
+          })
         
         if (insertError) {
-          console.error(`Error al inicializar partida ${game.id}:`, insertError);
+          console.error(`Error initializing game ${game.id}:`, insertError)
+          results.push({ gameId: game.id, success: false, error: insertError.message })
         } else {
-          console.log(`¡Partida ${game.id} (${game.title}) inicializada con éxito! Tiempo de espera: ${timeUntilStart}s`);
+          console.log(`Game ${game.id} (${game.title}) initialized successfully! Wait time: ${timeUntilStart}s`)
+          results.push({ gameId: game.id, success: true, action: 'initialized', countdown: timeUntilStart })
         }
       } else {
-        console.log(`Partida ${game.id} ya inicializada, omitiendo`);
+        console.log(`Game ${game.id} already initialized, skipping`)
+        results.push({ gameId: game.id, success: true, action: 'skipped', reason: 'already_initialized' })
       }
     }
     
-    return { success: true, games_initialized: data?.length || 0 };
+    return { success: true, games_processed: data?.length || 0, results }
   } catch (err) {
-    console.error('Error en initializeScheduledGames:', err);
-    return { success: false, error: err.message };
+    console.error('Error in initializeScheduledGames:', err)
+    return { success: false, error: err.message }
   }
 }
 
-// 2. Inicio: Transición de partidas de 'waiting' a 'question' cuando llega la hora
+/**
+ * Transition games from 'waiting' to 'question' when it's time to start
+ */
 async function startScheduledGames() {
   try {
-    // Buscar partidas en estado "waiting" cuyo contador esté cerca de cero o haya pasado su fecha
+    // Find games in "waiting" state with countdown near zero
     const { data, error } = await supabaseClient
       .from('live_games')
       .select('id, countdown, updated_at')
       .eq('status', 'waiting')
-      .lte('countdown', 5); // Partidas a 5 segundos o menos de comenzar
+      .lte('countdown', 5) // Games within 5 seconds of starting
     
     if (error) {
-      console.error('Error al buscar partidas listas para iniciar:', error);
-      return { success: false, error: error.message };
+      console.error('Error finding games ready to start:', error)
+      return { success: false, error: error.message }
     }
     
-    console.log(`Encontradas ${data?.length || 0} partidas listas para comenzar`);
+    console.log(`Found ${data?.length || 0} games ready to start`)
     
-    // Para cada partida, avanzar el estado y notificar
-    const results = [];
+    const results = []
+    
+    // Process each game
     for (const game of data || []) {
-      const lastUpdateTime = new Date(game.updated_at).getTime();
-      const currentTime = Date.now();
-      const timeSinceLastUpdate = Math.floor((currentTime - lastUpdateTime) / 1000);
+      const lastUpdateTime = new Date(game.updated_at).getTime()
+      const currentTime = Date.now()
+      const timeSinceLastUpdate = Math.floor((currentTime - lastUpdateTime) / 1000)
       
-      // Si el tiempo desde la última actualización es mayor que el countdown, avanzar
+      // If time since last update is greater than countdown, advance the game
       if (timeSinceLastUpdate >= game.countdown) {
-        console.log(`¡Iniciando partida ${game.id}! (Countdown: ${game.countdown}s, Tiempo desde última actualización: ${timeSinceLastUpdate}s)`);
+        console.log(`Starting game ${game.id}! (Countdown: ${game.countdown}s, Time since last update: ${timeSinceLastUpdate}s)`)
         
-        // Actualizar estado a "question"
-        const { data: updateData, error: updateError } = await supabaseClient
+        // Update status to "question"
+        const { error: updateError } = await supabaseClient
           .from('live_games')
           .update({
             status: 'question',
-            current_question: 1, // Comenzamos con la primera pregunta
-            countdown: 30, // Temporizador para la primera pregunta (ajustar según necesidad)
+            current_question: 1, // Start with first question
+            countdown: 30, // Timer for first question (adjust as needed)
             updated_at: new Date().toISOString()
           })
-          .eq('id', game.id);
+          .eq('id', game.id)
         
         if (updateError) {
-          console.error(`Error al iniciar partida ${game.id}:`, updateError);
-          results.push({ gameId: game.id, success: false, error: updateError.message });
+          console.error(`Error starting game ${game.id}:`, updateError)
+          results.push({ gameId: game.id, success: false, error: updateError.message })
         } else {
-          console.log(`¡Partida ${game.id} iniciada con éxito!`);
-          results.push({ gameId: game.id, success: true, newStatus: 'question' });
+          console.log(`Game ${game.id} started successfully!`)
+          results.push({ gameId: game.id, success: true, newStatus: 'question' })
         }
       } else {
-        console.log(`Partida ${game.id} aún no lista para iniciar (Countdown: ${game.countdown}s, Tiempo desde última actualización: ${timeSinceLastUpdate}s)`);
+        console.log(`Game ${game.id} not ready to start yet (Countdown: ${game.countdown}s, Time since last update: ${timeSinceLastUpdate}s)`)
+        results.push({ 
+          gameId: game.id, 
+          success: true, 
+          action: 'skipped', 
+          reason: 'countdown_not_expired',
+          countdown: game.countdown,
+          timeSinceUpdate: timeSinceLastUpdate
+        })
       }
     }
     
-    return { success: true, games_started: results.length, results };
+    return { success: true, games_processed: results.length, results }
   } catch (err) {
-    console.error('Error en startScheduledGames:', err);
-    return { success: false, error: err.message };
+    console.error('Error in startScheduledGames:', err)
+    return { success: false, error: err.message }
   }
 }
 
-// 3. Avance automático: Transición entre estados cuando expira el tiempo
+/**
+ * Auto-advance games between states when time expires
+ */
 async function checkAutoAdvanceGames() {
   try {
-    // Obtener todas las partidas activas (no finalizadas)
+    // Get all active (non-finished) games
     const { data, error } = await supabaseClient
       .from('live_games')
       .select('id, status, current_question, countdown, updated_at')
-      .not('status', 'eq', 'finished');
+      .not('status', 'eq', 'finished')
     
     if (error) {
-      console.error('Error al obtener partidas activas:', error);
-      return { success: false, error: error.message };
+      console.error('Error getting active games:', error)
+      return { success: false, error: error.message }
     }
     
-    console.log(`Verificando ${data?.length || 0} partidas activas para auto-avance`);
+    console.log(`Checking ${data?.length || 0} active games for auto-advancement`)
     
-    const results = [];
+    const results = []
+    
+    // Process each game
     for (const game of data || []) {
-      const now = new Date();
-      const lastUpdate = new Date(game.updated_at);
-      const elapsedSeconds = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
+      const now = new Date()
+      const lastUpdate = new Date(game.updated_at)
+      const elapsedSeconds = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000)
       
-      // Para seguimiento, registrar el tiempo restante
-      console.log(`Partida ${game.id} en estado ${game.status}: tiempo transcurrido ${elapsedSeconds}s / countdown ${game.countdown}s`);
+      console.log(`Game ${game.id} in state ${game.status}: time elapsed ${elapsedSeconds}s / countdown ${game.countdown}s`)
       
-      // Determinar si debemos avanzar el estado automáticamente
-      let shouldAdvance = false;
-      let nextStatus = '';
-      let nextCountdown = 0;
-      
-      switch (game.status) {
-        case 'waiting':
-          if (elapsedSeconds >= game.countdown) {
-            shouldAdvance = true;
-            nextStatus = 'question';
-            nextCountdown = 30; // Tiempo para responder la primera pregunta
-            console.log(`Avanzando partida ${game.id} de "waiting" a "question"`);
-          }
-          break;
-        
-        case 'question':
-          if (elapsedSeconds >= game.countdown) {
-            shouldAdvance = true;
-            nextStatus = 'result';
-            nextCountdown = 10; // Tiempo para mostrar resultados
-            console.log(`Avanzando partida ${game.id} de "question" a "result"`);
-          }
-          break;
-        
-        case 'result':
-          if (elapsedSeconds >= game.countdown) {
-            shouldAdvance = true;
-            
-            // Obtener el total de preguntas para este juego
-            const { data: questionsData, error: questionsError } = await supabaseClient
-              .from('questions')
-              .select('position')
-              .eq('game_id', game.id)
-              .order('position', { ascending: false })
-              .limit(1);
-            
-            const totalQuestions = questionsData && questionsData.length > 0 ? 
-              questionsData[0].position : 10; // Default a 10 si no podemos obtener el total
-            
-            // Si hemos llegado a la última pregunta, ir a leaderboard final
-            if (game.current_question >= totalQuestions) {
-              nextStatus = 'finished';
-              nextCountdown = 0;
-              console.log(`Avanzando partida ${game.id} a estado final "finished"`);
-            } else {
-              // Si no, avanzar a la siguiente pregunta
-              nextStatus = 'question';
-              nextCountdown = 30; // Tiempo para la siguiente pregunta
-              console.log(`Avanzando partida ${game.id} a siguiente pregunta`);
-            }
-          }
-          break;
-        
-        // Para los estados "leaderboard" y "finished", no avanzamos automáticamente
-        default:
-          console.log(`No avanzando partida ${game.id} en estado ${game.status} automáticamente`);
-      }
-      
-      // Si se debe avanzar, actualizar el estado
-      if (shouldAdvance) {
-        const updateData = {
-          status: nextStatus,
-          countdown: nextCountdown,
-          updated_at: new Date().toISOString()
-        };
-        
-        // Si avanzamos a una nueva pregunta, incrementar el contador de preguntas
-        if (game.status === 'result' && nextStatus === 'question') {
-          updateData.current_question = game.current_question + 1;
-        }
-        
-        const { data: updateResult, error: updateError } = await supabaseClient
-          .from('live_games')
-          .update(updateData)
-          .eq('id', game.id);
-        
-        if (updateError) {
-          console.error(`Error al avanzar partida ${game.id}:`, updateError);
-          results.push({ gameId: game.id, success: false, error: updateError.message });
-        } else {
-          console.log(`Partida ${game.id} avanzada correctamente de "${game.status}" a "${nextStatus}"`);
-          results.push({ 
-            gameId: game.id, 
-            success: true, 
-            previousStatus: game.status,
-            newStatus: nextStatus,
-            current_question: nextStatus === 'question' ? (game.status === 'result' ? game.current_question + 1 : game.current_question) : game.current_question
-          });
-        }
+      // Check if we should auto-advance the game state
+      const advanceResult = await processGameAdvancement(game, elapsedSeconds)
+      if (advanceResult) {
+        results.push(advanceResult)
       }
     }
     
@@ -304,9 +253,102 @@ async function checkAutoAdvanceGames() {
       games_checked: data?.length || 0,
       advanced_games: results.filter(r => r.success).length,
       results
-    };
+    }
   } catch (err) {
-    console.error('Error al verificar partidas para auto-avance:', err);
-    return { success: false, error: err.message };
+    console.error('Error checking games for auto-advancement:', err)
+    return { success: false, error: err.message }
+  }
+}
+
+/**
+ * Process game advancement based on current state and elapsed time
+ */
+async function processGameAdvancement(game, elapsedSeconds) {
+  // If countdown hasn't expired, skip
+  if (elapsedSeconds < game.countdown) {
+    return null
+  }
+  
+  let nextState = {
+    status: '',
+    countdown: 0,
+    current_question: game.current_question
+  }
+  
+  // Determine next state based on current state
+  switch (game.status) {
+    case 'waiting':
+      nextState.status = 'question'
+      nextState.countdown = 30
+      console.log(`Advancing game ${game.id} from "waiting" to "question"`)
+      break
+      
+    case 'question':
+      nextState.status = 'result'
+      nextState.countdown = 10
+      console.log(`Advancing game ${game.id} from "question" to "result"`)
+      break
+      
+    case 'result':
+      // Get total questions for this game
+      const { data: questionsData, error: questionsError } = await supabaseClient
+        .from('questions')
+        .select('position')
+        .eq('game_id', game.id)
+        .order('position', { ascending: false })
+        .limit(1)
+      
+      if (questionsError) {
+        console.error(`Error getting questions for game ${game.id}:`, questionsError)
+        return { gameId: game.id, success: false, error: questionsError.message }
+      }
+      
+      const totalQuestions = questionsData && questionsData.length > 0 ? 
+        questionsData[0].position : 10 // Default to 10 if can't get total
+      
+      // If we've reached the last question, go to finished state
+      if (game.current_question >= totalQuestions) {
+        nextState.status = 'finished'
+        nextState.countdown = 0
+        console.log(`Advancing game ${game.id} to final "finished" state`)
+      } else {
+        // Otherwise, advance to next question
+        nextState.status = 'question'
+        nextState.countdown = 30
+        nextState.current_question = game.current_question + 1
+        console.log(`Advancing game ${game.id} to next question (${nextState.current_question})`)
+      }
+      break
+      
+    default:
+      console.log(`Not auto-advancing game ${game.id} in state ${game.status}`)
+      return null
+  }
+  
+  // Update game with new state
+  const updateData = {
+    status: nextState.status,
+    countdown: nextState.countdown,
+    current_question: nextState.current_question,
+    updated_at: new Date().toISOString()
+  }
+  
+  const { error: updateError } = await supabaseClient
+    .from('live_games')
+    .update(updateData)
+    .eq('id', game.id)
+  
+  if (updateError) {
+    console.error(`Error advancing game ${game.id}:`, updateError)
+    return { gameId: game.id, success: false, error: updateError.message }
+  }
+  
+  console.log(`Game ${game.id} successfully advanced from "${game.status}" to "${nextState.status}"`)
+  return { 
+    gameId: game.id, 
+    success: true, 
+    previousStatus: game.status,
+    newStatus: nextState.status,
+    current_question: nextState.current_question
   }
 }
