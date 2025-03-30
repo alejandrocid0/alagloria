@@ -9,6 +9,7 @@ import { useGameParticipants } from '@/hooks/gameplay/useGameParticipants';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useGameChecker } from '@/hooks/liveGame/state/useGameChecker';
 
 const GamePlay = () => {
   // Estado para controlar recargas manuales
@@ -31,6 +32,15 @@ const GamePlay = () => {
     error: participantsError,
     reloadParticipants 
   } = useGameParticipants(gameId);
+  
+  // Inicializar verificador automático de estado
+  const { initializeGameChecker } = useGameChecker(gameId);
+  
+  // Inicializar verificación de estado al cargar
+  useEffect(() => {
+    const cleanup = initializeGameChecker();
+    return cleanup;
+  }, [initializeGameChecker]);
   
   // Manejar la recarga manual de datos
   const handleManualRefresh = () => {
@@ -55,6 +65,15 @@ const GamePlay = () => {
     }
   }, [participantsError]);
   
+  // Calcular tiempo hasta el inicio de la partida
+  const calculateTimeUntilStart = () => {
+    if (!gameInfo.scheduledTime) return 300; // 5 minutos por defecto
+    
+    const currentTime = new Date();
+    const scheduledTime = new Date(gameInfo.scheduledTime);
+    return Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / 1000));
+  };
+  
   // Show loading state
   if (isRouteLoading) {
     return <GamePlayLoading />;
@@ -64,6 +83,7 @@ const GamePlay = () => {
   if (!user) return null;
   
   const isLoading = isRouteLoading || isParticipantsLoading;
+  const timeUntilStart = calculateTimeUntilStart();
   
   return (
     <div className="min-h-screen bg-gray-100">
@@ -90,13 +110,9 @@ const GamePlay = () => {
             <WaitingModeDisplay 
               gameId={gameId}
               gameTitle={gameInfo.title || (gameId ? `Partida #${gameId}` : "Partida")}
-              scheduledTime={gameInfo.scheduledTime || new Date().toLocaleDateString()}
+              scheduledTime={gameInfo.scheduledTime || new Date().toISOString()}
               playersOnline={playersOnline}
-              timeUntilStart={
-                gameInfo.scheduledTime 
-                  ? Math.max(0, Math.floor((new Date(gameInfo.scheduledTime).getTime() - new Date().getTime()) / 1000)) 
-                  : 300
-              }
+              timeUntilStart={timeUntilStart}
               isGameActive={isGameActive}
             />
           ) : (

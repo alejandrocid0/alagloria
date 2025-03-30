@@ -1,12 +1,13 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import WaitingRoom from './WaitingRoom';
 import { Button } from '@/components/ui/button';
 import { Loader2, Clock, ArrowRight, RefreshCw } from 'lucide-react';
 import { Player } from '@/types/liveGame';
 import { gameNotifications } from '@/components/ui/notification-toast';
 import { toast } from '@/hooks/use-toast';
+import { useGameChecker } from '@/hooks/liveGame/state/useGameChecker';
 
 interface WaitingModeDisplayProps {
   gameId: string | undefined;
@@ -28,6 +29,10 @@ const WaitingModeDisplay = ({
   const [isWithinFiveMinutes, setIsWithinFiveMinutes] = useState(timeUntilStart <= 300);
   const [minutesRemaining, setMinutesRemaining] = useState(Math.ceil(timeUntilStart / 60));
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+  const navigate = useNavigate();
+  
+  // Inicializar el comprobador de estado de juego
+  const { setupWaitingModeChecker } = useGameChecker(gameId);
   
   // Función para refrescar la página para cargar nuevos datos
   const handleRefresh = () => {
@@ -48,7 +53,38 @@ const WaitingModeDisplay = ({
     if (timeUntilStart <= 300 && timeUntilStart > 295) {
       gameNotifications.fiveMinutesWarning();
     }
-  }, [timeUntilStart]);
+    
+    // Activar verificador de alta frecuencia cuando se acerque el inicio
+    if (timeUntilStart <= 20) {
+      setupWaitingModeChecker(timeUntilStart);
+      
+      // Mostrar aviso de inicio inminente
+      if (timeUntilStart <= 10) {
+        toast({
+          title: "¡La partida comenzará muy pronto!",
+          description: `Preparándose para iniciar en ${timeUntilStart} segundos...`
+        });
+      }
+    }
+  }, [timeUntilStart, setupWaitingModeChecker]);
+  
+  // Verificar si la partida está activa y redirigir automáticamente
+  useEffect(() => {
+    if (isGameActive) {
+      const redirectTimer = setTimeout(() => {
+        if (gameId) {
+          gameNotifications.gameStarting();
+          toast({
+            title: "¡La partida ha comenzado!",
+            description: "Redirigiendo al juego..."
+          });
+          navigate(`/game/${gameId}`);
+        }
+      }, 1500);
+      
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [isGameActive, gameId, navigate]);
   
   // Configurar refresco automático cada 5 minutos si falta mucho tiempo para el inicio
   useEffect(() => {
