@@ -16,25 +16,25 @@ export const useGameSubscription = (
   useEffect(() => {
     if (!gameId) return;
     
-    // Channel for game state
+    // Canal para el estado del juego
     const gameStateChannel = subscribeToGameStateUpdates(gameId, (payload) => {
       console.log('Game state change detected:', payload);
       
-      // If game has changed to 'waiting' state or later, mark as started
+      // Si el juego ha cambiado a estado 'waiting' o posterior, marcarlo como iniciado
       if (payload.new && (payload.new.status !== 'pending')) {
         setHasGameStarted(true);
         gameNotifications.gameStarting();
         
-        // Auto-redirect to game after a short delay
+        // Auto-redirección al juego después de un breve retraso
         setTimeout(() => {
           navigate(`/game/${gameId}`);
         }, 1500);
       }
     });
     
-    // Channel for leaderboard updates (player list)
+    // Canal para actualizaciones de clasificación (lista de jugadores)
     const leaderboardChannel = subscribeToLeaderboardUpdates(gameId, async () => {
-      // Update player list from server
+      // Actualizar la lista de jugadores desde el servidor
       try {
         const { data: gameParticipants } = await supabase
           .from('game_participants')
@@ -43,7 +43,7 @@ export const useGameSubscription = (
         
         if (gameParticipants) {
           const players = gameParticipants.map((p, index) => {
-            // Safely access properties using optional chaining
+            // Acceder a propiedades de forma segura usando optional chaining
             const profileData = p.profiles as any;
             return {
               id: p.user_id,
@@ -62,7 +62,7 @@ export const useGameSubscription = (
       }
     });
     
-    // Load initial participants
+    // Cargar participantes iniciales
     const loadInitialParticipants = async () => {
       try {
         const { data: gameParticipants, error } = await supabase
@@ -74,7 +74,7 @@ export const useGameSubscription = (
         
         if (gameParticipants && gameParticipants.length > 0) {
           const players = gameParticipants.map((p, index) => {
-            // Safely access properties using optional chaining
+            // Acceder a propiedades de forma segura usando optional chaining
             const profileData = p.profiles as any;
             return {
               id: p.user_id,
@@ -95,7 +95,7 @@ export const useGameSubscription = (
     
     loadInitialParticipants();
     
-    // Clean up subscriptions on unmount
+    // Limpiar suscripciones al desmontar
     return () => {
       supabase.removeChannel(gameStateChannel);
       supabase.removeChannel(leaderboardChannel);

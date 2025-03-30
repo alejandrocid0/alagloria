@@ -1,10 +1,10 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface QuestionTimerProps {
   timeRemaining: number;
   selectedOption: string | null;
-  onTimeExpired?: () => void;
+  onTimeExpired: () => void;
 }
 
 export const useQuestionTimer = ({ 
@@ -13,46 +13,59 @@ export const useQuestionTimer = ({
   onTimeExpired
 }: QuestionTimerProps) => {
   const [secondsLeft, setSecondsLeft] = useState(timeRemaining);
-  const [potentialPoints, setPotentialPoints] = useState(200);
-  const [hasPulsed, setHasPulsed] = useState(false);
   const [isWarning, setIsWarning] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
   const [flashWarning, setFlashWarning] = useState(false);
+  const [hasPulsed, setHasPulsed] = useState(false);
+  const [potentialPoints, setPotentialPoints] = useState(200);
+  const [timerId, setTimerId] = useState<number | null>(null);
   
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Reiniciar cuando cambia el tiempo total
-  useEffect(() => {
-    setSecondsLeft(timeRemaining);
+  // Función para calcular puntos potenciales basados en tiempo restante
+  const calculatePotentialPoints = useCallback((seconds: number) => {
+    const basePoints = 200;
+    const percentage = seconds / timeRemaining;
+    return Math.max(1, Math.round(basePoints * percentage));
   }, [timeRemaining]);
   
-  // Temporizador principal
+  // Efecto para gestionar el contador de tiempo
   useEffect(() => {
-    // Si ya se seleccionó una opción o el tiempo se acabó, no necesitamos el temporizador
-    if (selectedOption || secondsLeft <= 0) {
-      if (secondsLeft <= 0 && onTimeExpired) {
-        onTimeExpired();
-      }
-      return () => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-      };
-    }
+    // Inicializar el contador
+    setSecondsLeft(timeRemaining);
+    setPotentialPoints(200);
+    setIsWarning(false);
+    setIsUrgent(false);
+    setFlashWarning(false);
+    setHasPulsed(false);
     
-    // Empezar temporizador
-    timerRef.current = setInterval(() => {
+    // No iniciar el temporizador si ya se ha seleccionado una opción
+    if (selectedOption) return;
+    
+    // Establecer un intervalo para actualizar el tiempo cada segundo
+    const timer = window.setInterval(() => {
       setSecondsLeft(prev => {
         const newValue = prev - 1;
         
-        // Si llegamos a cero, limpiar el intervalo y llamar a onTimeExpired
+        // Actualizar puntos potenciales
+        setPotentialPoints(calculatePotentialPoints(newValue));
+        
+        // Activar advertencias basadas en el tiempo restante
+        if (newValue <= 5 && !isUrgent) {
+          setIsUrgent(true);
+          setFlashWarning(true);
+          setTimeout(() => setFlashWarning(false), 500);
+        } else if (newValue <= 10 && !isWarning) {
+          setIsWarning(true);
+        }
+        
+        // Activar pulso de animación a los 15 segundos
+        if (newValue === 15 && !hasPulsed) {
+          setHasPulsed(true);
+        }
+        
+        // Si el tiempo se agota, enviar respuesta automática
         if (newValue <= 0) {
-          if (timerRef.current) {
-            clearInterval(timerRef.current);
-          }
-          if (onTimeExpired) {
-            onTimeExpired();
-          }
+          clearInterval(timer);
+          onTimeExpired();
           return 0;
         }
         
@@ -60,50 +73,36 @@ export const useQuestionTimer = ({
       });
     }, 1000);
     
-    // Limpiar temporizador al desmontar
+    setTimerId(timer);
+    
+    // Limpiar intervalo al desmontar
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timer) clearInterval(timer);
     };
-  }, [selectedOption, secondsLeft, onTimeExpired]);
+  }, [
+    timeRemaining, 
+    selectedOption, 
+    calculatePotentialPoints, 
+    onTimeExpired, 
+    isWarning, 
+    isUrgent, 
+    hasPulsed
+  ]);
   
-  // Calcular puntos potenciales basados en el tiempo
+  // Detener el temporizador cuando se selecciona una opción
   useEffect(() => {
-    // Solo actualizar si no se ha seleccionado respuesta
-    if (!selectedOption) {
-      const percentage = secondsLeft / timeRemaining;
-      setPotentialPoints(Math.round(200 * percentage));
+    if (selectedOption && timerId) {
+      clearInterval(timerId);
+      setTimerId(null);
     }
-  }, [secondsLeft, timeRemaining, selectedOption]);
-  
-  // Gestionar estados de advertencia
-  useEffect(() => {
-    const warningThreshold = timeRemaining * 0.3; // 30% del tiempo
-    const urgentThreshold = timeRemaining * 0.15; // 15% del tiempo
-    
-    setIsWarning(secondsLeft <= warningThreshold);
-    setIsUrgent(secondsLeft <= urgentThreshold);
-    
-    // Flash warning cuando queda poco tiempo
-    if (secondsLeft <= 5 && !hasPulsed) {
-      setFlashWarning(true);
-      setHasPulsed(true);
-      
-      const flashTimer = setTimeout(() => {
-        setFlashWarning(false);
-      }, 500);
-      
-      return () => clearTimeout(flashTimer);
-    }
-  }, [secondsLeft, timeRemaining, hasPulsed]);
+  }, [selectedOption, timerId]);
   
   return {
     secondsLeft,
-    potentialPoints,
-    hasPulsed,
     isWarning,
     isUrgent,
-    flashWarning
+    flashWarning,
+    hasPulsed,
+    potentialPoints
   };
 };
