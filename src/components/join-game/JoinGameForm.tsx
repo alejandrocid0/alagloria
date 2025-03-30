@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Clock, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import { Game } from '@/components/games/types';
+import { calculateTimeValues } from '@/components/gameplay/utils/timeCalculations';
 
 interface JoinGameFormProps {
   gameData: Game;
@@ -24,11 +25,8 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({
 }) => {
   // Calcular si estamos a menos de 5 minutos del inicio de la partida
   const isNearGameStart = () => {
-    const now = new Date();
-    const gameStartTime = new Date(gameData.date);
-    const timeDiff = gameStartTime.getTime() - now.getTime();
-    const minutesDiff = Math.floor(timeDiff / (1000 * 60));
-    return minutesDiff <= 5 && minutesDiff >= 0;
+    const { isWithinFiveMinutes } = calculateTimeValues(gameData.date);
+    return isWithinFiveMinutes;
   };
 
   // Determinar qué botón mostrar

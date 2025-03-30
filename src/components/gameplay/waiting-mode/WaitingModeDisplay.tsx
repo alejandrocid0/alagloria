@@ -6,6 +6,7 @@ import CountdownSection from './CountdownSection';
 import ActionButtons from './ActionButtons';
 import WaitingRoom from '../WaitingRoom';
 import useWaitingModeDisplay from './hooks/useWaitingModeDisplay';
+import { advanceGameState } from '@/hooks/liveGame/gameStateUtils';
 
 interface WaitingModeDisplayProps {
   gameId: string | undefined;
