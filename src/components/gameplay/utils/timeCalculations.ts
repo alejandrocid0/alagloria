@@ -1,7 +1,14 @@
 
-export const calculateTimeValues = (scheduledTime: string | null) => {
+export const calculateTimeValues = (scheduledTime: string | Date | null) => {
   const currentTime = new Date();
-  const parsedScheduledTime = scheduledTime ? new Date(scheduledTime) : null;
+  let parsedScheduledTime: Date | null = null;
+  
+  if (scheduledTime) {
+    parsedScheduledTime = scheduledTime instanceof Date 
+      ? scheduledTime 
+      : new Date(scheduledTime);
+  }
+  
   const isBeforeGameStart = parsedScheduledTime && currentTime < parsedScheduledTime;
   
   const timeUntilStartInMinutes = parsedScheduledTime 
