@@ -17,6 +17,7 @@ const LiveGameRenderer = () => {
   
   // Estado para controlar cuando redirigir a la sala de espera
   const [redirectToWaiting, setRedirectToWaiting] = useState(false);
+  const [lastGameStatus, setLastGameStatus] = useState<string | null>(null);
   
   // Get game info (title, scheduled time)
   const gameInfo = useGameInfo(gameId);
@@ -34,7 +35,8 @@ const LiveGameRenderer = () => {
     isConnected,
     reconnectAttempts,
     clientTimeOffset,
-    syncWithServer
+    syncWithServer,
+    getAdjustedTime
   } = useLiveGameState();
   
   // Get derived state values and handlers
@@ -67,28 +69,46 @@ const LiveGameRenderer = () => {
     }
   }, [gameId, syncWithServer]);
   
+  // Detectar cambios de estado del juego y mostrar notificaciones
+  useEffect(() => {
+    if (gameState && lastGameStatus !== gameState.status) {
+      // Al cambiar de estado, actualizar la referencia de estado anterior
+      setLastGameStatus(gameState.status);
+      
+      // Notificar al usuario del cambio de estado
+      if (gameState.status === 'question') {
+        gameNotifications.newQuestion();
+      } else if (gameState.status === 'result') {
+        gameNotifications.showingResults();
+      } else if (gameState.status === 'leaderboard') {
+        gameNotifications.showingLeaderboard();
+      } else if (gameState.status === 'finished') {
+        gameNotifications.gameCompleted(myRank);
+      } else if (gameState.status === 'waiting') {
+        // Si vuelve al estado de espera, redirigir a la sala de espera
+        setRedirectToWaiting(true);
+      }
+    }
+  }, [gameState?.status, myRank, lastGameStatus]);
+  
   // Comprobar si es el momento de la partida
   useEffect(() => {
     // Solo si tenemos información de la partida y no está cargando
     if (!isLoading && gameInfo.scheduledTime) {
-      const currentTime = new Date();
-      const scheduledTime = new Date(gameInfo.scheduledTime);
-      const isBeforeGameStart = currentTime < scheduledTime;
+      const currentTime = getAdjustedTime();
+      const scheduledTime = new Date(gameInfo.scheduledTime).getTime();
+      const timeUntilStartInMs = scheduledTime - currentTime;
       
-      // Calcular el tiempo hasta el inicio (minutos)
-      const timeUntilStartInMinutes = Math.max(0, Math.floor((scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60)));
-      
-      // Log para depuración
-      console.log(`Estado del juego: ${gameState?.status}, tiempo hasta inicio: ${timeUntilStartInMinutes} minutos`);
+      const isBeforeGameStart = timeUntilStartInMs > 0;
       
       // Determinar si estamos más de 5 minutos antes del inicio de la partida
       // O si el juego está en estado de espera/waiting
-      if ((isBeforeGameStart && timeUntilStartInMinutes > 5) || (gameState && gameState.status === 'waiting')) {
-        console.log(`Redirigiendo a sala de espera: ${timeUntilStartInMinutes} minutos para inicio o estado de espera`);
+      if ((isBeforeGameStart && timeUntilStartInMs > 300000) || (gameState && gameState.status === 'waiting')) {
+        console.log(`Redirigiendo a sala de espera: ${Math.floor(timeUntilStartInMs/60000)} minutos para inicio o estado de espera`);
         setRedirectToWaiting(true);
       }
     }
-  }, [isLoading, gameInfo.scheduledTime, gameState]);
+  }, [isLoading, gameInfo.scheduledTime, gameState, getAdjustedTime]);
   
   // Redireccionar a la sala de espera si es necesario
   useEffect(() => {
@@ -101,7 +121,7 @@ const LiveGameRenderer = () => {
   useEffect(() => {
     if (isConnected && reconnectAttempts > 0) {
       gameNotifications.connectSuccess();
-    } else if (gameState && !isConnected && reconnectAttempts > 0) {
+    } else if (!isConnected && reconnectAttempts > 0) {
       gameNotifications.connectionLost();
     }
   }, [isConnected, reconnectAttempts]);
@@ -116,26 +136,6 @@ const LiveGameRenderer = () => {
       }
     }
   }, [lastAnswerResult, lastPoints]);
-
-  // Detectar cambio al estado 'finished' para mostrar notificación
-  useEffect(() => {
-    if (gameState?.status === 'finished') {
-      gameNotifications.gameCompleted(myRank);
-      gameNotifications.resultsSaved();
-    } else if (gameState?.status === 'waiting' && gameState.countdown === 5) {
-      gameNotifications.gameStarting();
-    } else if (gameState?.status === 'waiting' && gameState.countdown === 300) {
-      // 5 minutos de aviso
-      gameNotifications.fiveMinutesWarning();
-    }
-  }, [gameState?.status, myRank, gameState?.countdown]);
-  
-  // Mock function for game host - would be implemented based on permissions
-  const isGameHost = false;
-  const startGame = async () => {
-    console.log("Starting game...");
-    // Implementation would go here
-  };
 
   // Helper function to adapt the current question
   const adaptedCurrentQuestion = currentQuestion ? adaptQuestionToQuizFormat(currentQuestion) : null;
@@ -184,8 +184,8 @@ const LiveGameRenderer = () => {
             selectedOption={selectedOption}
             setSelectedOption={setSelectedOption}
             handleSelectOption={handleSelectOption}
-            isGameHost={isGameHost}
-            startGame={startGame}
+            isGameHost={false}
+            startGame={() => Promise.resolve()}
             clientTimeOffset={clientTimeOffset}
           />
         </motion.div>

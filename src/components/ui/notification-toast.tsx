@@ -1,104 +1,119 @@
 
-import { toast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Wifi, WifiOff, TimerIcon, Award, Save } from "lucide-react";
+import { toast } from '@/hooks/use-toast';
+import { Bell, Clock, Trophy, CheckCircle, XCircle, Wifi, WifiOff, Award, AlertCircle } from 'lucide-react';
 
-// Game notifications helper
 export const gameNotifications = {
-  // Success notifications
-  connectSuccess: () => toast({
-    title: "Conexión establecida",
-    description: "Has conectado correctamente con la partida",
-    variant: "default",
-    action: (
-      <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-        <Wifi className="w-3 h-3 text-green-600" />
-      </div>
-    )
-  }),
+  // Notificaciones de conexión
+  connectSuccess: () => {
+    toast({
+      title: "¡Conexión recuperada!",
+      description: "Te has reconectado con éxito a la partida.",
+      icon: <Wifi className="text-green-500 h-5 w-5" />,
+    });
+  },
   
-  // Error notifications
-  connectionLost: () => toast({
-    title: "Conexión perdida",
-    description: "Intentando reconectar...",
-    variant: "destructive",
-    action: (
-      <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center">
-        <WifiOff className="w-3 h-3 text-red-600" />
-      </div>
-    )
-  }),
+  connectionLost: () => {
+    toast({
+      title: "Conexión perdida",
+      description: "Intentando reconectar...",
+      variant: "destructive",
+      icon: <WifiOff className="h-5 w-5" />,
+    });
+  },
   
-  // Game state notifications
-  correctAnswer: (points: number) => toast({
-    title: "¡Respuesta correcta!",
-    description: `Has sumado ${points} puntos`,
-    variant: "default",
-    action: (
-      <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-        <CheckCircle className="w-3 h-3 text-green-600" />
-      </div>
-    )
-  }),
+  // Notificaciones de respuestas
+  correctAnswer: (points: number) => {
+    toast({
+      title: "¡Respuesta correcta!",
+      description: `Has ganado ${points} puntos.`,
+      variant: "success",
+      icon: <CheckCircle className="text-green-500 h-5 w-5" />,
+    });
+  },
   
-  wrongAnswer: () => toast({
-    title: "Respuesta incorrecta",
-    description: "No has sumado puntos en esta pregunta",
-    variant: "destructive",
-    action: (
-      <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center">
-        <XCircle className="w-3 h-3 text-red-600" />
-      </div>
-    )
-  }),
+  wrongAnswer: () => {
+    toast({
+      title: "Respuesta incorrecta",
+      description: "Sigue intentándolo en la próxima pregunta.",
+      variant: "destructive",
+      icon: <XCircle className="h-5 w-5" />,
+    });
+  },
   
-  gameStarting: () => toast({
-    title: "¡La partida va a comenzar!",
-    description: "Prepárate para la primera pregunta",
-    variant: "default",
-    action: (
-      <div className="w-5 h-5 bg-gloria-purple/20 rounded-full flex items-center justify-center">
-        <TimerIcon className="w-3 h-3 text-gloria-purple" />
-      </div>
-    )
-  }),
+  // Notificaciones de estado del juego
+  gameStarting: () => {
+    toast({
+      title: "¡La partida está por comenzar!",
+      description: "Prepárate, quedan solo 5 segundos.",
+      icon: <Bell className="text-gloria-gold h-5 w-5" />,
+    });
+  },
   
-  gameCompleted: (rank: number) => toast({
-    title: "Partida finalizada",
-    description: `Has finalizado en posición ${rank}`,
-    variant: "default",
-    action: (
-      <div className="w-5 h-5 bg-gloria-gold/20 rounded-full flex items-center justify-center">
-        <Award className="w-3 h-3 text-gloria-gold" />
-      </div>
-    )
-  }),
+  fiveMinutesWarning: () => {
+    toast({
+      title: "5 minutos para el inicio",
+      description: "La partida comenzará en 5 minutos.",
+      icon: <Clock className="text-gloria-purple h-5 w-5" />,
+    });
+  },
   
-  joinedGame: (gameTitle: string) => toast({
-    title: "¡Te has unido a la partida!",
-    description: `Esperando a que comience: ${gameTitle}`,
-    variant: "default",
-  }),
+  oneMinuteWarning: () => {
+    toast({
+      title: "1 minuto para el inicio",
+      description: "La partida comenzará en 1 minuto.",
+      icon: <Clock className="text-gloria-gold h-5 w-5" />,
+    });
+  },
   
-  // Add the missing notifications
-  fiveMinutesWarning: () => toast({
-    title: "5 minutos para el inicio",
-    description: "La partida comenzará en breve",
-    variant: "default",
-    action: (
-      <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
-        <TimerIcon className="w-3 h-3 text-blue-600" />
-      </div>
-    )
-  }),
+  gameCompleted: (position: number) => {
+    const messages = {
+      1: "¡Increíble! Has ganado la partida.",
+      2: "¡Excelente! Has quedado en segundo lugar.",
+      3: "¡Buen trabajo! Has quedado en tercer lugar.",
+      default: `Has finalizado en la posición ${position}.`
+    };
+    
+    const description = position <= 3 
+      ? messages[position as 1 | 2 | 3] 
+      : messages.default;
+    
+    toast({
+      title: "Partida finalizada",
+      description,
+      icon: <Trophy className="text-gloria-gold h-5 w-5" />,
+    });
+  },
   
-  resultsSaved: () => toast({
-    title: "Resultados guardados",
-    description: "Tus resultados han sido guardados correctamente",
-    variant: "default",
-    action: (
-      <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-        <Save className="w-3 h-3 text-green-600" />
-      </div>
-    )
-  })
+  resultsSaved: () => {
+    toast({
+      title: "Resultados guardados",
+      description: "Tus resultados han sido guardados correctamente.",
+      icon: <Award className="text-gloria-purple h-5 w-5" />,
+    });
+  },
+  
+  // Notificaciones de flujo del juego
+  newQuestion: () => {
+    toast({
+      title: "Nueva pregunta",
+      description: "¡Responde rápido para ganar más puntos!",
+      icon: <AlertCircle className="text-gloria-purple h-5 w-5" />,
+    });
+  },
+  
+  showingResults: () => {
+    toast({
+      title: "Resultados de la pregunta",
+      description: "Veamos quién acertó...",
+      icon: <CheckCircle className="text-gloria-purple h-5 w-5" />,
+    });
+  },
+  
+  showingLeaderboard: () => {
+    toast({
+      title: "Tabla de posiciones",
+      description: "Veamos cómo va la clasificación...",
+      icon: <Trophy className="text-gloria-purple h-5 w-5" />,
+    });
+  }
 };

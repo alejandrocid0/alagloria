@@ -1,21 +1,21 @@
 
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import WaitingRoom from './WaitingRoom';
-import { Button } from '@/components/ui/button';
-import { Loader2, Clock, ArrowRight, RefreshCw } from 'lucide-react';
-import { Player } from '@/types/liveGame';
-import { gameNotifications } from '@/components/ui/notification-toast';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { useGameChecker } from '@/hooks/liveGame/state/useGameChecker';
+import { motion } from 'framer-motion';
+import { Users, Calendar, Clock, ArrowRightCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { gameNotifications } from '@/components/ui/notification-toast';
+import WaitingRoom from './WaitingRoom';
 
 interface WaitingModeDisplayProps {
   gameId: string | undefined;
   gameTitle: string;
   scheduledTime: string;
-  playersOnline: Player[];
+  playersOnline: any[];
   timeUntilStart: number;
   isGameActive: boolean;
+  onRefresh?: () => void;
 }
 
 const WaitingModeDisplay = ({
@@ -24,142 +24,200 @@ const WaitingModeDisplay = ({
   scheduledTime,
   playersOnline,
   timeUntilStart,
-  isGameActive
+  isGameActive,
+  onRefresh
 }: WaitingModeDisplayProps) => {
-  const [isWithinFiveMinutes, setIsWithinFiveMinutes] = useState(timeUntilStart <= 300);
-  const [minutesRemaining, setMinutesRemaining] = useState(Math.ceil(timeUntilStart / 60));
-  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
   const navigate = useNavigate();
+  const [countdown, setCountdown] = useState<number>(timeUntilStart);
+  const [isImminentStart, setIsImminentStart] = useState<boolean>(false);
+  const [hasNotifiedFiveMin, setHasNotifiedFiveMin] = useState<boolean>(false);
+  const [hasNotifiedOneMin, setHasNotifiedOneMin] = useState<boolean>(false);
   
-  // Inicializar el comprobador de estado de juego
-  const { setupWaitingModeChecker } = useGameChecker(gameId);
-  
-  // Función para refrescar la página para cargar nuevos datos
-  const handleRefresh = () => {
-    setLastUpdateTime(Date.now());
-    toast({
-      title: "Actualizando",
-      description: "Actualizando información de la partida..."
+  // Format date function
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
     });
-    window.location.reload();
   };
   
-  // Actualizar los estados cuando cambie timeUntilStart
+  // Cuenta regresiva actualizada
   useEffect(() => {
-    setIsWithinFiveMinutes(timeUntilStart <= 300);
-    setMinutesRemaining(Math.ceil(timeUntilStart / 60));
+    // Inicializar con el valor proporcionado
+    setCountdown(timeUntilStart);
     
-    // Mostrar notificación cuando entramos en los 5 minutos previos
-    if (timeUntilStart <= 300 && timeUntilStart > 295) {
-      gameNotifications.fiveMinutesWarning();
-    }
+    // Crear un intervalo que actualice la cuenta regresiva cada segundo
+    const intervalId = setInterval(() => {
+      setCountdown(prev => {
+        const newValue = prev - 1;
+        
+        // Si llegamos a cero o menos, limpiar el intervalo
+        if (newValue <= 0) {
+          clearInterval(intervalId);
+          return 0;
+        }
+        
+        // Verificar si estamos en un punto donde debemos notificar
+        if (newValue === 300 && !hasNotifiedFiveMin) { // 5 minutos
+          setHasNotifiedFiveMin(true);
+          gameNotifications.fiveMinutesWarning();
+        }
+        
+        if (newValue === 60 && !hasNotifiedOneMin) { // 1 minuto
+          setHasNotifiedOneMin(true);
+          gameNotifications.oneMinuteWarning();
+        }
+        
+        // Verificar si la partida está por comenzar (menos de 10 segundos)
+        if (newValue <= 10) {
+          setIsImminentStart(true);
+          if (newValue === 5) {
+            gameNotifications.gameStarting();
+          }
+        }
+        
+        return newValue;
+      });
+    }, 1000);
     
-    // Activar verificador de alta frecuencia cuando se acerque el inicio
-    if (timeUntilStart <= 20) {
-      setupWaitingModeChecker(timeUntilStart);
-      
-      // Mostrar aviso de inicio inminente
-      if (timeUntilStart <= 10) {
-        toast({
-          title: "¡La partida comenzará muy pronto!",
-          description: `Preparándose para iniciar en ${timeUntilStart} segundos...`
-        });
-      }
-    }
-  }, [timeUntilStart, setupWaitingModeChecker]);
+    // Limpiar el intervalo cuando el componente se desmonte
+    return () => clearInterval(intervalId);
+  }, [timeUntilStart, hasNotifiedFiveMin, hasNotifiedOneMin]);
   
-  // Verificar si la partida está activa y redirigir automáticamente
+  // Controlar la redirección cuando el juego cambia a activo
   useEffect(() => {
     if (isGameActive) {
-      const redirectTimer = setTimeout(() => {
+      toast({
+        title: "¡La partida ha comenzado!",
+        description: "Redirigiendo a la partida en vivo...",
+      });
+      
+      // Redireccionar después de un breve retraso
+      setTimeout(() => {
         if (gameId) {
-          gameNotifications.gameStarting();
-          toast({
-            title: "¡La partida ha comenzado!",
-            description: "Redirigiendo al juego..."
-          });
           navigate(`/game/${gameId}`);
         }
-      }, 1500);
-      
-      return () => clearTimeout(redirectTimer);
+      }, 1000);
     }
   }, [isGameActive, gameId, navigate]);
   
-  // Configurar refresco automático cada 5 minutos si falta mucho tiempo para el inicio
-  useEffect(() => {
-    if (!isWithinFiveMinutes && minutesRemaining > 15) {
-      const refreshTimeout = setTimeout(() => {
-        console.log("[WaitingMode] Realizando actualización automática");
-        handleRefresh();
-      }, 300000); // 5 minutos
-      
-      return () => clearTimeout(refreshTimeout);
+  // Formatear el tiempo restante en formato legible
+  const formatTimeRemaining = (seconds: number) => {
+    if (seconds <= 0) return "¡Ahora!";
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${remainingSeconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    } else {
+      return `${remainingSeconds}s`;
     }
-  }, [isWithinFiveMinutes, minutesRemaining, lastUpdateTime]);
+  };
   
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center">
-      {/* Botón de refrescar */}
-      <div className="self-end mb-4">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleRefresh}
-          className="flex items-center gap-2"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="bg-white rounded-xl shadow-md overflow-hidden"
+    >
+      {/* Cabecera con título e información */}
+      <div className="bg-gloria-purple text-white p-6 relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="z-10 relative"
         >
-          <RefreshCw className="w-4 h-4" /> 
-          Actualizar
-        </Button>
+          <h1 className="text-2xl font-serif font-bold mb-2">{gameTitle}</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center text-sm space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="flex items-center">
+              <Calendar className="w-4 h-4 mr-2" />
+              <span>{formatDate(scheduledTime)}</span>
+            </div>
+            <div className="flex items-center">
+              <Users className="w-4 h-4 mr-2" />
+              <span>{playersOnline.length} {playersOnline.length === 1 ? 'participante' : 'participantes'}</span>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Decoración de fondo */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute right-0 bottom-0 transform translate-x-1/4 translate-y-1/4">
+            <Clock className="w-64 h-64" />
+          </div>
+        </div>
       </div>
       
-      {/* Mensaje para sala de espera estática vs dinámica */}
-      {!isWithinFiveMinutes ? (
-        <div className="mb-4 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg">
-          <p className="text-sm font-medium flex items-center">
-            <Clock className="w-4 h-4 mr-2" /> 
-            Sala de espera estática - La partida comenzará en {minutesRemaining} minutos
-          </p>
-        </div>
-      ) : (
-        <div className="mb-4 px-4 py-2 bg-green-100 text-green-700 rounded-lg animate-pulse">
-          <p className="text-sm font-medium flex items-center">
-            <Clock className="w-4 h-4 mr-2" /> 
-            ¡Sala de espera dinámica - La partida comenzará muy pronto!
-          </p>
-        </div>
-      )}
-      
-      <WaitingRoom 
-        gameTitle={gameTitle}
-        scheduledTime={scheduledTime}
-        playersOnline={playersOnline}
-        timeUntilStart={timeUntilStart}
-        isGameActive={isGameActive}
-      />
-      
-      {/* Botón para ir a la partida - Solo visible dentro de los 5 minutos o si la partida está activa */}
-      {(isWithinFiveMinutes || isGameActive) && gameId && (
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 mb-3">
-            {isGameActive 
-              ? "¡La partida ya ha comenzado! Puedes unirte ahora." 
-              : "Ya estamos en los minutos previos al inicio. Prepárate para jugar."}
-          </p>
+      {/* Contador regresivo destacado */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="text-center">
+          <h2 className="text-lg font-medium text-gray-700 mb-1">
+            {countdown > 0 ? 'Tiempo hasta el inicio' : 'La partida está iniciando...'}
+          </h2>
           
-          <Link to={`/game/${gameId}`}>
-            <Button 
-              className="gap-2 transition-all hover:scale-105" 
-              size="lg"
-              variant={isGameActive ? "default" : "outline"}
-            >
-              {isGameActive ? 'Unirse a la partida en curso' : 'Prepararse para la partida'}
-              {isGameActive ? <ArrowRight className="h-4 w-4" /> : <Loader2 className="h-4 w-4 animate-spin" />}
-            </Button>
-          </Link>
+          <motion.div 
+            className={`text-4xl font-bold mt-3 ${isImminentStart ? 'text-gloria-gold' : 'text-gloria-purple'}`}
+            animate={{ 
+              scale: isImminentStart && countdown > 0 ? [1, 1.1, 1] : 1,
+            }}
+            transition={{ 
+              duration: 1, 
+              repeat: isImminentStart && countdown > 0 ? Infinity : 0,
+              repeatDelay: 0.5
+            }}
+          >
+            {formatTimeRemaining(countdown)}
+          </motion.div>
+          
+          {isImminentStart && countdown > 0 && (
+            <p className="text-sm text-gloria-gold mt-2 font-medium animate-pulse">
+              Prepárate, la partida comenzará muy pronto...
+            </p>
+          )}
+          
+          {countdown <= 0 && !isGameActive && (
+            <div className="mt-4">
+              <p className="text-sm text-gloria-purple mb-2">
+                El juego debería iniciar automáticamente. Si no ocurre, puedes:
+              </p>
+              <div className="flex justify-center space-x-3">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onRefresh} 
+                  className="flex items-center"
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Recargar
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => gameId && navigate(`/game/${gameId}`)}
+                  className="flex items-center"
+                >
+                  <ArrowRightCircle className="w-4 h-4 mr-1" />
+                  Ir a la partida
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+      
+      {/* Sala de espera con lista de jugadores */}
+      <WaitingRoom players={playersOnline} />
+    </motion.div>
   );
 };
 

@@ -1,120 +1,113 @@
 
-import { useCallback, useRef, useEffect } from 'react';
-import { runGameStateManager, checkScheduledGames } from '../gameStateUtils';
+import { useCallback, useEffect, useRef } from 'react';
+import { fetchGameState } from '../gameStateUtils';
 import { toast } from '@/hooks/use-toast';
+import { useGamePlayRoute } from '@/hooks/gameplay/useGamePlayRoute';
+import { useTimeSync } from '../useTimeSync';
+import { useNavigate } from 'react-router-dom';
 
-/**
- * Hook para verificar periódicamente el estado de los juegos programados
- * y detectar cuando una partida debe comenzar
- */
 export const useGameChecker = (gameId: string | undefined) => {
-  const gameCheckerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastCheckTimeRef = useRef<number>(0);
-
-  // Inicializar la verificación periódica del estado del juego
+  const navigate = useNavigate();
+  const checkerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { syncWithServer, getAdjustedTime } = useTimeSync();
+  const { gameInfo } = useGamePlayRoute();
+  
+  // Function to calculate check frequency based on time until game starts
+  const getCheckFrequency = useCallback(() => {
+    if (!gameInfo?.scheduledTime) return 15000; // Default: 15 seconds
+    
+    const now = getAdjustedTime();
+    const scheduledTime = new Date(gameInfo.scheduledTime).getTime();
+    const timeUntilStart = scheduledTime - now;
+    
+    if (timeUntilStart <= 60000) return 2000; // 2 seconds when < 1 minute away
+    if (timeUntilStart <= 300000) return 5000; // 5 seconds when < 5 minutes away
+    if (timeUntilStart <= 900000) return 10000; // 10 seconds when < 15 minutes away
+    return 30000; // 30 seconds for games far in the future
+  }, [gameInfo?.scheduledTime, getAdjustedTime]);
+  
+  // Check game state and handle transitions
+  const checkGameState = useCallback(async () => {
+    if (!gameId) return;
+    
+    try {
+      // Sync time with server before checking
+      await syncWithServer();
+      
+      // Fetch latest game state
+      const gameState = await fetchGameState(gameId);
+      
+      // Handle game state transitions
+      if (gameState) {
+        // If game has transitioned to active state, redirect to game play
+        if (gameState.status === 'question' && window.location.pathname.includes('/waiting')) {
+          console.log('Game has started! Redirecting to active game...');
+          toast({
+            title: "¡La partida ha comenzado!",
+            description: "Redirigiendo a la partida en vivo...",
+          });
+          
+          // Short delay to allow toast to be seen
+          setTimeout(() => {
+            navigate(`/game/${gameId}`);
+          }, 1000);
+        }
+        
+        // If game is finished but user is still in game view, show notification
+        if (gameState.status === 'finished' && window.location.pathname === `/game/${gameId}`) {
+          toast({
+            title: "Partida finalizada",
+            description: "La partida ha terminado. Puedes ver los resultados.",
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error checking game state:', err);
+    }
+  }, [gameId, syncWithServer, navigate]);
+  
+  // Initialize game checker with dynamic frequency
   const initializeGameChecker = useCallback(() => {
-    if (gameCheckerIntervalRef.current) {
-      clearInterval(gameCheckerIntervalRef.current);
+    if (!gameId) return () => {};
+    
+    // Clear any existing interval
+    if (checkerIntervalRef.current) {
+      clearInterval(checkerIntervalRef.current);
     }
     
-    console.log('Inicializando verificador periódico de estado de juego...');
+    // Initial check immediately
+    checkGameState();
     
-    // Verificar inmediatamente
-    const performInitialCheck = async () => {
-      try {
-        // Verificar partidas programadas
-        const scheduledResult = await checkScheduledGames();
-        console.log('Resultado de verificación de partidas programadas:', scheduledResult);
+    // Set up adaptive interval for checking
+    const setupInterval = () => {
+      const frequency = getCheckFrequency();
+      console.log(`Setting up game checker interval at ${frequency}ms frequency`);
+      
+      checkerIntervalRef.current = setInterval(() => {
+        checkGameState();
         
-        // Verificar estado de juegos activos
-        const stateResult = await runGameStateManager();
-        console.log('Resultado de verificación de estados de juego:', stateResult);
-        
-        lastCheckTimeRef.current = Date.now();
-      } catch (err) {
-        console.error('Error en verificación inicial:', err);
-      }
+        // Adaptively change interval frequency
+        const newFrequency = getCheckFrequency();
+        if (Math.abs(newFrequency - frequency) > 1000) {
+          // If frequency should change, reset the interval
+          clearInterval(checkerIntervalRef.current!);
+          setupInterval();
+        }
+      }, frequency);
     };
     
-    performInitialCheck();
+    setupInterval();
     
-    // Configurar verificación periódica (cada 20 segundos)
-    gameCheckerIntervalRef.current = setInterval(async () => {
-      console.log('Ejecutando verificación periódica de estado de juego...');
-      
-      try {
-        // Limitar la frecuencia de verificación
-        const now = Date.now();
-        if (now - lastCheckTimeRef.current < 10000) { // No verificar más de una vez cada 10 segundos
-          console.log('Omitiendo verificación, demasiado pronto desde la última');
-          return;
-        }
-        
-        // Solo ejecutar si hay un gameId o si estamos en la página principal (para detectar nuevos juegos)
-        const scheduledResult = await checkScheduledGames();
-        console.log('Resultado de verificación periódica de partidas programadas:', scheduledResult);
-        
-        if (gameId) {
-          const stateResult = await runGameStateManager();
-          console.log('Resultado de verificación periódica de estados de juego:', stateResult);
-        }
-        
-        lastCheckTimeRef.current = now;
-      } catch (err) {
-        console.error('Error en verificación periódica:', err);
-      }
-    }, 20000); // 20 segundos
-    
+    // Cleanup function
     return () => {
-      if (gameCheckerIntervalRef.current) {
-        clearInterval(gameCheckerIntervalRef.current);
-        gameCheckerIntervalRef.current = null;
+      if (checkerIntervalRef.current) {
+        clearInterval(checkerIntervalRef.current);
       }
     };
-  }, [gameId]);
-
-  // Limpiar el intervalo cuando el componente se desmonte
-  useEffect(() => {
-    return () => {
-      if (gameCheckerIntervalRef.current) {
-        clearInterval(gameCheckerIntervalRef.current);
-        gameCheckerIntervalRef.current = null;
-      }
-    };
-  }, []);
-
-  // Establecer un intervalo de verificación en modo de espera diferente al de juego
-  const setupWaitingModeChecker = useCallback((timeUntilStart: number) => {
-    // Si faltan menos de 20 segundos, verificar más frecuentemente
-    if (timeUntilStart <= 20) {
-      // Limpiar intervalo existente
-      if (gameCheckerIntervalRef.current) {
-        clearInterval(gameCheckerIntervalRef.current);
-      }
-      
-      console.log('Configurando verificador de alta frecuencia para inicio inminente...');
-      
-      // Verificar cada 3 segundos cuando el inicio es inminente
-      gameCheckerIntervalRef.current = setInterval(async () => {
-        try {
-          console.log('Verificación de alta frecuencia para inicio inminente...');
-          await checkScheduledGames();
-          if (gameId) {
-            await runGameStateManager();
-          }
-          lastCheckTimeRef.current = Date.now();
-        } catch (err) {
-          console.error('Error en verificación de alta frecuencia:', err);
-        }
-      }, 3000); // Cada 3 segundos
-      
-      return true;
-    }
-    return false;
-  }, [gameId]);
-
+  }, [gameId, checkGameState, getCheckFrequency]);
+  
   return {
     initializeGameChecker,
-    setupWaitingModeChecker
+    checkGameState
   };
 };
