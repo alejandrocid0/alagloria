@@ -1,11 +1,39 @@
 
 import { toast } from '@/hooks/use-toast';
 import { Bell, Clock, Trophy, CheckCircle, XCircle, Wifi, WifiOff, Award, AlertCircle } from 'lucide-react';
+import { ReactNode } from 'react';
+
+// Define a custom toast type that includes the icon property
+type CustomToastProps = {
+  title: string;
+  description: string;
+  variant?: "default" | "destructive";
+  icon?: ReactNode;
+}
+
+// Helper function to show toast with icon
+const showToast = ({ title, description, variant = "default", icon }: CustomToastProps) => {
+  return toast({
+    title,
+    description,
+    variant,
+    // Only add these properties if they have values
+    ...(icon && { 
+      className: "flex items-start",
+      description: (
+        <div className="flex items-start gap-2">
+          <span className="mt-1 flex-shrink-0">{icon}</span>
+          <div>{description}</div>
+        </div>
+      )
+    })
+  });
+};
 
 export const gameNotifications = {
   // Notificaciones de conexión
   connectSuccess: () => {
-    toast({
+    showToast({
       title: "¡Conexión recuperada!",
       description: "Te has reconectado con éxito a la partida.",
       icon: <Wifi className="text-green-500 h-5 w-5" />,
@@ -13,7 +41,7 @@ export const gameNotifications = {
   },
   
   connectionLost: () => {
-    toast({
+    showToast({
       title: "Conexión perdida",
       description: "Intentando reconectar...",
       variant: "destructive",
@@ -23,16 +51,15 @@ export const gameNotifications = {
   
   // Notificaciones de respuestas
   correctAnswer: (points: number) => {
-    toast({
+    showToast({
       title: "¡Respuesta correcta!",
       description: `Has ganado ${points} puntos.`,
-      variant: "success",
       icon: <CheckCircle className="text-green-500 h-5 w-5" />,
     });
   },
   
   wrongAnswer: () => {
-    toast({
+    showToast({
       title: "Respuesta incorrecta",
       description: "Sigue intentándolo en la próxima pregunta.",
       variant: "destructive",
@@ -42,7 +69,7 @@ export const gameNotifications = {
   
   // Notificaciones de estado del juego
   gameStarting: () => {
-    toast({
+    showToast({
       title: "¡La partida está por comenzar!",
       description: "Prepárate, quedan solo 5 segundos.",
       icon: <Bell className="text-gloria-gold h-5 w-5" />,
@@ -50,7 +77,7 @@ export const gameNotifications = {
   },
   
   fiveMinutesWarning: () => {
-    toast({
+    showToast({
       title: "5 minutos para el inicio",
       description: "La partida comenzará en 5 minutos.",
       icon: <Clock className="text-gloria-purple h-5 w-5" />,
@@ -58,7 +85,7 @@ export const gameNotifications = {
   },
   
   oneMinuteWarning: () => {
-    toast({
+    showToast({
       title: "1 minuto para el inicio",
       description: "La partida comenzará en 1 minuto.",
       icon: <Clock className="text-gloria-gold h-5 w-5" />,
@@ -77,7 +104,7 @@ export const gameNotifications = {
       ? messages[position as 1 | 2 | 3] 
       : messages.default;
     
-    toast({
+    showToast({
       title: "Partida finalizada",
       description,
       icon: <Trophy className="text-gloria-gold h-5 w-5" />,
@@ -85,7 +112,7 @@ export const gameNotifications = {
   },
   
   resultsSaved: () => {
-    toast({
+    showToast({
       title: "Resultados guardados",
       description: "Tus resultados han sido guardados correctamente.",
       icon: <Award className="text-gloria-purple h-5 w-5" />,
@@ -94,7 +121,7 @@ export const gameNotifications = {
   
   // Notificaciones de flujo del juego
   newQuestion: () => {
-    toast({
+    showToast({
       title: "Nueva pregunta",
       description: "¡Responde rápido para ganar más puntos!",
       icon: <AlertCircle className="text-gloria-purple h-5 w-5" />,
@@ -102,7 +129,7 @@ export const gameNotifications = {
   },
   
   showingResults: () => {
-    toast({
+    showToast({
       title: "Resultados de la pregunta",
       description: "Veamos quién acertó...",
       icon: <CheckCircle className="text-gloria-purple h-5 w-5" />,
@@ -110,7 +137,7 @@ export const gameNotifications = {
   },
   
   showingLeaderboard: () => {
-    toast({
+    showToast({
       title: "Tabla de posiciones",
       description: "Veamos cómo va la clasificación...",
       icon: <Trophy className="text-gloria-purple h-5 w-5" />,

@@ -216,7 +216,13 @@ const WaitingModeDisplay = ({
       </div>
       
       {/* Sala de espera con lista de jugadores */}
-      <WaitingRoom players={playersOnline} />
+      <WaitingRoom 
+        gameTitle={gameTitle} 
+        scheduledTime={scheduledTime}
+        playersOnline={playersOnline}
+        timeUntilStart={countdown}
+        isGameActive={isGameActive}
+      />
     </motion.div>
   );
 };
