@@ -101,5 +101,38 @@ export const gameNotifications = {
       description: "Intentando reconectar...",
       variant: "destructive"
     });
+  },
+  
+  /**
+   * Notificación cuando los resultados se han guardado
+   */
+  resultsSaved: () => {
+    toast({
+      title: "Resultados guardados",
+      description: "Tus resultados se han guardado correctamente",
+      variant: "default"
+    });
+  },
+  
+  /**
+   * Notificación 5 minutos antes del inicio
+   */
+  fiveMinutesWarning: () => {
+    toast({
+      title: "5 minutos para empezar",
+      description: "La partida comenzará en 5 minutos",
+      variant: "default"
+    });
+  },
+  
+  /**
+   * Notificación 1 minuto antes del inicio
+   */
+  oneMinuteWarning: () => {
+    toast({
+      title: "1 minuto para empezar",
+      description: "La partida comenzará en 1 minuto",
+      variant: "default"
+    });
   }
 };
