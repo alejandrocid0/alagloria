@@ -22,6 +22,8 @@ export const useGameResultSaver = ({
 }: SaveResultProps) => {
   const { user } = useAuth();
   const [resultSaved, setResultSaved] = useState(false);
+  const [saveAttempts, setSaveAttempts] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     const saveResults = async () => {
@@ -48,6 +50,20 @@ export const useGameResultSaver = ({
         
         if (!gameState || gameState.status !== 'finished') {
           console.log('No se guardan resultados: el juego no está en estado "finished"');
+          
+          // Si han pasado más de 3 intentos y seguimos sin poder guardar, notificar al usuario
+          if (saveAttempts >= 3) {
+            setError('No se pudieron guardar los resultados: el juego no ha finalizado correctamente');
+            toast({
+              title: "No se pudieron guardar resultados",
+              description: "La partida no ha finalizado correctamente",
+              variant: "destructive",
+            });
+          } else {
+            // Incrementar intentos y programar otro intento en 5 segundos
+            setSaveAttempts(prev => prev + 1);
+            setTimeout(saveResults, 5000);
+          }
           return;
         }
         
@@ -71,19 +87,31 @@ export const useGameResultSaver = ({
         
         console.log('Resultados guardados correctamente');
         setResultSaved(true);
+        setError(null);
         gameNotifications.resultsSaved();
       } catch (error) {
         console.error('Error al guardar resultados:', error);
-        toast({
-          title: "Error al guardar tus resultados",
-          description: "Hubo un problema guardando tus estadísticas",
-          variant: "destructive",
-        });
+        setError('Error al guardar resultados');
+        
+        // Solo mostrar la notificación en el primer intento fallido
+        if (saveAttempts === 0) {
+          toast({
+            title: "Error al guardar tus resultados",
+            description: "Hubo un problema guardando tus estadísticas",
+            variant: "destructive",
+          });
+        }
+        
+        // Incrementar intentos y programar otro intento si no hemos llegado al límite
+        if (saveAttempts < 3) {
+          setSaveAttempts(prev => prev + 1);
+          setTimeout(saveResults, 5000);
+        }
       }
     };
     
     saveResults();
-  }, [user, gameId, myRank, gameTitle, correctAnswers, totalAnswers, resultSaved]);
+  }, [user, gameId, myRank, gameTitle, correctAnswers, totalAnswers, resultSaved, saveAttempts]);
   
-  return { resultSaved };
+  return { resultSaved, error, saveAttempts };
 };

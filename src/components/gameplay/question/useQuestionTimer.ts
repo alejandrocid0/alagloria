@@ -1,101 +1,115 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTimeSync } from '@/hooks/liveGame/useTimeSync';
 
 interface QuestionTimerProps {
   timeRemaining: number;
   selectedOption: string | null;
   onTimeExpired: () => void;
+  startTime?: number;
 }
 
 export const useQuestionTimer = ({ 
-  timeRemaining, 
+  timeRemaining: initialTime, 
   selectedOption,
-  onTimeExpired
+  onTimeExpired,
+  startTime
 }: QuestionTimerProps) => {
-  const [secondsLeft, setSecondsLeft] = useState(timeRemaining);
+  const [secondsLeft, setSecondsLeft] = useState(initialTime);
   const [isWarning, setIsWarning] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
   const [flashWarning, setFlashWarning] = useState(false);
   const [hasPulsed, setHasPulsed] = useState(false);
   const [potentialPoints, setPotentialPoints] = useState(200);
-  const [timerId, setTimerId] = useState<number | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(startTime || Date.now());
+  
+  // Get synchronized time
+  const { getAdjustedTime } = useTimeSync();
   
   // Función para calcular puntos potenciales basados en tiempo restante
   const calculatePotentialPoints = useCallback((seconds: number) => {
     const basePoints = 200;
-    const percentage = seconds / timeRemaining;
+    const percentage = seconds / initialTime;
     return Math.max(1, Math.round(basePoints * percentage));
-  }, [timeRemaining]);
+  }, [initialTime]);
   
   // Efecto para gestionar el contador de tiempo
   useEffect(() => {
+    // Si no hay un tiempo inicial, no iniciar el temporizador
+    if (initialTime <= 0) return;
+    
     // Inicializar el contador
-    setSecondsLeft(timeRemaining);
-    setPotentialPoints(200);
-    setIsWarning(false);
-    setIsUrgent(false);
-    setFlashWarning(false);
-    setHasPulsed(false);
+    const adjustedInitialTime = startTime 
+      ? Math.max(0, initialTime - Math.floor((getAdjustedTime() - startTime) / 1000))
+      : initialTime;
+    
+    setSecondsLeft(adjustedInitialTime);
+    setPotentialPoints(calculatePotentialPoints(adjustedInitialTime));
+    setIsWarning(adjustedInitialTime <= 10);
+    setIsUrgent(adjustedInitialTime <= 5);
+    setFlashWarning(adjustedInitialTime <= 5);
+    setHasPulsed(adjustedInitialTime <= 15);
+    
+    // Guardar referencia al tiempo de inicio
+    startTimeRef.current = startTime || getAdjustedTime();
     
     // No iniciar el temporizador si ya se ha seleccionado una opción
     if (selectedOption) return;
     
     // Establecer un intervalo para actualizar el tiempo cada segundo
     const timer = window.setInterval(() => {
-      setSecondsLeft(prev => {
-        const newValue = prev - 1;
-        
-        // Actualizar puntos potenciales
-        setPotentialPoints(calculatePotentialPoints(newValue));
-        
-        // Activar advertencias basadas en el tiempo restante
-        if (newValue <= 5 && !isUrgent) {
-          setIsUrgent(true);
-          setFlashWarning(true);
-          setTimeout(() => setFlashWarning(false), 500);
-        } else if (newValue <= 10 && !isWarning) {
-          setIsWarning(true);
-        }
-        
-        // Activar pulso de animación a los 15 segundos
-        if (newValue === 15 && !hasPulsed) {
-          setHasPulsed(true);
-        }
-        
-        // Si el tiempo se agota, enviar respuesta automática
-        if (newValue <= 0) {
-          clearInterval(timer);
-          onTimeExpired();
-          return 0;
-        }
-        
-        return newValue;
-      });
+      const elapsedSeconds = Math.floor((getAdjustedTime() - startTimeRef.current) / 1000);
+      const newSecondsLeft = Math.max(0, initialTime - elapsedSeconds);
+      
+      setSecondsLeft(newSecondsLeft);
+      
+      // Actualizar puntos potenciales
+      setPotentialPoints(calculatePotentialPoints(newSecondsLeft));
+      
+      // Activar advertencias basadas en el tiempo restante
+      if (newSecondsLeft <= 5 && !isUrgent) {
+        setIsUrgent(true);
+        setFlashWarning(true);
+        setTimeout(() => setFlashWarning(false), 500);
+      } else if (newSecondsLeft <= 10 && !isWarning) {
+        setIsWarning(true);
+      }
+      
+      // Activar pulso de animación a los 15 segundos
+      if (newSecondsLeft <= 15 && !hasPulsed) {
+        setHasPulsed(true);
+      }
+      
+      // Si el tiempo se agota, enviar respuesta automática
+      if (newSecondsLeft <= 0) {
+        clearInterval(timer);
+        onTimeExpired();
+      }
     }, 1000);
     
-    setTimerId(timer);
+    timerRef.current = timer;
     
     // Limpiar intervalo al desmontar
     return () => {
       if (timer) clearInterval(timer);
     };
   }, [
-    timeRemaining, 
+    initialTime, 
     selectedOption, 
     calculatePotentialPoints, 
     onTimeExpired, 
-    isWarning, 
-    isUrgent, 
-    hasPulsed
+    startTime,
+    getAdjustedTime
   ]);
   
   // Detener el temporizador cuando se selecciona una opción
   useEffect(() => {
-    if (selectedOption && timerId) {
-      clearInterval(timerId);
-      setTimerId(null);
+    if (selectedOption && timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
-  }, [selectedOption, timerId]);
+  }, [selectedOption]);
   
   return {
     secondsLeft,
@@ -103,6 +117,7 @@ export const useQuestionTimer = ({
     isUrgent,
     flashWarning,
     hasPulsed,
-    potentialPoints
+    potentialPoints,
+    startTime: startTimeRef.current
   };
 };

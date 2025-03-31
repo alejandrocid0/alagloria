@@ -1,122 +1,55 @@
 
 import { useCallback } from 'react';
-import { 
-  checkScheduledGames, 
-  runGameStateManager, 
-  advanceGameState 
-} from '@/hooks/liveGame/gameStateUtils';
-import { toast } from '@/hooks/use-toast';
+import { checkScheduledGames, runGameStateManager } from '@/hooks/liveGame/gameStateUtils';
 
-/**
- * Hook para verificar y gestionar el estado de un juego
- */
-export const useGameChecker = (gameId: string | undefined) => {
-  // Función para verificar el estado del juego
+export const useGameChecker = (gameId?: string) => {
+  // Función para verificar el estado actual del juego
   const checkGameState = useCallback(async () => {
-    if (!gameId) return false;
-    
     try {
-      // Primero ejecutar el gestor de estado global
-      const managerResult = await runGameStateManager();
+      // Intentar avanzar el estado del juego si es necesario
+      const stateManagerResult = await runGameStateManager();
+      console.log(`[GameChecker] Estado del gestor de juego: ${stateManagerResult ? 'ejecutado' : 'fallido'}`);
       
-      if (managerResult) {
-        console.log('El gestor de estado ha ejecutado correctamente');
-        return true;
-      }
-      
-      // Si falla, intentar avanzar específicamente este juego
-      const advanceResult = await advanceGameState(gameId);
-      
-      if (advanceResult) {
-        console.log(`El juego ${gameId} ha avanzado correctamente`);
-        return true;
-      }
-      
-      return false;
-    } catch (err) {
-      console.error('Error al verificar el estado del juego:', err);
+      return stateManagerResult;
+    } catch (error) {
+      console.error('[GameChecker] Error al verificar estado del juego:', error);
       return false;
     }
-  }, [gameId]);
+  }, []);
   
-  // Función para inicializar el verificador automático
+  // Función para inicializar el verificador de juegos programados
   const initializeGameChecker = useCallback(() => {
-    if (!gameId) return () => {};
+    console.log('[GameChecker] Inicializando verificador de estado de juego...');
     
-    console.log(`Inicializando verificador de estado para el juego ${gameId}`);
-    
-    // Comprobar juegos programados inmediatamente
+    // Verificar de inmediato al iniciar
     checkScheduledGames()
-      .then(result => {
-        if (result) {
-          console.log('Verificación de juegos programados completada');
-        }
-      })
-      .catch(err => {
-        console.error('Error al verificar juegos programados:', err);
-      });
+      .then(result => console.log('[GameChecker] Verificación inicial de juegos programados:', result))
+      .catch(err => console.error('[GameChecker] Error en verificación inicial:', err));
     
-    // Comprobar el estado del juego actual
     checkGameState()
-      .then(result => {
-        if (result) {
-          console.log(`Verificación inicial del juego ${gameId} completada`);
-        }
-      })
-      .catch(err => {
-        console.error(`Error en verificación inicial del juego ${gameId}:`, err);
-      });
+      .then(result => console.log('[GameChecker] Verificación inicial de estado:', result))
+      .catch(err => console.error('[GameChecker] Error en verificación inicial de estado:', err));
     
-    // Establecer verificación periódica
-    const intervalId = setInterval(() => {
-      runGameStateManager()
-        .catch(err => {
-          console.error('Error en la verificación periódica del gestor de estado:', err);
-        });
-    }, 60000); // Cada minuto
+    // Configurar verificación periódica (cada 30 segundos)
+    const intervalId = setInterval(async () => {
+      console.log('[GameChecker] Ejecutando verificación periódica...');
+      try {
+        await checkScheduledGames();
+        await checkGameState();
+      } catch (error) {
+        console.error('[GameChecker] Error en verificación periódica:', error);
+      }
+    }, 30000);
     
+    // Devolver función para limpiar el intervalo
     return () => {
       clearInterval(intervalId);
-      console.log(`Limpieza del verificador de estado para el juego ${gameId}`);
+      console.log('[GameChecker] Verificador de juegos detenido');
     };
-  }, [gameId, checkGameState]);
-  
-  // Función para forzar el inicio de un juego (solo para administradores)
-  const forceStartGame = useCallback(async () => {
-    if (!gameId) return false;
-    
-    try {
-      const result = await advanceGameState(gameId, 'waiting');
-      
-      if (result) {
-        toast({
-          title: "Partida iniciada",
-          description: "La partida ha sido iniciada manualmente",
-          variant: "default",
-        });
-        return true;
-      } else {
-        toast({
-          title: "Error",
-          description: "No se pudo iniciar la partida",
-          variant: "destructive",
-        });
-        return false;
-      }
-    } catch (err) {
-      console.error('Error al forzar el inicio del juego:', err);
-      toast({
-        title: "Error",
-        description: "Error al iniciar la partida",
-        variant: "destructive",
-      });
-      return false;
-    }
-  }, [gameId]);
+  }, [checkGameState]);
   
   return {
     checkGameState,
-    initializeGameChecker,
-    forceStartGame
+    initializeGameChecker
   };
 };

@@ -44,12 +44,12 @@ export function formatTimeRemaining(seconds: number): string {
 /**
  * Verifica si una fecha está a menos de X minutos desde ahora
  */
-export function isWithinMinutes(dateString: string, minutes: number): boolean {
+export function isWithinMinutes(dateString: string, minutes: number, adjustedNow?: number): boolean {
   if (!dateString) return false;
   
   try {
     const targetDate = new Date(dateString);
-    const now = new Date();
+    const now = adjustedNow ? new Date(adjustedNow) : new Date();
     
     // Diferencia en milisegundos
     const diffMs = targetDate.getTime() - now.getTime();
@@ -62,5 +62,26 @@ export function isWithinMinutes(dateString: string, minutes: number): boolean {
   } catch (error) {
     console.error('Error al verificar tiempo:', error);
     return false;
+  }
+}
+
+/**
+ * Calcula segundos hasta una fecha específica usando un tiempo actual opcional
+ */
+export function getSecondsUntil(targetDateString: string, adjustedNow?: number): number {
+  if (!targetDateString) return 0;
+  
+  try {
+    const targetDate = new Date(targetDateString);
+    const now = adjustedNow ? new Date(adjustedNow) : new Date();
+    
+    // Diferencia en milisegundos
+    const diffMs = targetDate.getTime() - now.getTime();
+    
+    // Convertir a segundos y asegurar que no sea negativo
+    return Math.max(0, Math.floor(diffMs / 1000));
+  } catch (error) {
+    console.error('Error al calcular segundos hasta fecha:', error);
+    return 0;
   }
 }

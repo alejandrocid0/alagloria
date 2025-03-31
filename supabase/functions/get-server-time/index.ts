@@ -29,9 +29,8 @@ Deno.serve(async (req) => {
     // Devolver el tiempo actual del servidor
     return new Response(
       JSON.stringify({ 
-        success: true,
-        serverTime: serverTime,
-        serverTimeISO: new Date(serverTime).toISOString()
+        timestamp: serverTime,
+        timestampISO: new Date(serverTime).toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
