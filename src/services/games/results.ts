@@ -48,6 +48,23 @@ export async function saveGameResult(data: GameResultData) {
       console.warn('El juego no está en estado "finished", no se guardarán resultados');
       return null;
     }
+    
+    // Verificar si el usuario realmente ha participado (tiene respuestas registradas)
+    const { count, error: answersError } = await supabase
+      .from('live_game_answers')
+      .select('*', { count: 'exact', head: true })
+      .eq('game_id', data.gameId)
+      .eq('user_id', userId);
+      
+    if (answersError) {
+      console.error('Error al verificar respuestas del usuario:', answersError);
+      throw answersError;
+    }
+    
+    if (!count || count <= 0) {
+      console.warn('El usuario no ha respondido ninguna pregunta, no se guardarán resultados');
+      return null;
+    }
 
     // Verificar si ya existe un resultado para evitar duplicados
     const existingResult = await checkExistingGameResult(data.gameId);

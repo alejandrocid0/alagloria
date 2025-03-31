@@ -40,10 +40,10 @@ Deno.serve(async (req) => {
     console.log(`Comprobando ${activeGames.length} juegos activos`);
     
     const results = [];
+    const now = new Date();
     
     // Para cada juego activo
     for (const game of activeGames) {
-      const now = new Date();
       const lastUpdate = new Date(game.updated_at);
       const elapsedSeconds = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
       
@@ -214,31 +214,91 @@ async function advanceGameState(gameId) {
 // Función para comprobar y activar juegos programados
 async function checkScheduledGames() {
   try {
-    // Invocar la función RPC de base de datos
-    const { data, error } = await supabaseClient.rpc('check_scheduled_games');
+    // Obtener partidas programadas que están a punto de comenzar (dentro de 5 minutos)
+    const { data: scheduledGames, error: scheduledError } = await supabaseClient
+      .from('games')
+      .select('id, title, date')
+      .gte('date', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Juegos de los últimos 5 minutos o futuros
+      .lte('date', new Date(Date.now() + 5 * 60 * 1000).toISOString()) // Juegos en los próximos 5 minutos
+      .not('id', 'in', (
+        // Subconsulta para obtener IDs de juegos que ya están activos
+        supabaseClient
+          .from('live_games')
+          .select('id')
+      ));
     
-    if (error) {
-      console.error('Error al comprobar juegos programados:', error);
-      return { success: false, error: error.message };
+    if (scheduledError) {
+      console.error('Error al obtener juegos programados:', scheduledError);
+      return { 
+        success: false, 
+        error: scheduledError.message 
+      };
     }
     
-    // Obtener las partidas que se han activado recientemente (últimos 5 minutos)
-    const { data: recentGames, error: recentError } = await supabaseClient
-      .from('live_games')
-      .select('id, status, created_at')
-      .gt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    console.log(`Encontrados ${scheduledGames?.length || 0} juegos programados para los próximos 5 minutos`);
     
-    if (recentError) {
-      console.error('Error al obtener partidas recientes:', recentError);
-    } else {
-      console.log(`Se encontraron ${recentGames?.length || 0} partidas activadas en los últimos 5 minutos`);
+    // Activar cada juego programado
+    const activatedGames = [];
+    
+    for (const game of scheduledGames || []) {
+      const gameDate = new Date(game.date);
+      const currentTime = new Date();
+      const timeUntilStart = Math.floor((gameDate.getTime() - currentTime.getTime()) / 1000);
+      
+      console.log(`Juego ${game.id} (${game.title}) programado para ${gameDate.toISOString()}, faltan ${timeUntilStart} segundos`);
+      
+      try {
+        // Crear juego en modo espera con el tiempo restante como countdown
+        const countdown = timeUntilStart > 0 ? timeUntilStart : 300; // Mínimo 5 minutos
+        
+        const { data: liveGame, error: createError } = await supabaseClient
+          .from('live_games')
+          .insert({
+            id: game.id,
+            status: 'waiting',
+            current_question: 0,
+            countdown: countdown,
+            started_at: currentTime.toISOString(),
+            updated_at: currentTime.toISOString()
+          })
+          .select()
+          .single();
+        
+        if (createError) {
+          if (createError.code === '23505') { // Duplicate key error
+            console.log(`El juego ${game.id} ya está activo`);
+            continue;
+          }
+          
+          console.error(`Error al activar juego ${game.id}:`, createError);
+          activatedGames.push({
+            gameId: game.id,
+            success: false,
+            error: createError.message
+          });
+        } else {
+          console.log(`Juego ${game.id} activado en modo espera, countdown: ${countdown}s`);
+          activatedGames.push({
+            gameId: game.id,
+            success: true,
+            countdown: countdown,
+            liveGame: liveGame
+          });
+        }
+      } catch (err) {
+        console.error(`Error al activar juego ${game.id}:`, err);
+        activatedGames.push({
+          gameId: game.id,
+          success: false,
+          error: err.message
+        });
+      }
     }
     
-    console.log('Juegos programados comprobados correctamente');
     return { 
       success: true, 
-      recently_activated_games: recentGames?.length || 0,
-      recent_games: recentGames || []
+      activatedGames: activatedGames,
+      gamesCount: activatedGames.length
     };
   } catch (err) {
     console.error('Error inesperado al comprobar juegos programados:', err);
