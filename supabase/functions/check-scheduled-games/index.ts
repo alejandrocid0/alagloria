@@ -175,6 +175,33 @@ async function startScheduledGames() {
       if (timeSinceLastUpdate >= game.countdown) {
         console.log(`Starting game ${game.id}! (Countdown: ${game.countdown}s, Time since last update: ${timeSinceLastUpdate}s)`)
         
+        // Verificar que la fecha programada realmente ha llegado
+        const { data: gameData, error: gameError } = await supabaseClient
+          .from('games')
+          .select('date')
+          .eq('id', game.id)
+          .single()
+          
+        if (gameError) {
+          console.error(`Error checking date for game ${game.id}:`, gameError)
+          results.push({ gameId: game.id, success: false, error: gameError.message })
+          continue
+        }
+        
+        const scheduledTime = new Date(gameData.date).getTime()
+        const isTimeToStart = currentTime >= scheduledTime
+        
+        if (!isTimeToStart) {
+          console.log(`Game ${game.id} countdown expired but scheduled time (${new Date(scheduledTime).toISOString()}) has not arrived yet`)
+          results.push({ 
+            gameId: game.id, 
+            success: true, 
+            action: 'skipped', 
+            reason: 'scheduled_time_not_reached' 
+          })
+          continue
+        }
+        
         // Update status to "question"
         const { error: updateError } = await supabaseClient
           .from('live_games')
@@ -278,6 +305,27 @@ async function processGameAdvancement(game, elapsedSeconds) {
   // Determine next state based on current state
   switch (game.status) {
     case 'waiting':
+      // Verificar que la fecha programada realmente ha llegado
+      const { data: gameData, error: gameError } = await supabaseClient
+        .from('games')
+        .select('date')
+        .eq('id', game.id)
+        .single()
+        
+      if (gameError) {
+        console.error(`Error checking date for game ${game.id}:`, gameError)
+        return { gameId: game.id, success: false, error: gameError.message }
+      }
+      
+      const scheduledTime = new Date(gameData.date).getTime()
+      const currentTime = Date.now()
+      const isTimeToStart = currentTime >= scheduledTime
+      
+      if (!isTimeToStart) {
+        console.log(`Game ${game.id} countdown expired but scheduled time (${new Date(scheduledTime).toISOString()}) has not arrived yet`)
+        return null
+      }
+      
       nextState.status = 'question'
       nextState.countdown = 30
       console.log(`Advancing game ${game.id} from "waiting" to "question"`)
@@ -306,8 +354,30 @@ async function processGameAdvancement(game, elapsedSeconds) {
       const totalQuestions = questionsData && questionsData.length > 0 ? 
         questionsData[0].position : 10 // Default to 10 if can't get total
       
+      nextState.status = 'leaderboard'
+      nextState.countdown = 8
+      console.log(`Advancing game ${game.id} from "result" to "leaderboard"`)
+      break
+      
+    case 'leaderboard':
+      // Get total questions for this game
+      const { data: questionsData2, error: questionsError2 } = await supabaseClient
+        .from('questions')
+        .select('position')
+        .eq('game_id', game.id)
+        .order('position', { ascending: false })
+        .limit(1)
+      
+      if (questionsError2) {
+        console.error(`Error getting questions for game ${game.id}:`, questionsError2)
+        return { gameId: game.id, success: false, error: questionsError2.message }
+      }
+      
+      const totalQuestions2 = questionsData2 && questionsData2.length > 0 ? 
+        questionsData2[0].position : 10
+      
       // If we've reached the last question, go to finished state
-      if (game.current_question >= totalQuestions) {
+      if (game.current_question >= totalQuestions2) {
         nextState.status = 'finished'
         nextState.countdown = 0
         console.log(`Advancing game ${game.id} to final "finished" state`)

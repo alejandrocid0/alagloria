@@ -22,6 +22,32 @@ export async function saveGameResult(data: GameResultData) {
     }
 
     const userId = sessionData.session.user.id;
+    
+    // Validaciones adicionales para prevenir resultados incorrectos
+    if (data.position <= 0) {
+      console.warn('Posición inválida, no se guardarán resultados:', data.position);
+      return null;
+    }
+    
+    if (data.totalAnswers <= 0) {
+      console.warn('No hay respuestas para guardar:', data.totalAnswers);
+      return null;
+    }
+    
+    // Verificar si el juego está realmente en estado "finished"
+    const { data: gameState, error: gameStateError } = await supabase
+      .rpc('get_live_game_state', { game_id: data.gameId });
+      
+    if (gameStateError) {
+      console.error('Error al verificar estado del juego:', gameStateError);
+      throw gameStateError;
+    }
+    
+    // Solo guardar si la partida realmente ha terminado
+    if (!gameState || gameState.length === 0 || gameState[0].status !== 'finished') {
+      console.warn('El juego no está en estado "finished", no se guardarán resultados');
+      return null;
+    }
 
     // Verificar si ya existe un resultado para evitar duplicados
     const existingResult = await checkExistingGameResult(data.gameId);

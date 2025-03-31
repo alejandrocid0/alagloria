@@ -33,6 +33,27 @@ export function subscribeToGameUpdates(gameId: string, callback: (payload: any) 
 }
 
 export async function submitAnswer(gameId: string, userId: string, questionPosition: number, selectedOption: string, answerTimeMs: number) {
+  // Verificar primero si el juego está en estado de pregunta
+  const { data: gameState, error: stateError } = await supabase
+    .rpc('get_live_game_state', { game_id: gameId });
+    
+  if (stateError) {
+    console.error('Error verificando estado del juego:', stateError);
+    throw new Error(`Error al verificar estado de la partida: ${stateError.message}`);
+  }
+  
+  // Solo permitir enviar respuestas si el juego está en estado 'question'
+  if (!gameState || gameState.length === 0 || gameState[0].status !== 'question') {
+    console.error('No se puede enviar respuesta: el juego no está en estado de pregunta');
+    throw new Error('No se puede enviar respuesta ahora');
+  }
+  
+  // Verificar que sea la pregunta actual
+  if (gameState[0].current_question !== questionPosition) {
+    console.error('No se puede enviar respuesta: es para una pregunta diferente a la actual');
+    throw new Error('La pregunta ya no está activa');
+  }
+  
   // Using the RPC function to submit the answer
   const { data, error } = await supabase
     .rpc('submit_game_answer', {
@@ -96,6 +117,22 @@ export function subscribeToLeaderboardUpdates(gameId: string, callback: (payload
 
 // Función para iniciar manualmente una partida (para administradores)
 export async function startGame(gameId: string) {
+  // Verificar primero si el juego existe y está en estado correcto para iniciar
+  const { data: gameState, error: stateError } = await supabase
+    .rpc('get_live_game_state', { game_id: gameId });
+    
+  if (stateError) {
+    console.error('Error verificando estado del juego:', stateError);
+    throw new Error(`Error al verificar estado de la partida: ${stateError.message}`);
+  }
+  
+  // Si el juego ya está en curso o finalizado, no permitir iniciarlo
+  if (gameState && gameState.length > 0 && 
+      (gameState[0].status !== 'waiting' && gameState[0].status !== 'pending')) {
+    console.error('No se puede iniciar: el juego ya está en curso o finalizado');
+    throw new Error('La partida ya está en curso o ha finalizado');
+  }
+  
   const { data, error } = await supabase
     .rpc('start_live_game', { game_id: gameId });
   
