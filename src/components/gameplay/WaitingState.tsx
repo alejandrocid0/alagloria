@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
@@ -13,38 +13,11 @@ interface WaitingStateProps {
 }
 
 const WaitingState = ({ countdown, onStartGame, gameId }: WaitingStateProps) => {
-  useEffect(() => {
-    // Si la cuenta regresiva llega a 0, iniciar automáticamente
-    if (countdown <= 0 && gameId) {
-      handleAutoStart();
-    }
-  }, [countdown, gameId]);
+  const [localCountdown, setLocalCountdown] = useState(countdown);
 
-  const handleAutoStart = async () => {
-    if (!gameId) return;
-    
-    try {
-      // Llamar a la edge function para avanzar el estado del juego
-      const { data, error } = await supabase.functions.invoke('advance-game-state', {
-        body: { gameId }
-      });
-      
-      if (error) {
-        console.error('Error starting game automatically:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo iniciar la partida automáticamente",
-          variant: "destructive"
-        });
-      } else if (data?.success) {
-        console.log('Game started automatically:', data);
-        // Si existe onStartGame, llamarlo también (para implementaciones adicionales)
-        if (onStartGame) onStartGame();
-      }
-    } catch (err) {
-      console.error('Unexpected error starting game:', err);
-    }
-  };
+  useEffect(() => {
+    setLocalCountdown(countdown);
+  }, [countdown]);
 
   const handleManualStart = async () => {
     if (!gameId) {
@@ -93,7 +66,7 @@ const WaitingState = ({ countdown, onStartGame, gameId }: WaitingStateProps) => 
       </div>
       
       <div className="w-24 h-24 rounded-full bg-gloria-purple flex items-center justify-center mx-auto">
-        <span className="text-3xl font-bold text-white">{countdown}</span>
+        <span className="text-3xl font-bold text-white">{localCountdown}</span>
       </div>
       
       <div className="mt-8 max-w-md mx-auto">

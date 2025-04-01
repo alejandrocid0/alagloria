@@ -79,7 +79,7 @@ export async function startGame(gameId: string) {
   }
 }
 
-// Function to advance game state through the edge function
+// Function to advance game state 
 export async function advanceGameState(gameId: string, forceState?: "waiting" | "question" | "result" | "leaderboard" | "finished") {
   if (!gameId) return false;
   
@@ -104,92 +104,4 @@ export async function advanceGameState(gameId: string, forceState?: "waiting" | 
     console.error('Error advancing game state:', err);
     return false;
   }
-}
-
-// Function to run the game state manager
-export async function runGameStateManager() {
-  try {
-    // Llamar a la edge function para gestionar el estado del juego
-    const { data, error } = await supabase.functions.invoke('game-state-manager');
-    
-    if (error) {
-      console.error('Error running game state manager:', error);
-      return false;
-    }
-    
-    console.log('Game state manager result:', data);
-    return true;
-  } catch (err) {
-    console.error('Error running game state manager:', err);
-    return false;
-  }
-}
-
-// Function to check scheduled games
-export async function checkScheduledGames() {
-  try {
-    // Llamar a la edge function para verificar partidas programadas
-    const { data, error } = await supabase.functions.invoke('check-scheduled-games');
-    
-    if (error) {
-      console.error('Error checking scheduled games:', error);
-      return false;
-    }
-    
-    console.log('Check scheduled games result:', data);
-    return true;
-  } catch (err) {
-    console.error('Error checking scheduled games:', err);
-    return false;
-  }
-}
-
-// Function to trigger automatic state advancement based on countdown
-export function setupAutoAdvance(gameId: string, status: string, countdown: number, callback?: () => void) {
-  if (!gameId || countdown <= 0) return null;
-  
-  console.log(`Setting up auto-advance for ${status} state in ${countdown} seconds`);
-  
-  // Set a timer that will advance the state when countdown reaches zero
-  const timer = setTimeout(async () => {
-    console.log(`Auto-advancing game ${gameId} from ${status} state after ${countdown} seconds`);
-    
-    // Intentar usar la edge function primero por mayor robustez
-    let success = await runGameStateManager();
-    
-    // Si falla, intentar con el método directo
-    if (!success) {
-      success = await advanceGameState(gameId);
-    }
-    
-    if (success && callback) {
-      callback();
-    }
-  }, countdown * 1000); // Convert seconds to milliseconds
-  
-  // Return the timer so it can be cleared if needed
-  return timer;
-}
-
-// Initialize periodic check for scheduled games
-export function initializeGameChecker() {
-  console.log('Initializing game state checker...');
-  
-  // Check immediately on startup
-  checkScheduledGames()
-    .then(result => console.log('Initial check result:', result))
-    .catch(err => console.error('Initial check error:', err));
-  
-  // Set up periodic check (every 60 seconds)
-  const intervalId = setInterval(async () => {
-    console.log('Running periodic game state check...');
-    try {
-      await checkScheduledGames();
-      await runGameStateManager();
-    } catch (error) {
-      console.error('Error in periodic game check:', error);
-    }
-  }, 60000); // 60 seconds
-  
-  return intervalId;
 }
