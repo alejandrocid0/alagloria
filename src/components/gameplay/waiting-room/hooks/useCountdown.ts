@@ -11,14 +11,22 @@ export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
   const isWithinFiveMinutes = countdown <= 300 && countdown > 0;
   
   // Format time remaining in minutes and seconds
-  const formatTimeRemaining = useCallback(() => {
-    if (countdown <= 0) return '00:00';
+  const formatTimeRemaining = useCallback((seconds: number = countdown) => {
+    if (seconds <= 0) return '00:00';
     
-    const minutes = Math.floor(countdown / 60);
-    const seconds = countdown % 60;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
     
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   }, [countdown]);
+  
+  // Synchronize countdown with server time
+  const syncCountdown = useCallback((serverCountdown: number) => {
+    if (serverCountdown !== countdown && !hasGameStarted) {
+      console.log(`Syncing countdown from ${countdown} to ${serverCountdown}`);
+      setCountdown(serverCountdown);
+    }
+  }, [countdown, hasGameStarted]);
   
   // Countdown effect
   useEffect(() => {
@@ -54,12 +62,32 @@ export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
       setTimeout(() => setShowPulse(false), 2000);
     }
     
-    // Game starting in 5 seconds
-    if (countdown === 5) {
-      gameNotifications.gameStarting();
+    // 30 seconds warning
+    if (countdown === 30) {
+      gameNotifications.info("La partida comienza en 30 segundos");
+      setShowPulse(true);
+      setTimeout(() => setShowPulse(false), 2000);
+    }
+    
+    // 10 seconds warning
+    if (countdown === 10) {
+      gameNotifications.info("La partida comienza en 10 segundos");
       setShowPulse(true);
     }
-  }, [countdown]);
+    
+    // 5 seconds (final countdown)
+    if (countdown <= 5 && countdown > 0) {
+      gameNotifications.info(`${countdown}...`);
+      setShowPulse(true);
+    }
+    
+    // Game starting now
+    if (countdown === 0 && !hasGameStarted) {
+      gameNotifications.gameStarting();
+      setShowPulse(false);
+      setHasGameStarted(true);
+    }
+  }, [countdown, hasGameStarted]);
   
   return {
     countdown,
@@ -67,6 +95,7 @@ export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
     showPulse,
     isWithinFiveMinutes,
     formatTimeRemaining,
-    setHasGameStarted
+    setHasGameStarted,
+    syncCountdown
   };
 };

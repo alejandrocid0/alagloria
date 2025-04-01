@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import HeaderSection from './finished/HeaderSection';
@@ -11,7 +11,6 @@ import FeedbackDialog from './finished/FeedbackDialog';
 import { useConfettiEffect } from './finished/useConfettiEffect';
 import { useGameResultSaver } from './finished/useGameResultSaver';
 import { gameNotifications } from '@/components/ui/notification-toast';
-import { useState } from 'react';
 
 interface FinishedStateProps {
   gameId: string;

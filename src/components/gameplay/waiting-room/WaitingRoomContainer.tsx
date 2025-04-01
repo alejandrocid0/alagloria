@@ -19,37 +19,52 @@ const WaitingRoomContainer = () => {
   const gameInfo = useGameInfo(gameId);
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(true);
   
-  // Calcular tiempo hasta el inicio programado
+  // Determinar tiempo inicial para la cuenta regresiva
+  // Si tenemos estado de juego, usamos su countdown
+  // Si no, calculamos desde la fecha programada
+  const initialCountdown = gameState?.countdown || 0;
   const gameDate = gameInfo?.date ? new Date(gameInfo.date) : null;
   const currentTime = new Date();
-  const millisecondsUntilStart = gameDate ? gameDate.getTime() - currentTime.getTime() : 0;
+  const millisecondsUntilStart = gameDate ? Math.max(0, gameDate.getTime() - currentTime.getTime()) : 0;
   const secondsUntilStart = Math.max(0, Math.floor(millisecondsUntilStart / 1000));
   
   // Determinar si el usuario es el anfitrión de la partida
   const isGameHost = gameInfo?.created_by === user?.id;
 
-  // Hook de cuenta regresiva
+  // Hook de cuenta regresiva (prioriza el countdown del servidor si existe)
   const {
     countdown,
     hasGameStarted,
     showPulse,
     isWithinFiveMinutes,
     formatTimeRemaining,
-    setHasGameStarted
-  } = useCountdown(secondsUntilStart, gameId);
+    setHasGameStarted,
+    syncCountdown
+  } = useCountdown(initialCountdown > 0 ? initialCountdown : secondsUntilStart, gameId);
+
+  // Sincronizar countdown con el servidor cuando cambie
+  useEffect(() => {
+    if (gameState?.countdown) {
+      syncCountdown(gameState.countdown);
+    }
+  }, [gameState?.countdown, syncCountdown]);
 
   // Función para verificar partidas programadas (auto-inicio)
   const checkScheduledGames = useCallback(async () => {
-    if (!autoCheckEnabled) return;
+    if (!autoCheckEnabled || !gameId) return;
     
     try {
       await supabase.functions.invoke('check-scheduled-games');
-      // No necesitamos procesar la respuesta, ya que el servidor actualizará 
+      // La respuesta no es necesaria procesarla ya que el servidor actualizará 
       // los datos y recibiremos los cambios a través de la suscripción
+      console.log("Scheduled games check completed");
+      
+      // Actualizar estado del juego después de la verificación
+      refreshGameState();
     } catch (err) {
       console.error('Error checking scheduled games:', err);
     }
-  }, [autoCheckEnabled]);
+  }, [autoCheckEnabled, gameId, refreshGameState]);
 
   // Efectos para comprobar si la partida ya ha comenzado
   useEffect(() => {
@@ -75,19 +90,29 @@ const WaitingRoomContainer = () => {
   
   // Configurar verificación periódica de partidas programadas
   useEffect(() => {
-    if (!gameId || !isWithinFiveMinutes) return;
+    if (!gameId) return;
     
-    // Verificar partidas programadas cada 10 segundos si estamos en los últimos 5 minutos
-    const intervalId = setInterval(checkScheduledGames, 10000);
-    
-    // Verificar inmediatamente al entrar en los últimos 5 minutos
+    // Verificar partidas programadas inmediatamente al cargar
     checkScheduledGames();
+    
+    // Verificación más frecuente a medida que se acerca la hora de inicio
+    let intervalTime = 60000; // 1 minuto por defecto
+    
+    if (countdown < 60) {
+      intervalTime = 5000; // Cada 5 segundos en el último minuto
+    } else if (countdown < 300) {
+      intervalTime = 15000; // Cada 15 segundos en los últimos 5 minutos
+    } else if (countdown < 600) {
+      intervalTime = 30000; // Cada 30 segundos en los últimos 10 minutos
+    }
+    
+    const intervalId = setInterval(checkScheduledGames, intervalTime);
     
     return () => {
       clearInterval(intervalId);
       setAutoCheckEnabled(false);
     };
-  }, [gameId, isWithinFiveMinutes, checkScheduledGames]);
+  }, [gameId, checkScheduledGames, countdown]);
   
   // Suscribirse a actualizaciones de participantes
   useEffect(() => {
