@@ -1,62 +1,77 @@
 
-import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define the shape of the game info object
 interface GameInfo {
-  id?: string;
+  id: string;
   title: string;
-  scheduledTime: string;
-  prizePool?: number;
-  date?: Date; // Added missing date property
-  created_by?: string; // Added missing created_by property
+  description: string;
+  date: Date;
+  category: string;
+  participantsCount: number;
+  creatorName: string;
+  image_url?: string;
 }
 
 export const useGameInfo = (gameId: string | undefined) => {
   const [gameInfo, setGameInfo] = useState<GameInfo>({
-    title: "Partida en vivo",
-    scheduledTime: ""
+    id: '',
+    title: 'Cargando partida...',
+    description: '',
+    date: new Date(),
+    category: '',
+    participantsCount: 0,
+    creatorName: '',
+    image_url: ''
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Fetch game details
-  useEffect(() => {
-    const fetchGameDetails = async () => {
-      if (!gameId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('games')
-          .select('*')
-          .eq('id', gameId)
-          .single();
-        
-        if (error) throw new Error(error.message);
-        
-        if (data) {
-          const formattedDate = format(
-            new Date(data.date), 
-            "EEEE d 'de' MMMM, HH:mm", 
-            { locale: es }
-          );
-          
-          setGameInfo({
-            id: data.id,
-            title: data.title || "Partida en vivo",
-            scheduledTime: formattedDate,
-            prizePool: data.prize_pool,
-            date: new Date(data.date),
-            created_by: data.created_by
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching game details:", err);
-        // Fallback to defaults, silently fail to not disrupt the experience
-      }
-    };
+  const fetchGameInfo = useCallback(async () => {
+    if (!gameId) return;
     
-    fetchGameDetails();
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch the game details and participant count
+      const { data: gameData, error: gameError } = await supabase
+        .from('games_with_details')
+        .select('*')
+        .eq('id', gameId)
+        .single();
+      
+      if (gameError) throw gameError;
+      
+      if (gameData) {
+        setGameInfo({
+          id: gameData.id,
+          title: gameData.title || 'Sin título',
+          description: gameData.description || 'Sin descripción',
+          date: new Date(gameData.date),
+          category: gameData.category || 'General',
+          participantsCount: gameData.participants_count || 0,
+          creatorName: gameData.creator_name || 'Anónimo',
+          image_url: gameData.image_url || ''
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching game info:', err);
+      setError(err instanceof Error ? err : new Error('Error fetching game info'));
+    } finally {
+      setLoading(false);
+    }
   }, [gameId]);
 
-  return gameInfo;
+  useEffect(() => {
+    fetchGameInfo();
+  }, [fetchGameInfo]);
+
+  return {
+    ...gameInfo,
+    loading,
+    error,
+    refresh: fetchGameInfo
+  };
 };

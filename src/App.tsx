@@ -1,20 +1,21 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Games from './pages/Games';
-import Game from './pages/Game';
-import JoinGame from './pages/JoinGame';
-import Profile from './pages/Profile';
-import EditProfile from './pages/EditProfile';
-import Results from './pages/Results';
-import GameResults from './pages/GameResults';
-import Admin from './pages/Admin';
-import CreateGame from './pages/CreateGame';
-import EditGame from './pages/EditGame';
-import GameWaitingRoom from './pages/GameWaitingRoom';
-import { Toaster } from "@/components/ui/toaster"
+import Home from '@/pages/Index';
+import Login from '@/pages/Login';
+import Register from '@/pages/Signup';
+import Games from '@/pages/Games';
+import Game from '@/pages/Game';
+import JoinGame from '@/pages/JoinGame';
+import Profile from '@/pages/Profile';
+import EditProfile from '@/pages/EditProfile';
+import Results from '@/pages/Results';
+import GameResults from '@/pages/GameResults';
+import Admin from '@/pages/AdminDashboard';
+import CreateGame from '@/pages/CreateGame';
+import EditGame from '@/pages/EditGame';
+import GameWaitingRoom from '@/pages/GameWaitingRoom';
+import { Toaster } from "@/components/ui/toaster";
 
 function App() {
   return (
