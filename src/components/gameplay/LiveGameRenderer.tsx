@@ -161,7 +161,11 @@ const LiveGameRenderer = () => {
             gameState={gameState}
             isLoading={isLoading}
             error={error}
-            gameInfo={gameInfo}
+            gameInfo={{
+              title: gameInfo.title,
+              scheduledTime: gameInfo.scheduledTime,
+              prizePool: gameInfo.prizePool
+            }}
             questions={questions}
             currentQuestion={currentQuestion}
             adaptedCurrentQuestion={adaptedCurrentQuestion}

@@ -12,6 +12,9 @@ interface GameInfo {
   participantsCount: number;
   creatorName: string;
   image_url?: string;
+  created_by?: string;
+  scheduledTime: string;
+  prizePool?: number;
 }
 
 export const useGameInfo = (gameId: string | undefined) => {
@@ -23,7 +26,9 @@ export const useGameInfo = (gameId: string | undefined) => {
     category: '',
     participantsCount: 0,
     creatorName: '',
-    image_url: ''
+    image_url: '',
+    scheduledTime: '',
+    prizePool: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -45,6 +50,16 @@ export const useGameInfo = (gameId: string | undefined) => {
       if (gameError) throw gameError;
       
       if (gameData) {
+        // Format the date as a string for scheduledTime
+        const dateObject = new Date(gameData.date);
+        const formattedDate = dateObject.toLocaleString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
         setGameInfo({
           id: gameData.id,
           title: gameData.title || 'Sin título',
@@ -53,7 +68,10 @@ export const useGameInfo = (gameId: string | undefined) => {
           category: gameData.category || 'General',
           participantsCount: gameData.participants_count || 0,
           creatorName: gameData.creator_name || 'Anónimo',
-          image_url: gameData.image_url || ''
+          image_url: gameData.image_url || '',
+          created_by: gameData.created_by,
+          scheduledTime: formattedDate,
+          prizePool: 0 // Default value, update if you have actual prize data
         });
       }
     } catch (err) {
