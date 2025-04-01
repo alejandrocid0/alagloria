@@ -17,12 +17,17 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
     fetchGameStateData 
   } = useGameStateFetcher(gameId);
   
+  // Create a void-returning wrapper for useConnectionStatus
+  const fetchGameStateWrapper = useCallback(async () => {
+    await fetchGameStateData(true);
+  }, [fetchGameStateData]);
+  
   const { 
     isConnected, 
     reconnectAttempts, 
     setIsConnected, 
     scheduleReconnect 
-  } = useConnectionStatus(fetchGameStateData);
+  } = useConnectionStatus(fetchGameStateWrapper);
 
   // Handle game state changes from subscription
   const handleGameStateChange = useCallback((payload: any) => {

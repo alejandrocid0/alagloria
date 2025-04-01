@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { LiveGameState } from '@/types/liveGame';
 import { fetchGameState } from './gameStateUtils';
+import { gameNotifications } from '@/components/ui/notification-toast';
 
 export const useGameStateFetcher = (gameId: string | undefined) => {
   const [gameState, setGameState] = useState<LiveGameState | null>(null);
