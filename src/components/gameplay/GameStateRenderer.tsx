@@ -4,9 +4,7 @@ import { Player } from '@/types/game';
 import LoadingState from './LoadingState';
 import ErrorState from './ErrorState';
 import GameContent from './states/GameContent';
-import EarlyWaitingState from './states/EarlyWaitingState';
-import DynamicWaitingState from './states/DynamicWaitingState';
-import { calculateTimeValues } from './utils/timeCalculations';
+import { useState, useEffect } from 'react';
 
 interface GameStateRendererProps {
   gameId: string | undefined;
@@ -50,38 +48,31 @@ const GameStateRenderer = ({
   setSelectedOption,
   handleSelectOption,
   isGameHost,
-  startGame,
-  clientTimeOffset
+  startGame
 }: GameStateRendererProps) => {
+  const [shouldShowWaiting, setShouldShowWaiting] = useState(false);
+  
+  // Simple effect to check if scheduled time is in the future
+  useEffect(() => {
+    if (gameInfo.scheduledTime) {
+      const gameTime = new Date(gameInfo.scheduledTime).getTime();
+      const currentTime = new Date().getTime();
+      
+      // If game time is in the future
+      if (gameTime > currentTime) {
+        setShouldShowWaiting(true);
+      } else {
+        setShouldShowWaiting(false);
+      }
+    }
+  }, [gameInfo.scheduledTime]);
+  
   if (isLoading) {
     return <LoadingState />;
   }
   
   if (error || !gameState) {
     return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
-  }
-  
-  const {
-    isBeforeGameStart,
-    timeUntilStartInMinutes,
-    timeUntilStartInSeconds,
-    isWithinFiveMinutes
-  } = calculateTimeValues(gameInfo.scheduledTime);
-
-  if (isBeforeGameStart && !isWithinFiveMinutes) {
-    return <EarlyWaitingState gameId={gameId} />;
-  }
-
-  if (isBeforeGameStart && isWithinFiveMinutes) {
-    return (
-      <DynamicWaitingState
-        gameTitle={gameInfo.title}
-        scheduledTime={gameInfo.scheduledTime}
-        leaderboard={leaderboard}
-        timeUntilStartInSeconds={timeUntilStartInSeconds}
-        gameStatus={gameState.status}
-      />
-    );
   }
 
   return (

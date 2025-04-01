@@ -27,6 +27,12 @@ export const useLiveGameState = () => {
   const [myPoints, setMyPoints] = useState(0);
   const [myRank, setMyRank] = useState(0);
   const [lastPoints, setLastPoints] = useState(0);
+  const [lastAnswerResult, setLastAnswerResult] = useState<any>(null);
+  
+  // Connection and sync state
+  const [isConnected, setIsConnected] = useState(true); 
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [clientTimeOffset, setClientTimeOffset] = useState(0);
   
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -101,47 +107,44 @@ export const useLiveGameState = () => {
     if (!gameId) return;
     
     try {
-      const { data: questionsData, error } = await supabase
-        .from('game_questions')
-        .select('question_id, position, game_options')
+      // First, get the list of questions for this game
+      const { data: gameQuestions, error: gameQuestionsError } = await supabase
+        .from('questions')
+        .select('id, position, question_text, correct_option, game_id')
         .eq('game_id', gameId)
         .order('position');
       
-      if (error) throw error;
+      if (gameQuestionsError) throw gameQuestionsError;
       
-      if (questionsData && questionsData.length > 0) {
-        const questionIds = questionsData.map(q => q.question_id);
-        
-        // Get actual questions content
-        const { data: questionsContent, error: questionsError } = await supabase
-          .from('questions')
-          .select('id, question_text, category')
-          .in('id', questionIds);
-        
-        if (questionsError) throw questionsError;
-        
-        // Merge questions data
-        if (questionsContent) {
-          const mergedQuestions = questionsData.map(gameQuestion => {
-            const questionContent = questionsContent.find(q => q.id === gameQuestion.question_id);
+      if (gameQuestions && gameQuestions.length > 0) {
+        // For each question, get its options
+        const questionsWithOptions = await Promise.all(
+          gameQuestions.map(async (question) => {
+            const { data: options, error: optionsError } = await supabase
+              .from('options')
+              .select('id, option_id, option_text, position')
+              .eq('question_id', question.id)
+              .order('position');
+            
+            if (optionsError) throw optionsError;
             
             return {
-              id: gameQuestion.question_id,
-              position: gameQuestion.position,
-              question: questionContent?.question_text || '',
-              category: questionContent?.category || '',
-              options: gameQuestion.game_options || []
+              id: question.id,
+              position: question.position,
+              question: question.question_text,
+              options: options || [],
+              category: 'general' // Default category
             };
-          });
-          
-          setQuestions(mergedQuestions);
-          
-          // Update current question if in question state
-          if (gameState && gameState.status === 'question') {
-            const currentQuestionIndex = gameState.current_question;
-            if (currentQuestionIndex < mergedQuestions.length) {
-              setCurrentQuestion(mergedQuestions[currentQuestionIndex]);
-            }
+          })
+        );
+        
+        setQuestions(questionsWithOptions);
+        
+        // Update current question if in question state
+        if (gameState && gameState.status === 'question') {
+          const currentQuestionIndex = gameState.current_question;
+          if (currentQuestionIndex < questionsWithOptions.length) {
+            setCurrentQuestion(questionsWithOptions[currentQuestionIndex]);
           }
         }
       }
@@ -267,29 +270,26 @@ export const useLiveGameState = () => {
     return {
       id: currentQuestion.id.toString(),
       question: currentQuestion.question,
-      category: currentQuestion.category,
       options: currentQuestion.options.map((opt: any) => ({
         id: opt.id,
-        text: opt.text,
-        isCorrect: opt.is_correct || false
+        text: opt.option_text,
+        isCorrect: false // We don't reveal which option is correct
       }))
     };
   }, [currentQuestion]);
 
-  // Function to handle option selection
-  const handleSelectOption = useCallback(async (optionId: string) => {
-    if (!gameId || !user || !gameState || gameState.status !== 'question' || selectedOption) return;
-    
-    setSelectedOption(optionId);
+  // Function to submit an answer
+  const submitAnswer = useCallback(async (questionIdx: number, optionId: string, answerTimeMs: number) => {
+    if (!gameId || !user || !gameState || gameState.status !== 'question') return null;
     
     try {
       // Submit answer to server
       const { data, error } = await supabase.rpc('submit_game_answer', {
         p_game_id: gameId,
         p_user_id: user.id,
-        p_question_position: gameState.current_question,
+        p_question_position: questionIdx,
         p_selected_option: optionId,
-        p_answer_time_ms: 0 // No time tracking now
+        p_answer_time_ms: answerTimeMs || 0
       });
       
       if (error) {
@@ -299,18 +299,37 @@ export const useLiveGameState = () => {
           description: "No se pudo enviar tu respuesta",
           variant: "destructive"
         });
-        return;
+        return null;
       }
       
-      // Update last points
+      // Update last points and set result
       if (data && data[0]) {
         setLastPoints(data[0].points || 0);
+        setLastAnswerResult({
+          is_correct: data[0].is_correct,
+          points: data[0].points,
+          correctOption: data[0].correctoption
+        });
+        return data[0];
       }
+      
+      return null;
     } catch (err) {
-      console.error('Error selecting option:', err);
+      console.error('Error submitting answer:', err);
+      return null;
     }
-  }, [gameId, user, gameState, selectedOption]);
+  }, [gameId, user, gameState]);
 
+  // Time sync and connection related methods (simplified versions)
+  const syncWithServer = useCallback(() => {
+    // Simplified version
+    console.log('Time sync with server...');
+  }, []);
+  
+  const getAdjustedTime = useCallback(() => {
+    return Date.now() + clientTimeOffset;
+  }, [clientTimeOffset]);
+  
   // Function to start game (for host)
   const startGame = useCallback(async () => {
     if (!gameId) return;
@@ -342,7 +361,7 @@ export const useLiveGameState = () => {
     gameId,
     gameState,
     gameInfo,
-    currentQuestion: gameState?.current_question || 0,
+    currentQuestion,
     adaptedCurrentQuestion: adaptCurrentQuestion(),
     questions,
     leaderboard,
@@ -350,12 +369,19 @@ export const useLiveGameState = () => {
     myRank,
     lastPoints,
     selectedOption,
+    lastAnswerResult,
     isLoading,
     error,
+    isConnected,
+    reconnectAttempts,
+    clientTimeOffset,
     isGameHost,
     setSelectedOption,
-    handleSelectOption,
+    handleSelectOption: (optionId: string) => submitAnswer(gameState?.current_question || 0, optionId, 0),
+    submitAnswer,
     startGame,
+    syncWithServer,
+    getAdjustedTime,
     refreshGameState: fetchGameStateData,
     refreshLeaderboard: fetchLeaderboardData
   };
