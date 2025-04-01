@@ -1,107 +1,75 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { gameNotifications } from '@/components/ui/notification-toast';
 
-// Definir los umbrales importantes para las notificaciones
-const THRESHOLDS = {
-  FIVE_MINUTES: 300,
-  ONE_MINUTE: 60,
-  THIRTY_SECONDS: 30,
-  TEN_SECONDS: 10,
-  COUNTDOWN_START: 5
-};
-
-export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
-  const [countdown, setCountdown] = useState(initialTimeInSeconds);
+export const useCountdown = (initialSeconds: number, gameId: string | undefined) => {
+  const [countdown, setCountdown] = useState<number | null>(initialSeconds > 0 ? initialSeconds : null);
   const [hasGameStarted, setHasGameStarted] = useState(false);
   const [showPulse, setShowPulse] = useState(false);
+  const [isWithinFiveMinutes, setIsWithinFiveMinutes] = useState(false);
   
-  // Check if we're within 5 minutes of game start
-  const isWithinFiveMinutes = countdown <= THRESHOLDS.FIVE_MINUTES && countdown > 0;
-  
-  // Format time remaining in minutes and seconds
-  const formatTimeRemaining = useCallback((seconds: number = countdown) => {
-    if (seconds <= 0) return '00:00';
-    
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }, [countdown]);
-  
-  // Synchronize countdown with server time
+  // Función para sincronizar el contador con el servidor
   const syncCountdown = useCallback((serverCountdown: number) => {
-    if (serverCountdown !== countdown && !hasGameStarted) {
-      console.log(`Syncing countdown from ${countdown} to ${serverCountdown}`);
+    if (serverCountdown > 0) {
+      console.log(`[Countdown] Sincronizando contador con servidor: ${serverCountdown}s`);
       setCountdown(serverCountdown);
     }
-  }, [countdown, hasGameStarted]);
+  }, []);
   
-  // Activate pulse effect temporarily
-  const activatePulseEffect = (duration: number = 2000) => {
-    setShowPulse(true);
-    if (duration > 0) {
-      setTimeout(() => setShowPulse(false), duration);
-    }
-  };
-  
-  // Countdown effect
+  // Effect para manejar el contador
   useEffect(() => {
-    if (hasGameStarted || countdown <= 0) return;
+    if (countdown === null || hasGameStarted) return;
     
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
+    // Comprobar si estamos en los últimos 5 minutos
+    setIsWithinFiveMinutes(countdown <= 300);
+    
+    // Configurar el intervalo del contador
+    const intervalId = setInterval(() => {
+      setCountdown((currentCount) => {
+        if (currentCount === null) return null;
+        
+        const newCount = currentCount - 1;
+        
+        // Si llegamos a 0, la partida comienza
+        if (newCount <= 0) {
+          clearInterval(intervalId);
           setHasGameStarted(true);
           return 0;
         }
-        return prev - 1;
+        
+        // Efectos especiales en puntos específicos
+        if (newCount === 300) { // 5 minutos
+          setShowPulse(true);
+          setTimeout(() => setShowPulse(false), 3000);
+        } else if (newCount === 60) { // 1 minuto
+          setShowPulse(true);
+          setTimeout(() => setShowPulse(false), 3000);
+        } else if (newCount <= 10) { // Últimos 10 segundos
+          setShowPulse(true);
+        } else {
+          setShowPulse(false);
+        }
+        
+        return newCount;
       });
     }, 1000);
     
-    return () => clearInterval(timer);
+    return () => clearInterval(intervalId);
   }, [countdown, hasGameStarted]);
   
-  // Effects for specific time thresholds
-  useEffect(() => {
-    // 5 minute warning
-    if (countdown === THRESHOLDS.FIVE_MINUTES) {
-      gameNotifications.fiveMinutesWarning();
-      activatePulseEffect();
-    }
+  // Formatear el tiempo restante para mostrar
+  const formatTimeRemaining = useCallback((seconds: number | null): string => {
+    if (seconds === null) return "--:--";
     
-    // 1 minute warning
-    if (countdown === THRESHOLDS.ONE_MINUTE) {
-      gameNotifications.oneMinuteWarning();
-      activatePulseEffect();
-    }
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
     
-    // 30 seconds warning
-    if (countdown === THRESHOLDS.THIRTY_SECONDS) {
-      gameNotifications.info("La partida comienza en 30 segundos");
-      activatePulseEffect();
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    } else {
+      return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
-    
-    // 10 seconds warning
-    if (countdown === THRESHOLDS.TEN_SECONDS) {
-      gameNotifications.info("La partida comienza en 10 segundos");
-      activatePulseEffect(0); // No auto-hide
-    }
-    
-    // 5 seconds (final countdown)
-    if (countdown <= THRESHOLDS.COUNTDOWN_START && countdown > 0) {
-      gameNotifications.info(`${countdown}...`);
-      activatePulseEffect(0); // No auto-hide
-    }
-    
-    // Game starting now
-    if (countdown === 0 && !hasGameStarted) {
-      gameNotifications.gameStarting();
-      setShowPulse(false);
-      setHasGameStarted(true);
-    }
-  }, [countdown, hasGameStarted]);
+  }, []);
   
   return {
     countdown,
@@ -113,3 +81,5 @@ export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
     syncCountdown
   };
 };
+
+export default useCountdown;

@@ -18,6 +18,7 @@ export const useGameStateValues = (
   const [myPoints, setMyPoints] = useState(0);
   const [lastPoints, setLastPoints] = useState(0);
   const [answerStartTime, setAnswerStartTime] = useState<number | null>(null);
+  const [hasAnsweredCurrentQuestion, setHasAnsweredCurrentQuestion] = useState(false);
 
   // Update leaderboard when data changes
   useEffect(() => {
@@ -44,7 +45,12 @@ export const useGameStateValues = (
   // Reset selected option when question changes
   useEffect(() => {
     if (gameState?.status === 'question' && currentQuestion) {
+      const currentQuestionId = currentQuestion.id;
+      console.log(`[GameStateValues] New question detected: ${currentQuestionId}`);
+      
+      // Resetear estado solo si es una pregunta nueva
       setSelectedOption(null);
+      setHasAnsweredCurrentQuestion(false);
       
       // Store the time when question was presented
       setAnswerStartTime(Date.now());
@@ -53,20 +59,26 @@ export const useGameStateValues = (
 
   // Handler for selecting an option
   const handleSelectOption = useCallback(async (optionId: string) => {
-    if (selectedOption || !gameState || gameState.status !== 'question') return;
+    if (hasAnsweredCurrentQuestion || selectedOption || !gameState || gameState.status !== 'question') {
+      console.log('[GameStateValues] Ignoring option selection - already answered or not in question state');
+      return;
+    }
     
+    console.log(`[GameStateValues] Selected option: ${optionId}`);
     setSelectedOption(optionId);
+    setHasAnsweredCurrentQuestion(true);
     
     try {
       // Calculate time taken to answer
       const answerTime = answerStartTime ? Date.now() - answerStartTime : 0;
+      console.log(`[GameStateValues] Answer time: ${answerTime}ms`);
       
       // Submit answer with time taken
       await submitAnswerFunction(optionId, answerTime);
     } catch (error) {
-      console.error('Error submitting answer:', error);
+      console.error('[GameStateValues] Error submitting answer:', error);
     }
-  }, [selectedOption, gameState, submitAnswerFunction, answerStartTime]);
+  }, [selectedOption, gameState, submitAnswerFunction, answerStartTime, hasAnsweredCurrentQuestion]);
 
   return {
     leaderboard,
@@ -78,3 +90,5 @@ export const useGameStateValues = (
     handleSelectOption
   };
 };
+
+export default useGameStateValues;

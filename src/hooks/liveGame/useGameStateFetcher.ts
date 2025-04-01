@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { LiveGameState } from '@/types/liveGame';
 import { fetchGameState } from './gameStateUtils';
 import { gameNotifications } from '@/components/ui/notification-toast';
@@ -11,7 +11,10 @@ export const useGameStateFetcher = (gameId: string | undefined) => {
   const [error, setError] = useState<string | null>(null);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   
-  // Fetch game state from the server
+  // Ref para evitar notificaciones repetidas
+  const hasNotifiedChangesRef = useRef<{[key: string]: boolean}>({});
+  
+  // Fetch game state from the server con protección de throttling 
   const fetchGameStateData = useCallback(async (forceFetch: boolean = false) => {
     if (!gameId) return null;
 
@@ -50,9 +53,19 @@ export const useGameStateFetcher = (gameId: string | undefined) => {
           console.log(`[GameState] Actualizando estado del juego:`, state);
           setGameState(state);
           
-          // Check if we need to notify about state change
+          // Check if we need to notify about state change - evitar notificaciones duplicadas
           if (gameState && gameState.status !== state.status) {
-            notifyStateChange(gameState.status, state.status);
+            const changeKey = `${gameState.status}_to_${state.status}`;
+            
+            if (!hasNotifiedChangesRef.current[changeKey]) {
+              notifyStateChange(gameState.status, state.status);
+              hasNotifiedChangesRef.current[changeKey] = true;
+              
+              // Resetear notificaciones después de un tiempo
+              setTimeout(() => {
+                hasNotifiedChangesRef.current = {};
+              }, 5000);
+            }
           }
         } else {
           console.log(`[GameState] El estado no ha cambiado significativamente, omitiendo actualización`);
@@ -98,3 +111,5 @@ export const useGameStateFetcher = (gameId: string | undefined) => {
     setPrevGameState
   };
 };
+
+export default useGameStateFetcher;

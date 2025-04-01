@@ -36,13 +36,24 @@ export const useLiveGameState = () => {
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   
-  // Fetch game state data
-  const fetchGameStateData = useCallback(async () => {
+  // Fetch game state data - con protección contra bucles
+  const fetchGameStateData = useCallback(async (forceFetch: boolean = false) => {
     if (!gameId) {
       console.log("No gameId provided, skipping fetchGameStateData");
-      return;
+      return null;
     }
+    
+    // Limitar la frecuencia de peticiones - no permitir más de una cada 2 segundos
+    // A menos que forceFetch sea true
+    const now = Date.now();
+    if (!forceFetch && now - lastFetchTime < 2000) {
+      console.log(`[LiveGameState] Throttling fetch request (${Math.floor((now - lastFetchTime)/1000)}s since last fetch)`);
+      return null;
+    }
+    
+    setLastFetchTime(now);
     
     try {
       console.log(`[LiveGameState] Fetching game state for game: ${gameId}`);
@@ -70,20 +81,22 @@ export const useLiveGameState = () => {
           updated_at: data[0].updated_at
         };
         
-        setGameState(gameStateData);
-        
-        // If question state, get current question
-        if (gameStateData.status === 'question') {
-          const questionIndex = gameStateData.current_question;
+        // Evitar actualizaciones innecesarias del estado si es igual
+        if (!gameState || 
+            gameState.status !== gameStateData.status || 
+            gameState.current_question !== gameStateData.current_question ||
+            gameState.updated_at !== gameStateData.updated_at) {
           
-          // Get current question if we have it loaded
-          if (questions.length > 0 && questionIndex < questions.length) {
-            console.log(`[LiveGameState] Setting current question: ${questionIndex}`);
-            setCurrentQuestion(questions[questionIndex]);
-          } else {
-            console.log(`[LiveGameState] Questions not loaded yet or invalid index: ${questionIndex}, questions length: ${questions.length}`);
-            // If questions aren't loaded yet, trigger a fetch
-            fetchQuestionsData();
+          setGameState(gameStateData);
+          
+          // If question state, get current question - solo si tenemos preguntas cargadas
+          if (gameStateData.status === 'question' && questions.length > 0) {
+            const questionIndex = gameStateData.current_question;
+            
+            if (questionIndex < questions.length) {
+              console.log(`[LiveGameState] Setting current question: ${questionIndex}`);
+              setCurrentQuestion(questions[questionIndex]);
+            }
           }
         }
         
@@ -98,10 +111,12 @@ export const useLiveGameState = () => {
       setError('Error al cargar el estado del juego');
       gameNotifications.error('No se pudo cargar el estado del juego');
       return null;
+    } finally {
+      setIsLoading(false);
     }
-  }, [gameId, questions]);
+  }, [gameId, gameState, lastFetchTime, questions.length]);
   
-  // Fetch game leaderboard
+  // Fetch game leaderboard - con protección contra bucles
   const fetchLeaderboardData = useCallback(async () => {
     if (!gameId) return;
     
@@ -142,7 +157,7 @@ export const useLiveGameState = () => {
     }
   }, [gameId, user]);
   
-  // Fetch game questions - IMPROVED ERROR HANDLING
+  // Fetch game questions - con protección contra bucles
   const fetchQuestionsData = useCallback(async () => {
     if (!gameId) {
       console.log("[LiveGameState] No gameId provided, skipping fetchQuestionsData");
@@ -164,60 +179,58 @@ export const useLiveGameState = () => {
         throw gameQuestionsError;
       }
       
-      console.log(`[LiveGameState] Found ${gameQuestions?.length || 0} questions for game ${gameId}`);
-      
-      if (gameQuestions && gameQuestions.length > 0) {
-        try {
-          // For each question, get its options
-          const questionsWithOptions = await Promise.all(
-            gameQuestions.map(async (question) => {
-              console.log(`[LiveGameState] Fetching options for question: ${question.id}`);
-              
-              const { data: options, error: optionsError } = await supabase
-                .from('options')
-                .select('id, option_id, option_text, position')
-                .eq('question_id', question.id)
-                .order('position');
-              
-              if (optionsError) {
-                console.error(`[LiveGameState] Error fetching options for question ${question.id}:`, optionsError);
-                throw optionsError;
-              }
-              
-              console.log(`[LiveGameState] Found ${options?.length || 0} options for question ${question.id}`);
-              
-              return {
-                id: question.id,
-                position: question.position,
-                question: question.question_text,
-                options: options || [],
-                category: 'general', // Default category
-                correctOption: question.correct_option
-              };
-            })
-          );
-          
-          console.log(`[LiveGameState] Processed ${questionsWithOptions.length} questions with options`);
-          setQuestions(questionsWithOptions);
-          
-          // Update current question if in question state
-          if (gameState && gameState.status === 'question') {
-            const currentQuestionIndex = gameState.current_question;
-            console.log(`[LiveGameState] Current question index: ${currentQuestionIndex}, Questions length: ${questionsWithOptions.length}`);
-            
-            if (currentQuestionIndex < questionsWithOptions.length) {
-              console.log(`[LiveGameState] Setting current question to index: ${currentQuestionIndex}`);
-              setCurrentQuestion(questionsWithOptions[currentQuestionIndex]);
-            } else {
-              console.warn(`[LiveGameState] Current question index out of bounds: ${currentQuestionIndex}`);
-            }
-          }
-        } catch (optionsErr) {
-          console.error('[LiveGameState] Error processing options for questions:', optionsErr);
-          setError('Error al cargar las opciones de las preguntas');
-        }
-      } else {
+      if (!gameQuestions || gameQuestions.length === 0) {
         console.warn(`[LiveGameState] No questions found for game ${gameId}`);
+        return;
+      }
+      
+      console.log(`[LiveGameState] Found ${gameQuestions.length} questions for game ${gameId}`);
+      
+      try {
+        // For each question, get its options
+        const questionsWithOptions = await Promise.all(
+          gameQuestions.map(async (question) => {
+            console.log(`[LiveGameState] Fetching options for question: ${question.id}`);
+            
+            const { data: options, error: optionsError } = await supabase
+              .from('options')
+              .select('id, option_id, option_text, position')
+              .eq('question_id', question.id)
+              .order('position');
+            
+            if (optionsError) {
+              console.error(`[LiveGameState] Error fetching options for question ${question.id}:`, optionsError);
+              throw optionsError;
+            }
+            
+            console.log(`[LiveGameState] Found ${options?.length || 0} options for question ${question.id}`);
+            
+            return {
+              id: question.id,
+              position: question.position,
+              question: question.question_text,
+              options: options || [],
+              category: 'general', // Default category
+              correctOption: question.correct_option
+            };
+          })
+        );
+        
+        console.log(`[LiveGameState] Processed ${questionsWithOptions.length} questions with options`);
+        setQuestions(questionsWithOptions);
+        
+        // Solo actualizar la pregunta actual si estamos en estado question y ya tenemos las preguntas
+        if (gameState && gameState.status === 'question') {
+          const currentQuestionIndex = gameState.current_question;
+          
+          if (currentQuestionIndex < questionsWithOptions.length) {
+            console.log(`[LiveGameState] Setting current question to index: ${currentQuestionIndex}`);
+            setCurrentQuestion(questionsWithOptions[currentQuestionIndex]);
+          }
+        }
+      } catch (optionsErr) {
+        console.error('[LiveGameState] Error processing options for questions:', optionsErr);
+        setError('Error al cargar las opciones de las preguntas');
       }
     } catch (err) {
       console.error('[LiveGameState] Error fetching questions:', err);
@@ -225,7 +238,7 @@ export const useLiveGameState = () => {
     }
   }, [gameId, gameState]);
   
-  // Fetch game information
+  // Fetch game information - con protección contra bucles
   const fetchGameInfo = useCallback(async () => {
     if (!gameId) return;
     
@@ -250,7 +263,68 @@ export const useLiveGameState = () => {
     }
   }, [gameId]);
 
-  // Subscribe to game state updates
+  // Para reintentar la conexión
+  const refreshGameState = useCallback(async () => {
+    setReconnectAttempts(prev => prev + 1);
+    try {
+      await fetchGameStateData(true);
+      await fetchLeaderboardData();
+      await fetchQuestionsData();
+      setIsConnected(true);
+      gameNotifications.success('Conexión reestablecida');
+    } catch (err) {
+      console.error('Error reconectando:', err);
+      setIsConnected(false);
+    }
+  }, [fetchGameStateData, fetchLeaderboardData, fetchQuestionsData]);
+
+  // Enviar respuesta
+  const submitAnswer = useCallback(async (questionPosition: number, optionId: string, answerTimeMs: number = 0) => {
+    if (!gameId || !user) return null;
+    
+    try {
+      console.log(`[LiveGameState] Submitting answer for user ${user.id}, question ${questionPosition}, option ${optionId}`);
+      
+      // Submit answer
+      const { data, error } = await supabase.rpc(
+        'submit_game_answer',
+        {
+          p_game_id: gameId,
+          p_user_id: user.id,
+          p_question_position: questionPosition,
+          p_selected_option: optionId,
+          p_answer_time_ms: answerTimeMs
+        }
+      );
+      
+      if (error) {
+        console.error('[LiveGameState] Error submitting answer:', error);
+        return null;
+      }
+      
+      if (data && data.length > 0) {
+        console.log(`[LiveGameState] Answer submitted, result:`, data[0]);
+        
+        const result = {
+          is_correct: data[0].is_correct,
+          points: data[0].points,
+          correctOption: data[0].correctoption
+        };
+        
+        setLastAnswerResult(result);
+        setLastPoints(result.points);
+        
+        return result;
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('[LiveGameState] Error submitting answer:', err);
+      return null;
+    }
+  }, [gameId, user]);
+
+  // Subscribe to game state updates - con protección contra bucles
   useEffect(() => {
     if (!gameId) return;
     
@@ -267,7 +341,11 @@ export const useLiveGameState = () => {
         },
         (payload) => {
           console.log('[LiveGameState] Game state change detected:', payload);
-          fetchGameStateData();
+          
+          // Pequeño retraso para evitar múltiples actualizaciones muy seguidas
+          setTimeout(() => {
+            fetchGameStateData(true);
+          }, 300);
         }
       )
       .subscribe((status) => {
@@ -280,7 +358,7 @@ export const useLiveGameState = () => {
     };
   }, [gameId, fetchGameStateData]);
 
-  // Subscribe to leaderboard updates
+  // Subscribe to leaderboard updates - con protección contra bucles
   useEffect(() => {
     if (!gameId) return;
     
@@ -297,7 +375,11 @@ export const useLiveGameState = () => {
         },
         (payload) => {
           console.log('[LiveGameState] Leaderboard update detected:', payload);
-          fetchLeaderboardData();
+          
+          // Pequeño retraso para evitar múltiples actualizaciones muy seguidas
+          setTimeout(() => {
+            fetchLeaderboardData();
+          }, 300);
         }
       )
       .subscribe((status) => {
@@ -310,197 +392,88 @@ export const useLiveGameState = () => {
     };
   }, [gameId, fetchLeaderboardData]);
 
-  // Load initial data - IMPROVED SEQUENCE & ERROR HANDLING
+  // Cargar los datos iniciales con una secuencia optimizada
   useEffect(() => {
+    if (!gameId) {
+      console.warn('[LiveGameState] No gameId provided, skipping initial data load');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    // Definir una secuencia asíncrona ordenada para cargar los datos iniciales
     const loadInitialData = async () => {
-      if (!gameId) {
-        console.warn('[LiveGameState] No gameId provided, skipping initial data load');
-        return;
-      }
-      
-      setIsLoading(true);
-      setError(null);
-      
       try {
         console.log(`[LiveGameState] Starting initial data load for game: ${gameId}`);
         
-        // Load in sequence to ensure dependencies are respected
+        // Cargar datos en secuencia controlada
         await fetchGameInfo();
-        const gameStateResult = await fetchGameStateData();
+        
+        // Cargar preguntas primero, ya que las necesitamos para asignar la pregunta actual
+        await fetchQuestionsData();
+        
+        // Luego cargar el estado actual del juego
+        const gameStateResult = await fetchGameStateData(true);
+        
+        // Finalmente cargar la tabla de clasificación
         await fetchLeaderboardData();
         
-        // Only fetch questions if we have a valid game state
-        if (gameStateResult) {
-          await fetchQuestionsData();
-        }
-        
         console.log('[LiveGameState] Initial data load completed successfully');
+        setIsConnected(true);
       } catch (err) {
-        console.error('[LiveGameState] Error loading initial data:', err);
-        setError('Error al cargar los datos del juego');
-        
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los datos del juego",
-          variant: "destructive"
-        });
-        
-        // Still mark as loaded even if there was an error to prevent infinite loading state
+        console.error('[LiveGameState] Error during initial data load:', err);
+        setError('Error al cargar los datos iniciales');
+        setIsConnected(false);
       } finally {
         setIsLoading(false);
       }
     };
     
-    if (gameId) {
-      loadInitialData();
-    }
-  }, [gameId, fetchGameInfo, fetchGameStateData, fetchLeaderboardData, fetchQuestionsData]);
-
-  // Reset selected option when question changes
-  useEffect(() => {
-    if (gameState && gameState.status === 'question') {
-      console.log('[LiveGameState] Resetting selected option for new question');
-      setSelectedOption(null);
-    }
-  }, [gameState?.current_question, gameState?.status]);
-
-  // Function to adapt current question to QuizQuestion format
-  const adaptCurrentQuestion = useCallback((): QuizQuestion | null => {
-    if (!currentQuestion) return null;
+    loadInitialData();
     
-    return {
-      id: currentQuestion.id.toString(),
-      question: currentQuestion.question,
-      correctOption: currentQuestion.correctOption,
-      position: currentQuestion.position,
-      options: currentQuestion.options.map((opt: any) => ({
-        id: opt.id,
-        text: opt.option_text,
-        isCorrect: opt.option_id === currentQuestion.correctOption
-      }))
+    // Establecer una actualización periódica
+    const periodicUpdate = setInterval(() => {
+      console.log('[LiveGameState] Performing periodic data refresh');
+      fetchGameStateData(false);
+    }, 15000); // Cada 15 segundos
+    
+    return () => {
+      clearInterval(periodicUpdate);
     };
-  }, [currentQuestion]);
+  }, [gameId, fetchGameInfo, fetchQuestionsData, fetchGameStateData, fetchLeaderboardData]);
 
-  // Function to submit an answer
-  const submitAnswer = useCallback(async (questionIdx: number, optionId: string, answerTimeMs: number) => {
-    if (!gameId || !user || !gameState || gameState.status !== 'question') {
-      console.warn('[LiveGameState] Cannot submit answer - prerequisites not met', {
-        gameId, userId: user?.id, gameState: gameState?.status
-      });
-      return null;
-    }
-    
-    try {
-      console.log(`[LiveGameState] Submitting answer: Game: ${gameId}, Question: ${questionIdx}, Option: ${optionId}, Time: ${answerTimeMs}ms`);
+  // Actualizar la pregunta actual cuando cambie el estado o las preguntas
+  useEffect(() => {
+    if (gameState && gameState.status === 'question' && questions.length > 0) {
+      const questionIndex = gameState.current_question;
       
-      // Submit answer to server
-      const { data, error } = await supabase.rpc('submit_game_answer', {
-        p_game_id: gameId,
-        p_user_id: user.id,
-        p_question_position: questionIdx,
-        p_selected_option: optionId,
-        p_answer_time_ms: answerTimeMs || 0
-      });
-      
-      if (error) {
-        console.error('[LiveGameState] Error submitting answer:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo enviar tu respuesta",
-          variant: "destructive"
-        });
-        return null;
+      if (questionIndex < questions.length && (!currentQuestion || 
+          currentQuestion.position !== questionIndex)) {
+        console.log(`[LiveGameState] Updating current question based on state change to: ${questionIndex}`);
+        setCurrentQuestion(questions[questionIndex]);
+        setSelectedOption(null); // Resetear opción seleccionada
       }
-      
-      console.log('[LiveGameState] Answer submitted successfully:', data);
-      
-      // Update last points and set result
-      if (data && data[0]) {
-        setLastPoints(data[0].points || 0);
-        setLastAnswerResult({
-          is_correct: data[0].is_correct,
-          points: data[0].points,
-          correctOption: data[0].correctoption
-        });
-        return data[0];
-      }
-      
-      return null;
-    } catch (err) {
-      console.error('[LiveGameState] Error submitting answer:', err);
-      return null;
     }
-  }, [gameId, user, gameState]);
+  }, [gameState, questions, currentQuestion]);
 
-  // Handle reconnection
-  const scheduleReconnect = useCallback(() => {
-    setReconnectAttempts(prev => {
-      const attempts = prev + 1;
-      console.log(`[LiveGameState] Scheduling reconnection attempt ${attempts} in 2 seconds`);
-      setTimeout(() => {
-        console.log('[LiveGameState] Executing reconnection attempt');
-        fetchGameStateData();
-      }, 2000);
-      return attempts;
-    });
-  }, [fetchGameStateData]);
-  
-  // Function to start game (for host)
-  const startGame = useCallback(async () => {
-    if (!gameId) {
-      console.warn('[LiveGameState] No gameId provided, cannot start game');
-      return;
-    }
-    
-    try {
-      console.log(`[LiveGameState] Attempting to start game: ${gameId}`);
-      
-      const { data, error } = await supabase.rpc('start_live_game', { game_id: gameId });
-      
-      if (error) {
-        console.error('[LiveGameState] Error starting game:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo iniciar la partida",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log('[LiveGameState] Game started successfully:', data);
-      gameNotifications.success('¡La partida ha comenzado!');
-      fetchGameStateData();
-    } catch (err) {
-      console.error('[LiveGameState] Error starting game:', err);
-    }
-  }, [gameId, fetchGameStateData]);
-
-  // Public API
   return {
-    gameId,
     gameState,
-    gameInfo,
-    currentQuestion,
-    adaptedCurrentQuestion: adaptCurrentQuestion(),
     questions,
     leaderboard,
+    currentQuestion,
+    submitAnswer,
+    lastAnswerResult,
+    isLoading,
+    error,
     myPoints,
     myRank,
     lastPoints,
     selectedOption,
-    lastAnswerResult,
-    isLoading,
-    error,
+    setSelectedOption,
     isConnected,
     reconnectAttempts,
-    isGameHost: false, // Simplificado
-    setSelectedOption,
-    handleSelectOption: (optionId: string) => submitAnswer(gameState?.current_question || 0, optionId, 0),
-    submitAnswer,
-    startGame,
-    scheduleReconnect,
-    refreshGameState: fetchGameStateData,
-    refreshLeaderboard: fetchLeaderboardData
+    refreshGameState
   };
 };
 

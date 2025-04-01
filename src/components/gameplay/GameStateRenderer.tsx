@@ -53,6 +53,7 @@ const GameStateRenderer = ({
 }: GameStateRendererProps) => {
   const [shouldShowWaiting, setShouldShowWaiting] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [hasNotifiedMissingQuestion, setHasNotifiedMissingQuestion] = useState(false);
   
   // Simple effect to check if scheduled time is in the future
   useEffect(() => {
@@ -100,8 +101,8 @@ const GameStateRenderer = ({
     );
   }
   
-  // Warn if critical data is missing
-  if (gameState.status === 'question' && !adaptedCurrentQuestion) {
+  // Warn if critical data is missing - evitar notificaciones múltiples
+  if (gameState.status === 'question' && !adaptedCurrentQuestion && !hasNotifiedMissingQuestion) {
     console.warn('[GameStateRenderer] Missing current question data in question state:', {
       gameState,
       currentQuestion,
@@ -109,9 +110,10 @@ const GameStateRenderer = ({
       questions
     });
     
-    // Show notification if we've tried a few times but still have issues
+    // Solo mostrar notificación una vez
     if (retryCount > 0) {
       gameNotifications.warning('Datos de preguntas incompletos. Intentando recuperar.');
+      setHasNotifiedMissingQuestion(true);
     }
   }
 

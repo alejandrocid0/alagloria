@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { subscribeToGameStateUpdates } from './gameStateUtils';
 import { useTimeSync } from './useTimeSync';
 import { useConnectionStatus } from './useConnectionStatus';
@@ -29,9 +29,21 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
     scheduleReconnect 
   } = useConnectionStatus(fetchGameStateWrapper);
 
+  // Ref para evitar actualizaciones múltiples
+  const lastUpdateTimestampRef = useRef<number>(0);
+
   // Handle game state changes from subscription
   const handleGameStateChange = useCallback((payload: any) => {
     console.log('[GameState] Cambio detectado por suscripción:', payload);
+    
+    // Evitar procesamiento de eventos demasiado cercanos en el tiempo
+    const now = Date.now();
+    if (now - lastUpdateTimestampRef.current < 500) {
+      console.log('[GameState] Ignorando cambio por throttling');
+      return;
+    }
+    
+    lastUpdateTimestampRef.current = now;
     
     // Check if this is a new state by comparing timestamps
     if (gameState && payload.new && new Date(payload.new.updated_at) <= new Date(gameState.updated_at)) {
@@ -72,7 +84,7 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
     };
   }, [gameId, handleGameStateChange]);
 
-  // Set up initial data loading and periodic refresh
+  // Set up initial data loading and periodic refresh - con throttling 
   useEffect(() => {
     if (gameId) {
       // Fetch initial state
@@ -102,3 +114,5 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
     serverTimeOffset
   };
 };
+
+export default useGameStateSubscription;
