@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Player } from '@/types/liveGame';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
 
 interface PlayersListSectionProps {
   playersOnline: Player[];
@@ -11,12 +12,41 @@ interface PlayersListSectionProps {
 
 const PlayersListSection = ({ playersOnline }: PlayersListSectionProps) => {
   const { user } = useAuth();
+  const prevPlayersCountRef = useRef(playersOnline.length);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Efecto para detectar cambios en la cantidad de jugadores
+  useEffect(() => {
+    const prevCount = prevPlayersCountRef.current;
+    const currentCount = playersOnline.length;
+    
+    if (currentCount > prevCount) {
+      console.log(`[PlayersListSection] Nuevos jugadores conectados: de ${prevCount} a ${currentCount}`);
+    }
+    
+    prevPlayersCountRef.current = currentCount;
+  }, [playersOnline.length]);
+
+  // Scroll automático al final de la lista cuando nuevos jugadores se unen
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [playersOnline.length]);
 
   return (
     <div className="mb-8">
-      <h3 className="text-lg font-serif font-bold text-gloria-purple mb-3">Jugadores en línea</h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-serif font-bold text-gloria-purple">Jugadores en línea</h3>
+        <Badge variant="outline" className="bg-gloria-purple/10">
+          {playersOnline.length} {playersOnline.length === 1 ? 'jugador' : 'jugadores'}
+        </Badge>
+      </div>
       
-      <div className="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200 max-h-80 overflow-y-auto">
+      <div 
+        ref={listRef}
+        className="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200 max-h-80 overflow-y-auto"
+      >
         <AnimatePresence>
           {playersOnline.map((player, index) => (
             <motion.div 
@@ -27,6 +57,7 @@ const PlayersListSection = ({ playersOnline }: PlayersListSectionProps) => {
               )}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
             >
               <div className="flex-shrink-0 mr-3">
@@ -57,7 +88,7 @@ const PlayersListSection = ({ playersOnline }: PlayersListSectionProps) => {
                     y: { repeat: player.id === user?.id ? Infinity : 0, repeatDelay: 2 }
                   }}
                 >
-                  Listo
+                  Conectado
                 </motion.div>
               </div>
             </motion.div>

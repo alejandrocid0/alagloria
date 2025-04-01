@@ -7,6 +7,7 @@ import CountdownDisplay from './waiting-room/CountdownDisplay';
 import GameTimerProgress from './waiting-room/GameTimerProgress';
 import ActionButtons from './waiting-room/ActionButtons';
 import FinalActions from './waiting-room/FinalActions';
+import PlayersListSection from './waiting-room/PlayersListSection';
 
 interface WaitingRoomProps {
   gameTitle: string;
@@ -80,28 +81,8 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
           />
         </div>
         
-        <div className="mb-8">
-          <h3 className="font-medium text-gray-700 mb-3">Participantes</h3>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {playersOnline.map(player => (
-              <motion.div 
-                key={player.id} 
-                className="bg-gray-50 p-3 rounded-lg text-center"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <img 
-                  src={player.avatar} 
-                  alt={player.name} 
-                  className="w-10 h-10 rounded-full mx-auto mb-2"
-                />
-                <p className="text-sm font-medium truncate">{player.name}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+        {/* Usar el componente especializado para la lista de jugadores */}
+        <PlayersListSection playersOnline={playersOnline} />
         
         <div className="flex justify-center">
           {isGameHost && !hasGameStarted ? (

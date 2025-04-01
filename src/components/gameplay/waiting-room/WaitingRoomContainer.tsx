@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +8,7 @@ import { gameNotifications } from '@/components/ui/notification-toast';
 import { useLiveGameState } from '@/hooks/useLiveGameState';
 import { useCountdown } from '@/components/gameplay/waiting-room/hooks/useCountdown';
 import { useGameInfo } from '@/components/gameplay/hooks/useGameInfo';
+import PlayersListSection from '@/components/gameplay/waiting-room/PlayersListSection';
 
 const WaitingRoomContainer = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -114,14 +114,19 @@ const WaitingRoomContainer = () => {
     };
   }, [gameId, checkScheduledGames, countdown]);
   
-  // Suscribirse a actualizaciones de participantes
+  // Suscribirse a actualizaciones de participantes - MEJORADO
   useEffect(() => {
     if (!gameId) return;
     
+    console.log('[WaitingRoom] Configurando suscripción a participantes del juego:', gameId);
     fetchParticipants();
     
+    // Usar un canal específico con un nombre único para esta instancia
+    const channelName = `game-participants-${gameId}-${Math.random().toString(36).substring(2, 9)}`;
+    console.log('[WaitingRoom] Creando canal de tiempo real:', channelName);
+    
     const channel = supabase
-      .channel(`game-participants-${gameId}`)
+      .channel(channelName)
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -129,13 +134,17 @@ const WaitingRoomContainer = () => {
           table: 'game_participants',
           filter: `game_id=eq.${gameId}`
         },
-        () => {
+        (payload) => {
+          console.log('[WaitingRoom] Cambio detectado en participantes:', payload);
           fetchParticipants();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[WaitingRoom] Estado de la suscripción a participantes: ${status}`);
+      });
       
     return () => {
+      console.log('[WaitingRoom] Limpiando suscripción a participantes');
       supabase.removeChannel(channel);
     };
   }, [gameId]);
@@ -144,36 +153,61 @@ const WaitingRoomContainer = () => {
     if (!gameId) return;
     
     try {
-      const { data, error } = await supabase
+      console.log('[WaitingRoom] Obteniendo participantes para el juego:', gameId);
+      
+      // Primero obtener los IDs de usuario que participan en este juego
+      const { data: participantsData, error: participantsError } = await supabase
         .from('game_participants')
         .select('user_id')
         .eq('game_id', gameId);
         
-      if (error) throw error;
+      if (participantsError) {
+        console.error('[WaitingRoom] Error obteniendo participantes:', participantsError);
+        throw participantsError;
+      }
       
-      if (data) {
-        // Get user profiles
-        const userIds = data.map(p => p.user_id);
+      if (participantsData && participantsData.length > 0) {
+        console.log(`[WaitingRoom] Encontrados ${participantsData.length} participantes`);
+        
+        // Extraer los IDs de usuario y obtener sus perfiles
+        const userIds = participantsData.map(p => p.user_id);
+        
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, name')
           .in('id', userIds);
           
-        if (profilesError) throw profilesError;
+        if (profilesError) {
+          console.error('[WaitingRoom] Error obteniendo perfiles:', profilesError);
+          throw profilesError;
+        }
         
-        const participants = profiles.map((profile, index) => ({
-          id: profile.id,
-          name: profile.name,
-          points: 0,
-          rank: index + 1,
-          lastAnswer: null,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=5D3891&color=fff`
-        }));
-        
-        setPlayersOnline(participants);
+        if (profiles) {
+          console.log(`[WaitingRoom] Obtenidos ${profiles.length} perfiles de usuario`);
+          
+          // Convertir los perfiles al formato requerido para la lista de jugadores
+          const participants = profiles.map((profile, index) => ({
+            id: profile.id,
+            name: profile.name,
+            points: 0,
+            rank: index + 1,
+            lastAnswer: null,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=5D3891&color=fff`
+          }));
+          
+          setPlayersOnline(participants);
+        }
+      } else {
+        console.log('[WaitingRoom] No se encontraron participantes para este juego');
+        setPlayersOnline([]);
       }
     } catch (err) {
-      console.error('Error fetching participants:', err);
+      console.error('[WaitingRoom] Error en fetchParticipants:', err);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los participantes",
+        variant: "destructive"
+      });
     }
   };
   
