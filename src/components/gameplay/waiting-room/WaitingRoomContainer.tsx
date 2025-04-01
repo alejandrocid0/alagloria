@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +19,7 @@ const WaitingRoomContainer = () => {
   const { gameState, refreshGameState } = useLiveGameState();
   const gameInfo = useGameInfo(gameId);
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(true);
+  const [isJoining, setIsJoining] = useState(false);
   
   // Determinar tiempo inicial para la cuenta regresiva
   // Si tenemos estado de juego, usamos su countdown
@@ -54,21 +56,23 @@ const WaitingRoomContainer = () => {
     if (!autoCheckEnabled || !gameId) return;
     
     try {
+      console.log('[WaitingRoom] Checking scheduled games');
       await supabase.functions.invoke('check-scheduled-games');
       // La respuesta no es necesaria procesarla ya que el servidor actualizará 
       // los datos y recibiremos los cambios a través de la suscripción
-      console.log("Scheduled games check completed");
+      console.log("[WaitingRoom] Scheduled games check completed");
       
       // Actualizar estado del juego después de la verificación
       refreshGameState();
     } catch (err) {
-      console.error('Error checking scheduled games:', err);
+      console.error('[WaitingRoom] Error checking scheduled games:', err);
     }
   }, [autoCheckEnabled, gameId, refreshGameState]);
 
   // Efectos para comprobar si la partida ya ha comenzado
   useEffect(() => {
     if (gameState?.status === 'question') {
+      console.log('[WaitingRoom] Game has started, transitioning to question state');
       setHasGameStarted(true);
       
       // Mostrar notificación
@@ -76,6 +80,7 @@ const WaitingRoomContainer = () => {
       
       // Redireccionar tras un breve retraso para dar tiempo a que se muestre la notificación
       setTimeout(() => {
+        setIsJoining(true);
         navigate(`/game/${gameId}`);
       }, 1500);
     }
@@ -84,6 +89,7 @@ const WaitingRoomContainer = () => {
   // Actualizar estado del juego al cargar
   useEffect(() => {
     if (gameId) {
+      console.log('[WaitingRoom] Refreshing game state on component mount');
       refreshGameState();
     }
   }, [gameId, refreshGameState]);
@@ -106,6 +112,7 @@ const WaitingRoomContainer = () => {
       intervalTime = 30000; // Cada 30 segundos en los últimos 10 minutos
     }
     
+    console.log(`[WaitingRoom] Setting up scheduled games check interval: ${intervalTime}ms`);
     const intervalId = setInterval(checkScheduledGames, intervalTime);
     
     return () => {
@@ -114,7 +121,7 @@ const WaitingRoomContainer = () => {
     };
   }, [gameId, checkScheduledGames, countdown]);
   
-  // Suscribirse a actualizaciones de participantes - MEJORADO
+  // Suscribirse a actualizaciones de participantes
   useEffect(() => {
     if (!gameId) return;
     
@@ -214,10 +221,13 @@ const WaitingRoomContainer = () => {
   // Manejar la acción de jugar ahora
   const handlePlayNow = () => {
     if (gameId) {
+      console.log('[WaitingRoom] User clicked "Play Now" button');
       gameNotifications.gameStarting();
       
       // Pequeño retraso para dar tiempo a que se muestre la notificación
       setTimeout(() => {
+        setIsJoining(true);
+        console.log('[WaitingRoom] Navigating to game:', gameId);
         navigate(`/game/${gameId}`);
       }, 1500);
     }
@@ -228,10 +238,12 @@ const WaitingRoomContainer = () => {
     if (!gameId || !isGameHost) return;
     
     try {
+      console.log('[WaitingRoom] Host attempting to start game:', gameId);
+      
       const { error } = await supabase.rpc('start_live_game', { game_id: gameId });
       
       if (error) {
-        console.error('Error starting game:', error);
+        console.error('[WaitingRoom] Error starting game:', error);
         toast({
           title: "Error",
           description: "No se pudo iniciar la partida",
@@ -240,16 +252,31 @@ const WaitingRoomContainer = () => {
         return;
       }
       
+      console.log('[WaitingRoom] Game started successfully');
       gameNotifications.gameStarting();
       
       // Pequeño retraso para dar tiempo a que se muestre la notificación
       setTimeout(() => {
+        setIsJoining(true);
         navigate(`/game/${gameId}`);
       }, 1500);
     } catch (err) {
-      console.error('Error starting game:', err);
+      console.error('[WaitingRoom] Error starting game:', err);
     }
   };
+  
+  // Si estamos en proceso de unirse a la partida, mostrar indicador de carga
+  if (isJoining) {
+    return (
+      <div className="bg-white rounded-xl shadow-md overflow-hidden p-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <div className="w-12 h-12 border-4 border-gloria-purple border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h3 className="text-xl font-serif font-bold text-gloria-purple mb-2">Uniendo a la partida...</h3>
+          <p className="text-gray-500">Cargando preguntas y preparando el juego</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <WaitingRoom 

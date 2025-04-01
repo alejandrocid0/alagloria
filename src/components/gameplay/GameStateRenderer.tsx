@@ -5,6 +5,7 @@ import LoadingState from './LoadingState';
 import ErrorState from './ErrorState';
 import GameContent from './states/GameContent';
 import { useState, useEffect } from 'react';
+import { gameNotifications } from '@/components/ui/notification-toast';
 
 interface GameStateRendererProps {
   gameId: string | undefined;
@@ -51,6 +52,7 @@ const GameStateRenderer = ({
   startGame
 }: GameStateRendererProps) => {
   const [shouldShowWaiting, setShouldShowWaiting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Simple effect to check if scheduled time is in the future
   useEffect(() => {
@@ -67,12 +69,50 @@ const GameStateRenderer = ({
     }
   }, [gameInfo.scheduledTime]);
   
+  // Handler for retrying on error
+  const handleRetry = () => {
+    console.log(`[GameStateRenderer] Retry attempt ${retryCount + 1}`);
+    setRetryCount(prev => prev + 1);
+    window.location.reload();
+  };
+  
+  // Loading state
   if (isLoading) {
     return <LoadingState />;
   }
   
+  // Error state with retry button
   if (error || !gameState) {
-    return <ErrorState errorMessage={error || "No hay datos de juego disponibles"} />;
+    // Log detailed information to help debug
+    console.error('[GameStateRenderer] Error rendering game state:', { 
+      error, 
+      gameState, 
+      gameId,
+      questionsLoaded: questions.length > 0,
+      currentQuestionLoaded: !!currentQuestion
+    });
+    
+    return (
+      <ErrorState 
+        errorMessage={error || "No hay datos de juego disponibles"} 
+        onRetry={handleRetry}
+      />
+    );
+  }
+  
+  // Warn if critical data is missing
+  if (gameState.status === 'question' && !adaptedCurrentQuestion) {
+    console.warn('[GameStateRenderer] Missing current question data in question state:', {
+      gameState,
+      currentQuestion,
+      adaptedCurrentQuestion,
+      questions
+    });
+    
+    // Show notification if we've tried a few times but still have issues
+    if (retryCount > 0) {
+      gameNotifications.warning('Datos de preguntas incompletos. Intentando recuperar.');
+    }
   }
 
   return (
