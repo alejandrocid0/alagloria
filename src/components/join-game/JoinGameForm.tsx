@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ const JoinGameForm = ({
       <div className="mt-6">
         {hasJoined ? (
           <Button
-            variant="primary"
+            variant="default"
             size="lg"
             className="w-full"
             onClick={handleEnterGame}
@@ -65,7 +66,7 @@ const JoinGameForm = ({
           </Button>
         ) : (
           <Button
-            variant="primary"
+            variant="default"
             size="lg"
             className="w-full"
             onClick={handleJoinGame}
@@ -73,9 +74,7 @@ const JoinGameForm = ({
           >
             {isProcessing ? (
               <>
-                <span className="animate-spin mr-2">
-                  
-                </span>
+                <span className="animate-spin mr-2">⟳</span>
                 Procesando...
               </>
             ) : (

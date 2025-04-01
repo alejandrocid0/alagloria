@@ -2,12 +2,15 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GameInfo {
+  id?: string;
   title: string;
   scheduledTime: string;
   prizePool?: number;
+  date?: Date; // Added missing date property
+  created_by?: string; // Added missing created_by property
 }
 
 export const useGameInfo = (gameId: string | undefined) => {
@@ -22,7 +25,11 @@ export const useGameInfo = (gameId: string | undefined) => {
       if (!gameId) return;
       
       try {
-        const { data, error } = await fetch(`/api/games/${gameId}`).then(res => res.json());
+        const { data, error } = await supabase
+          .from('games')
+          .select('*')
+          .eq('id', gameId)
+          .single();
         
         if (error) throw new Error(error.message);
         
@@ -34,9 +41,12 @@ export const useGameInfo = (gameId: string | undefined) => {
           );
           
           setGameInfo({
+            id: data.id,
             title: data.title || "Partida en vivo",
-            scheduledTime: data.date,
-            prizePool: data.prize_pool
+            scheduledTime: formattedDate,
+            prizePool: data.prize_pool,
+            date: new Date(data.date),
+            created_by: data.created_by
           });
         }
       } catch (err) {
