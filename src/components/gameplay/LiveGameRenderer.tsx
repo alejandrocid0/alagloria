@@ -34,9 +34,7 @@ const LiveGameRenderer = () => {
     error,
     isConnected,
     reconnectAttempts,
-    clientTimeOffset,
-    syncWithServer,
-    getAdjustedTime
+    refreshGameState
   } = useLiveGameState();
   
   // Get derived state values and handlers
@@ -62,12 +60,12 @@ const LiveGameRenderer = () => {
     }
   );
   
-  // Sincronizar con el servidor al iniciar
+  // Ejecutar actualización inicial al cargar el componente
   useEffect(() => {
     if (gameId) {
-      syncWithServer();
+      refreshGameState();
     }
-  }, [gameId, syncWithServer]);
+  }, [gameId, refreshGameState]);
   
   // Detectar cambios de estado del juego y mostrar notificaciones
   useEffect(() => {
@@ -91,24 +89,14 @@ const LiveGameRenderer = () => {
     }
   }, [gameState?.status, myRank, lastGameStatus]);
   
-  // Comprobar si es el momento de la partida
+  // Comprobar si el juego está en estado de espera
   useEffect(() => {
     // Solo si tenemos información de la partida y no está cargando
-    if (!isLoading && gameInfo.scheduledTime) {
-      const currentTime = getAdjustedTime();
-      const scheduledTime = new Date(gameInfo.scheduledTime).getTime();
-      const timeUntilStartInMs = scheduledTime - currentTime;
-      
-      const isBeforeGameStart = timeUntilStartInMs > 0;
-      
-      // Determinar si estamos más de 5 minutos antes del inicio de la partida
-      // O si el juego está en estado de espera/waiting
-      if ((isBeforeGameStart && timeUntilStartInMs > 300000) || (gameState && gameState.status === 'waiting')) {
-        console.log(`Redirigiendo a sala de espera: ${Math.floor(timeUntilStartInMs/60000)} minutos para inicio o estado de espera`);
-        setRedirectToWaiting(true);
-      }
+    if (!isLoading && gameState && gameState.status === 'waiting') {
+      console.log('Redirigiendo a sala de espera: juego en estado de espera');
+      setRedirectToWaiting(true);
     }
-  }, [isLoading, gameInfo.scheduledTime, gameState, getAdjustedTime]);
+  }, [isLoading, gameState]);
   
   // Redireccionar a la sala de espera si es necesario
   useEffect(() => {
@@ -186,7 +174,6 @@ const LiveGameRenderer = () => {
             handleSelectOption={handleSelectOption}
             isGameHost={false}
             startGame={() => Promise.resolve()}
-            clientTimeOffset={clientTimeOffset}
           />
         </motion.div>
       </AnimatePresence>

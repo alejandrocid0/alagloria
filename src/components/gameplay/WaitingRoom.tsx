@@ -62,9 +62,11 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
           table: 'live_games',
           filter: `id=eq.${gameId}`
         },
-        (payload) => {
-          if (payload.new && payload.new.status === 'question') {
-            navigate(`/game/${gameId}`);
+        (payload: any) => {
+          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new) {
+            if (payload.new.status === 'question') {
+              navigate(`/game/${gameId}`);
+            }
           }
         }
       )
