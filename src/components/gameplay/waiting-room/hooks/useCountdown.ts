@@ -2,13 +2,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { gameNotifications } from '@/components/ui/notification-toast';
 
+// Definir los umbrales importantes para las notificaciones
+const THRESHOLDS = {
+  FIVE_MINUTES: 300,
+  ONE_MINUTE: 60,
+  THIRTY_SECONDS: 30,
+  TEN_SECONDS: 10,
+  COUNTDOWN_START: 5
+};
+
 export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
   const [countdown, setCountdown] = useState(initialTimeInSeconds);
   const [hasGameStarted, setHasGameStarted] = useState(false);
   const [showPulse, setShowPulse] = useState(false);
   
   // Check if we're within 5 minutes of game start
-  const isWithinFiveMinutes = countdown <= 300 && countdown > 0;
+  const isWithinFiveMinutes = countdown <= THRESHOLDS.FIVE_MINUTES && countdown > 0;
   
   // Format time remaining in minutes and seconds
   const formatTimeRemaining = useCallback((seconds: number = countdown) => {
@@ -27,6 +36,14 @@ export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
       setCountdown(serverCountdown);
     }
   }, [countdown, hasGameStarted]);
+  
+  // Activate pulse effect temporarily
+  const activatePulseEffect = (duration: number = 2000) => {
+    setShowPulse(true);
+    if (duration > 0) {
+      setTimeout(() => setShowPulse(false), duration);
+    }
+  };
   
   // Countdown effect
   useEffect(() => {
@@ -49,36 +66,33 @@ export const useCountdown = (initialTimeInSeconds: number, gameId?: string) => {
   // Effects for specific time thresholds
   useEffect(() => {
     // 5 minute warning
-    if (countdown === 300) {
+    if (countdown === THRESHOLDS.FIVE_MINUTES) {
       gameNotifications.fiveMinutesWarning();
-      setShowPulse(true);
-      setTimeout(() => setShowPulse(false), 2000);
+      activatePulseEffect();
     }
     
     // 1 minute warning
-    if (countdown === 60) {
+    if (countdown === THRESHOLDS.ONE_MINUTE) {
       gameNotifications.oneMinuteWarning();
-      setShowPulse(true);
-      setTimeout(() => setShowPulse(false), 2000);
+      activatePulseEffect();
     }
     
     // 30 seconds warning
-    if (countdown === 30) {
+    if (countdown === THRESHOLDS.THIRTY_SECONDS) {
       gameNotifications.info("La partida comienza en 30 segundos");
-      setShowPulse(true);
-      setTimeout(() => setShowPulse(false), 2000);
+      activatePulseEffect();
     }
     
     // 10 seconds warning
-    if (countdown === 10) {
+    if (countdown === THRESHOLDS.TEN_SECONDS) {
       gameNotifications.info("La partida comienza en 10 segundos");
-      setShowPulse(true);
+      activatePulseEffect(0); // No auto-hide
     }
     
     // 5 seconds (final countdown)
-    if (countdown <= 5 && countdown > 0) {
+    if (countdown <= THRESHOLDS.COUNTDOWN_START && countdown > 0) {
       gameNotifications.info(`${countdown}...`);
-      setShowPulse(true);
+      activatePulseEffect(0); // No auto-hide
     }
     
     // Game starting now

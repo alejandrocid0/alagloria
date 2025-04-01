@@ -33,7 +33,7 @@ const showToast = ({ title, description, variant = "default", icon, duration = 5
 };
 
 export const gameNotifications = {
-  // Notificaciones de conexión
+  // Conexión
   connectSuccess: () => {
     showToast({
       title: "¡Conexión recuperada!",
@@ -48,11 +48,11 @@ export const gameNotifications = {
       description: "Intentando reconectar...",
       variant: "destructive",
       icon: <WifiOff className="h-5 w-5" />,
-      duration: 10000, // Show longer for connection issues
+      duration: 10000,
     });
   },
   
-  // Notificaciones de respuestas
+  // Respuestas
   correctAnswer: (points: number) => {
     showToast({
       title: "¡Respuesta correcta!",
@@ -70,7 +70,7 @@ export const gameNotifications = {
     });
   },
   
-  // Notificaciones de estado del juego
+  // Estado del juego
   gameStarting: () => {
     showToast({
       title: "¡La partida está comenzando!",
@@ -111,7 +111,7 @@ export const gameNotifications = {
       title: "Partida finalizada",
       description,
       icon: <Trophy className="text-gloria-gold h-5 w-5" />,
-      duration: 7000, // Show longer for game completion
+      duration: 7000,
     });
   },
   
@@ -123,7 +123,7 @@ export const gameNotifications = {
     });
   },
   
-  // Notificaciones de flujo del juego
+  // Flujo del juego
   newQuestion: () => {
     showToast({
       title: "Nueva pregunta",
@@ -145,6 +145,15 @@ export const gameNotifications = {
       title: "Tabla de posiciones",
       description: "Veamos cómo va la clasificación...",
       icon: <Trophy className="text-gloria-purple h-5 w-5" />,
+    });
+  },
+  
+  // Añadir los métodos que estaban faltando
+  info: (message: string) => {
+    showToast({
+      title: "Información",
+      description: message,
+      icon: <AlertCircle className="text-blue-500 h-5 w-5" />,
     });
   },
   
