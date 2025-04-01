@@ -1,6 +1,6 @@
 
 import { toast } from '@/hooks/use-toast';
-import { Bell, Clock, Trophy, CheckCircle, XCircle, Wifi, WifiOff, Award, AlertCircle } from 'lucide-react';
+import { Bell, Clock, Trophy, CheckCircle, XCircle, Wifi, WifiOff, Award, AlertCircle, Save } from 'lucide-react';
 import { ReactNode } from 'react';
 
 // Define a custom toast type that includes the icon property
@@ -9,14 +9,16 @@ type CustomToastProps = {
   description: string;
   variant?: "default" | "destructive";
   icon?: ReactNode;
+  duration?: number;
 }
 
 // Helper function to show toast with icon
-const showToast = ({ title, description, variant = "default", icon }: CustomToastProps) => {
+const showToast = ({ title, description, variant = "default", icon, duration = 5000 }: CustomToastProps) => {
   return toast({
     title,
     description,
     variant,
+    duration,
     // Only add these properties if they have values
     ...(icon && { 
       className: "flex items-start",
@@ -46,6 +48,7 @@ export const gameNotifications = {
       description: "Intentando reconectar...",
       variant: "destructive",
       icon: <WifiOff className="h-5 w-5" />,
+      duration: 10000, // Show longer for connection issues
     });
   },
   
@@ -70,8 +73,8 @@ export const gameNotifications = {
   // Notificaciones de estado del juego
   gameStarting: () => {
     showToast({
-      title: "¡La partida está por comenzar!",
-      description: "Prepárate, quedan solo 5 segundos.",
+      title: "¡La partida está comenzando!",
+      description: "Prepárate para responder preguntas.",
       icon: <Bell className="text-gloria-gold h-5 w-5" />,
     });
   },
@@ -87,7 +90,7 @@ export const gameNotifications = {
   oneMinuteWarning: () => {
     showToast({
       title: "1 minuto para el inicio",
-      description: "La partida comenzará en 1 minuto.",
+      description: "La partida comenzará en 1 minuto. ¡Prepárate!",
       icon: <Clock className="text-gloria-gold h-5 w-5" />,
     });
   },
@@ -108,6 +111,7 @@ export const gameNotifications = {
       title: "Partida finalizada",
       description,
       icon: <Trophy className="text-gloria-gold h-5 w-5" />,
+      duration: 7000, // Show longer for game completion
     });
   },
   
@@ -115,7 +119,7 @@ export const gameNotifications = {
     showToast({
       title: "Resultados guardados",
       description: "Tus resultados han sido guardados correctamente.",
-      icon: <Award className="text-gloria-purple h-5 w-5" />,
+      icon: <Save className="text-gloria-purple h-5 w-5" />,
     });
   },
   
@@ -141,6 +145,14 @@ export const gameNotifications = {
       title: "Tabla de posiciones",
       description: "Veamos cómo va la clasificación...",
       icon: <Trophy className="text-gloria-purple h-5 w-5" />,
+    });
+  },
+  
+  autoRedirectNotification: (seconds: number) => {
+    showToast({
+      title: "Redirección automática",
+      description: `Serás redirigido a la página de resultados en ${seconds} segundos...`,
+      icon: <Clock className="text-blue-500 h-5 w-5" />,
     });
   }
 };

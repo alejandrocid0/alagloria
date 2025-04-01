@@ -3,19 +3,43 @@ import { useState, useCallback, useEffect } from 'react';
 import { LiveGameState } from '@/types/liveGame';
 import { fetchGameState, subscribeToGameStateUpdates } from './gameStateUtils';
 import { toast } from '@/hooks/use-toast';
+import { gameNotifications } from '@/components/ui/notification-toast';
 
 export const useGameStateSubscription = (gameId: string | undefined) => {
   const [gameState, setGameState] = useState<LiveGameState | null>(null);
+  const [prevGameState, setPrevGameState] = useState<LiveGameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [serverTimeOffset, setServerTimeOffset] = useState<number>(0);
   
-  // Simplified time sync
-  const syncWithServer = useCallback(() => {
-    console.log('Time sync with server initiated');
-    return Promise.resolve();
+  // Sync local time with server time
+  const syncWithServer = useCallback(async () => {
+    try {
+      const startTime = Date.now();
+      const response = await fetch('https://worldtimeapi.org/api/ip');
+      const endTime = Date.now();
+      const roundTripTime = endTime - startTime;
+      
+      if (!response.ok) {
+        console.error('Time sync failed: Server responded with status', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      const serverTime = new Date(data.datetime).getTime();
+      const clientTime = Date.now();
+      
+      // Adjust for round-trip latency (approximation)
+      const adjustedOffset = serverTime - (clientTime - Math.floor(roundTripTime / 2));
+      setServerTimeOffset(adjustedOffset);
+      
+      console.log('Time sync complete. Offset:', adjustedOffset, 'ms');
+    } catch (err) {
+      console.error('Time sync failed:', err);
+    }
   }, []);
   
   // Fetch game state from the server
@@ -40,6 +64,11 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       if (state) {
         console.log(`[GameState] Estado del juego ${gameId} obtenido:`, state);
         
+        // Save previous state before updating
+        if (gameState) {
+          setPrevGameState(gameState);
+        }
+        
         // Only update state if it's actually different from current state
         // or if it's the same status but the updated_at timestamp is newer
         if (!gameState || 
@@ -51,6 +80,11 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
           console.log(`[GameState] Actualizando estado del juego:`, state);
           setGameState(state);
           setIsLoading(false);
+          
+          // Check if we need to notify about state change
+          if (gameState && gameState.status !== state.status) {
+            notifyStateChange(gameState.status, state.status);
+          }
         } else {
           console.log(`[GameState] El estado no ha cambiado significativamente, omitiendo actualización`);
         }
@@ -58,11 +92,7 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
         // Update connection state to connected if we successfully fetched the state
         if (!isConnected) {
           setIsConnected(true);
-          toast({
-            title: "Conexión recuperada",
-            description: "Te has vuelto a conectar a la partida",
-            variant: "default",
-          });
+          gameNotifications.connectSuccess();
           setReconnectAttempts(0);
         }
       } else {
@@ -77,17 +107,31 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       // Mark as disconnected if fetch fails
       if (isConnected) {
         setIsConnected(false);
-        toast({
-          title: "Conexión perdida",
-          description: "Intentando reconectar...",
-          variant: "destructive",
-        });
+        gameNotifications.connectionLost();
       }
       
       // Schedule reconnection attempt with exponential backoff
       scheduleReconnect();
     }
   }, [gameId, isConnected, syncWithServer, lastFetchTime, gameState]);
+
+  // Notify about game state changes
+  const notifyStateChange = (prevStatus: string, newStatus: string) => {
+    switch (newStatus) {
+      case 'question':
+        gameNotifications.newQuestion();
+        break;
+      case 'result':
+        gameNotifications.showingResults();
+        break;
+      case 'leaderboard':
+        gameNotifications.showingLeaderboard();
+        break;
+      case 'finished':
+        // We'll handle the finished state in the main component with rank info
+        break;
+    }
+  };
 
   // Simple reconnection logic
   const scheduleReconnect = useCallback(() => {
@@ -141,25 +185,37 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       // Fetch initial state
       fetchGameStateData();
       
+      // Sync time with server
+      syncWithServer();
+      
       // Set up a periodic refresh to make sure we stay in sync (every 15s)
       const periodicRefreshInterval = setInterval(() => {
         console.log('[GameState] Realizando actualización periódica');
         fetchGameStateData();
       }, 15000);
       
+      // Re-sync with the server every 5 minutes
+      const timeSyncInterval = setInterval(() => {
+        console.log('[GameState] Re-sincronizando reloj con el servidor');
+        syncWithServer();
+      }, 300000); // 5 minutes
+      
       return () => {
         clearInterval(periodicRefreshInterval);
+        clearInterval(timeSyncInterval);
       };
     }
-  }, [gameId, fetchGameStateData]);
+  }, [gameId, fetchGameStateData, syncWithServer]);
 
   return {
     gameState,
+    prevGameState,
     isLoading,
     error,
     isConnected,
     fetchGameStateData,
     scheduleReconnect,
-    reconnectAttempts
+    reconnectAttempts,
+    serverTimeOffset
   };
 };

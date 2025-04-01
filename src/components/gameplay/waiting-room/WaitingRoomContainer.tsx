@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import WaitingRoom from '@/components/gameplay/WaitingRoom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { gameNotifications } from '@/components/ui/notification-toast';
 import { useLiveGameState } from '@/hooks/useLiveGameState';
 import { useCountdown } from '@/components/gameplay/waiting-room/hooks/useCountdown';
 import { useGameInfo } from '@/components/gameplay/hooks/useGameInfo';
@@ -16,6 +17,7 @@ const WaitingRoomContainer = () => {
   const [playersOnline, setPlayersOnline] = useState<any[]>([]);
   const { gameState, refreshGameState } = useLiveGameState();
   const gameInfo = useGameInfo(gameId);
+  const [autoCheckEnabled, setAutoCheckEnabled] = useState(true);
   
   // Calcular tiempo hasta el inicio programado
   const gameDate = gameInfo?.date ? new Date(gameInfo.date) : null;
@@ -36,12 +38,33 @@ const WaitingRoomContainer = () => {
     setHasGameStarted
   } = useCountdown(secondsUntilStart, gameId);
 
+  // Función para verificar partidas programadas (auto-inicio)
+  const checkScheduledGames = useCallback(async () => {
+    if (!autoCheckEnabled) return;
+    
+    try {
+      await supabase.functions.invoke('check-scheduled-games');
+      // No necesitamos procesar la respuesta, ya que el servidor actualizará 
+      // los datos y recibiremos los cambios a través de la suscripción
+    } catch (err) {
+      console.error('Error checking scheduled games:', err);
+    }
+  }, [autoCheckEnabled]);
+
   // Efectos para comprobar si la partida ya ha comenzado
   useEffect(() => {
     if (gameState?.status === 'question') {
       setHasGameStarted(true);
+      
+      // Mostrar notificación
+      gameNotifications.gameStarting();
+      
+      // Redireccionar tras un breve retraso para dar tiempo a que se muestre la notificación
+      setTimeout(() => {
+        navigate(`/game/${gameId}`);
+      }, 1500);
     }
-  }, [gameState, setHasGameStarted]);
+  }, [gameState, setHasGameStarted, gameId, navigate]);
   
   // Actualizar estado del juego al cargar
   useEffect(() => {
@@ -49,6 +72,22 @@ const WaitingRoomContainer = () => {
       refreshGameState();
     }
   }, [gameId, refreshGameState]);
+  
+  // Configurar verificación periódica de partidas programadas
+  useEffect(() => {
+    if (!gameId || !isWithinFiveMinutes) return;
+    
+    // Verificar partidas programadas cada 10 segundos si estamos en los últimos 5 minutos
+    const intervalId = setInterval(checkScheduledGames, 10000);
+    
+    // Verificar inmediatamente al entrar en los últimos 5 minutos
+    checkScheduledGames();
+    
+    return () => {
+      clearInterval(intervalId);
+      setAutoCheckEnabled(false);
+    };
+  }, [gameId, isWithinFiveMinutes, checkScheduledGames]);
   
   // Suscribirse a actualizaciones de participantes
   useEffect(() => {
@@ -116,7 +155,12 @@ const WaitingRoomContainer = () => {
   // Manejar la acción de jugar ahora
   const handlePlayNow = () => {
     if (gameId) {
-      navigate(`/game/${gameId}`);
+      gameNotifications.gameStarting();
+      
+      // Pequeño retraso para dar tiempo a que se muestre la notificación
+      setTimeout(() => {
+        navigate(`/game/${gameId}`);
+      }, 1500);
     }
   };
   
@@ -137,7 +181,12 @@ const WaitingRoomContainer = () => {
         return;
       }
       
-      navigate(`/game/${gameId}`);
+      gameNotifications.gameStarting();
+      
+      // Pequeño retraso para dar tiempo a que se muestre la notificación
+      setTimeout(() => {
+        navigate(`/game/${gameId}`);
+      }, 1500);
     } catch (err) {
       console.error('Error starting game:', err);
     }

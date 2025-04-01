@@ -1,39 +1,54 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Trophy } from 'lucide-react';
+import { Trophy, Save, CheckCircle } from 'lucide-react';
 
 interface HeaderSectionProps {
-  myPoints: number;
+  title: string;
   myRank: number;
+  resultsSaved: boolean;
 }
 
-const HeaderSection: React.FC<HeaderSectionProps> = ({ myPoints, myRank }) => {
+const HeaderSection = ({ title, myRank, resultsSaved }: HeaderSectionProps) => {
+  // Determine rank message
+  const getRankMessage = (rank: number) => {
+    if (rank === 1) return "¡Has ganado la partida!";
+    if (rank === 2) return "¡Segundo lugar!";
+    if (rank === 3) return "¡Tercer lugar!";
+    if (rank <= 10) return `Posición ${rank}. ¡Buen trabajo!`;
+    return `Has quedado en posición ${rank}`;
+  };
+
   return (
-    <div className="text-center mb-8">
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="inline-block bg-glory-gold/20 p-4 rounded-full mb-4"
-      >
-        <Trophy className="w-12 h-12 text-gloria-gold" />
-      </motion.div>
+    <div className="mb-6 text-center">
+      <div className="flex justify-center">
+        <div className="inline-flex items-center justify-center bg-gloria-purple text-white rounded-full h-14 w-14 mb-4">
+          <Trophy className="w-7 h-7" />
+        </div>
+      </div>
       
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-      >
-        <h2 className="text-2xl md:text-3xl font-serif font-bold text-gloria-purple mb-2">
-          ¡Partida completada!
-        </h2>
-        
-        <p className="text-gray-600 max-w-md mx-auto">
-          Has finalizado la partida con <span className="font-bold text-gloria-purple">{myPoints} puntos</span> y 
-          has quedado en el puesto <span className="font-bold text-gloria-purple">#{myRank}</span>.
-        </p>
-      </motion.div>
+      <h2 className="text-2xl font-serif font-bold text-gloria-purple mb-1">
+        ¡Partida finalizada!
+      </h2>
+      
+      <p className="text-lg font-medium text-gray-800 mb-2">
+        {getRankMessage(myRank)}
+      </p>
+      
+      <p className="text-sm text-gray-600 mb-3">
+        {title}
+      </p>
+      
+      {resultsSaved ? (
+        <div className="flex items-center justify-center text-sm text-green-600">
+          <CheckCircle className="w-4 h-4 mr-1" />
+          <span>Resultados guardados</span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center text-sm text-blue-600 animate-pulse">
+          <Save className="w-4 h-4 mr-1" />
+          <span>Guardando resultados...</span>
+        </div>
+      )}
     </div>
   );
 };
