@@ -1,59 +1,43 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ContentProvider } from "@/contexts/ContentContext";
-import ScrollToTop from "@/components/navigation/ScrollToTop";
-import Index from "./pages/Index";
-import Games from "./pages/Games";
-import HowToPlay from "./pages/HowToPlay";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import JoinGame from "./pages/JoinGame";
-import Game from "./pages/Game";
-import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import Suggestions from "./pages/Suggestions";
-import NotFound from "./pages/NotFound";
-import GamePlay from "./pages/GamePlay";
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Games from './pages/Games';
+import Game from './pages/Game';
+import JoinGame from './pages/JoinGame';
+import Profile from './pages/Profile';
+import EditProfile from './pages/EditProfile';
+import Results from './pages/Results';
+import GameResults from './pages/GameResults';
+import Admin from './pages/Admin';
+import CreateGame from './pages/CreateGame';
+import EditGame from './pages/EditGame';
+import GameWaitingRoom from './pages/GameWaitingRoom';
+import { Toaster } from "@/components/ui/toaster"
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/games" element={<Games />} />
+        <Route path="/game/:gameId" element={<Game />} />
+        <Route path="/join/:gameId" element={<JoinGame />} />
+        <Route path="/profile/:id" element={<Profile />} />
+        <Route path="/profile/:id/edit" element={<EditProfile />} />
+        <Route path="/results" element={<Results />} />
+        <Route path="/results/:gameId" element={<GameResults />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/create" element={<CreateGame />} />
+        <Route path="/admin/edit/:gameId" element={<EditGame />} />
+        <Route path="/game/:gameId/waiting" element={<GameWaitingRoom />} />
+      </Routes>
       <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <AuthProvider>
-          <ContentProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/games" element={<Games />} />
-              <Route path="/how-to-play" element={<HowToPlay />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/join/:gameId" element={<JoinGame />} />
-              <Route path="/game/:gameId" element={<Game />} />
-              <Route path="/game/:gameId/waiting" element={<GamePlay />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/suggestions" element={<Suggestions />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ContentProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </Router>
+  );
+}
 
 export default App;
