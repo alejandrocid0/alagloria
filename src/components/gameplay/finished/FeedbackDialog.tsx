@@ -36,7 +36,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Incluimos el título del juego en el mensaje para tener más contexto
+      // Include the game title in the message for more context
       const fullMessage = `[Feedback de partida "${gameTitle}"]: ${message}`;
       
       const { error } = await sendSuggestion(fullMessage);

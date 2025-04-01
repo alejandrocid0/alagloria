@@ -9,7 +9,7 @@ interface ActionButtonsProps {
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onExit }) => {
   const handleExit = () => {
-    // Llamar a la función onExit si existe antes de navegar
+    // Call the onExit function if it exists before navigating
     if (onExit) {
       onExit();
     }

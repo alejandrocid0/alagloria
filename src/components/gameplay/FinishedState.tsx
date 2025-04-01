@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import HeaderSection from './finished/HeaderSection';
@@ -11,6 +11,7 @@ import FeedbackDialog from './finished/FeedbackDialog';
 import { useConfettiEffect } from './finished/useConfettiEffect';
 import { useGameResultSaver } from './finished/useGameResultSaver';
 import { gameNotifications } from '@/components/ui/notification-toast';
+import { useState } from 'react';
 
 interface FinishedStateProps {
   gameId: string;
@@ -30,7 +31,11 @@ interface FinishedStateProps {
 
 const FinishedState = ({ gameId, ranking, myPoints, myRank, questions, gameTitle }: FinishedStateProps) => {
   const navigate = useNavigate();
-  const { targetRef, triggerConfetti } = useConfettiEffect(myRank <= 3);
+  const confettiRef = useRef<HTMLDivElement>(null);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  
+  // Call useConfettiEffect and pass in the top 3 condition
+  useConfettiEffect(confettiRef, myRank <= 3);
   
   // Count correct answers
   const myPlayer = ranking.find(player => player.rank === myRank);
@@ -69,16 +74,11 @@ const FinishedState = ({ gameId, ranking, myPoints, myRank, questions, gameTitle
     // Show game completed notification with rank
     gameNotifications.gameCompleted(myRank);
     
-    // If in top 3, trigger confetti
-    if (myRank <= 3) {
-      triggerConfetti();
-    }
-    
     // Save results if not already saved
     if (!isSaved && !isLoading) {
       saveResult();
     }
-  }, [myRank, triggerConfetti, isSaved, isLoading, saveResult]);
+  }, [myRank, isSaved, isLoading, saveResult]);
   
   // Calculate top three players
   const topThreePlayers = [...ranking]
@@ -87,7 +87,7 @@ const FinishedState = ({ gameId, ranking, myPoints, myRank, questions, gameTitle
   
   return (
     <motion.div 
-      ref={targetRef}
+      ref={confettiRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -99,28 +99,28 @@ const FinishedState = ({ gameId, ranking, myPoints, myRank, questions, gameTitle
         resultsSaved={isSaved}
       />
       
-      <WinnersPodium topThreePlayers={topThreePlayers} />
+      <WinnersPodium topPlayers={topThreePlayers} />
       
       <UserStatsCards 
-        myPoints={myPoints} 
-        totalQuestions={questions.length} 
-        correctAnswers={correctAnswers}
-        myRank={myRank}
-        totalPlayers={ranking.length}
+        rank={myRank}
+        points={myPoints}
+        playTime="3:24" // Placeholder time value
       />
       
       <PlayersRankingList 
         players={ranking} 
-        myRank={myRank} 
+        startPosition={4}
       />
       
       <ActionButtons 
-        onViewResults={() => navigate(`/results/${gameId}`)}
-        onPlayAgain={() => navigate('/games')}
-        resultsSaved={isSaved}
+        onExit={() => navigate('/games')}
       />
       
-      <FeedbackDialog gameId={gameId} />
+      <FeedbackDialog 
+        isOpen={showFeedbackDialog}
+        onOpenChange={setShowFeedbackDialog}
+        gameTitle={gameTitle}
+      />
     </motion.div>
   );
 };
