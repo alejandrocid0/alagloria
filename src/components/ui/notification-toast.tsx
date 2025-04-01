@@ -163,5 +163,33 @@ export const gameNotifications = {
       description: `Serás redirigido a la página de resultados en ${seconds} segundos...`,
       icon: <Clock className="text-blue-500 h-5 w-5" />,
     });
+  },
+  
+  // Añadimos los métodos faltantes
+  warning: (message: string) => {
+    showToast({
+      title: "Advertencia",
+      description: message,
+      variant: "destructive",
+      icon: <AlertCircle className="text-yellow-500 h-5 w-5" />,
+    });
+  },
+  
+  error: (message: string) => {
+    showToast({
+      title: "Error",
+      description: message,
+      variant: "destructive",
+      icon: <XCircle className="text-red-500 h-5 w-5" />,
+    });
+  },
+  
+  success: (message: string) => {
+    showToast({
+      title: "Éxito",
+      description: message,
+      icon: <CheckCircle className="text-green-500 h-5 w-5" />,
+    });
   }
 };
+
