@@ -23,6 +23,7 @@ export const useGameCountdown = ({
   onTimeRemainingChange
 }: GameCountdownProps) => {
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(20);
   
   // Handle state transitions based on timers
   useEffect(() => {
@@ -32,11 +33,14 @@ export const useGameCountdown = ({
     if (currentState === 'question' && !selectedOption) {
       // Question countdown
       const questionTime = 20; // Default time per question in seconds
+      setTimeRemaining(questionTime);
       onTimeRemainingChange(questionTime);
       
       timer = setInterval(() => {
-        onTimeRemainingChange(prev => {
+        setTimeRemaining(prev => {
           const newValue = prev <= 1 ? 0 : prev - 1;
+          onTimeRemainingChange(newValue);
+          
           if (newValue === 0) {
             clearInterval(timer!);
             // Auto-submit when time runs out
@@ -85,7 +89,7 @@ export const useGameCountdown = ({
     onTimeRemainingChange
   ]);
   
-  return { countdown };
+  return { countdown, timeRemaining };
 };
 
 export default useGameCountdown;
