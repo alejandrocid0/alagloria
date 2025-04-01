@@ -31,14 +31,13 @@ interface FinishedStateProps {
 
 const FinishedState = ({ gameId, ranking, myPoints, myRank, questions, gameTitle }: FinishedStateProps) => {
   const navigate = useNavigate();
-  const confettiRef = useRef<HTMLDivElement>(null);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   
   // Call useConfettiEffect and pass in the top 3 condition
-  useConfettiEffect(confettiRef, myRank <= 3);
+  const isWinner = myRank <= 3;
+  useConfettiEffect(isWinner);
   
   // Count correct answers
-  const myPlayer = ranking.find(player => player.rank === myRank);
   const correctAnswers = questions.filter((_, index) => {
     // We don't have direct access to correctness of each answer,
     // so we approximate based on points (if player has points for this question)
@@ -87,7 +86,6 @@ const FinishedState = ({ gameId, ranking, myPoints, myRank, questions, gameTitle
   
   return (
     <motion.div 
-      ref={confettiRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -114,12 +112,16 @@ const FinishedState = ({ gameId, ranking, myPoints, myRank, questions, gameTitle
       
       <ActionButtons 
         onExit={() => navigate('/games')}
+        onViewResults={() => navigate(`/results/${gameId}`)}
+        onPlayAgain={() => navigate('/games')}
+        resultsSaved={isSaved}
       />
       
       <FeedbackDialog 
         isOpen={showFeedbackDialog}
         onOpenChange={setShowFeedbackDialog}
         gameTitle={gameTitle}
+        gameId={gameId}
       />
     </motion.div>
   );

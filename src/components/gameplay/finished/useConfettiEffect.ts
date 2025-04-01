@@ -1,5 +1,5 @@
 
-import { useEffect, RefObject, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 
 export const useConfettiEffect = (isWinner?: boolean, pointsEarned = 0) => {

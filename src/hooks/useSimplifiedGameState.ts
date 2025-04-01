@@ -40,10 +40,20 @@ export const useSimplifiedGameState = (gameId: string | undefined) => {
       const gameStateData = await gameStateSync.getGameState(gameId);
       
       if (gameStateData) {
-        setGameState(gameStateData);
+        // Asegurarse de que el status sea un valor válido antes de asignarlo
+        const validStatus = gameStateData.status as "waiting" | "question" | "result" | "leaderboard" | "finished";
+        
+        setGameState({
+          id: gameStateData.id,
+          status: validStatus,
+          current_question: gameStateData.current_question,
+          countdown: gameStateData.countdown,
+          started_at: gameStateData.started_at,
+          updated_at: gameStateData.updated_at
+        });
         
         // Si el estado es "question", actualizar la pregunta actual
-        if (gameStateData.status === 'question' && 
+        if (validStatus === 'question' && 
             questions.length > 0 && 
             gameStateData.current_question < questions.length) {
           setCurrentQuestion(questions[gameStateData.current_question]);
