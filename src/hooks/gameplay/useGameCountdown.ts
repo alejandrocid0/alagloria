@@ -36,13 +36,13 @@ export const useGameCountdown = ({
       
       timer = setInterval(() => {
         onTimeRemainingChange(prev => {
-          if (prev <= 1) {
+          const newValue = prev <= 1 ? 0 : prev - 1;
+          if (newValue === 0) {
             clearInterval(timer!);
             // Auto-submit when time runs out
             onStateChange('result');
-            return 0;
           }
-          return prev - 1;
+          return newValue;
         });
       }, 1000);
     } 
@@ -51,7 +51,7 @@ export const useGameCountdown = ({
       setCountdown(5);
       
       timer = setInterval(() => {
-        setCountdown(prev => {
+        setCountdown((prev) => {
           if (prev !== null && prev <= 1) {
             clearInterval(timer!);
             

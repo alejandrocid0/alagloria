@@ -41,7 +41,7 @@ export const useGamePlayState = () => {
     selectedOption,
     currentQuestion,
     gameQuestionsLength: gameQuestions.length,
-    onStateChange: setCurrentState,
+    onStateChange: (state) => setCurrentState(state as any),
     onCurrentQuestionChange: setCurrentQuestion,
     onSelectedOptionChange: setSelectedOption,
     onTimeRemainingChange: setTimeRemaining
@@ -55,7 +55,7 @@ export const useGamePlayState = () => {
     myPoints,
     timeRemaining,
     ranking,
-    onStateChange: setCurrentState,
+    onStateChange: (state) => setCurrentState(state as any),
     onMyPointsChange: setMyPoints,
     onLastPointsChange: setLastPoints,
     onRankingChange: setRanking,
