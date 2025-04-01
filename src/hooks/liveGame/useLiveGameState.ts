@@ -3,9 +3,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { LiveGameState, Player } from "@/types/liveGame";
+import { LiveGameState, Player, AnswerResult } from "@/types/liveGame";
 import { QuizQuestion } from "@/types/quiz";
-import { fetchGameState } from "./gameStateUtils";
 import { toast } from "@/hooks/use-toast";
 
 export const useLiveGameState = () => {
@@ -27,7 +26,7 @@ export const useLiveGameState = () => {
   const [myPoints, setMyPoints] = useState(0);
   const [myRank, setMyRank] = useState(0);
   const [lastPoints, setLastPoints] = useState(0);
-  const [lastAnswerResult, setLastAnswerResult] = useState<any>(null);
+  const [lastAnswerResult, setLastAnswerResult] = useState<AnswerResult | null>(null);
   
   // Connection and sync state
   const [isConnected, setIsConnected] = useState(true); 
@@ -43,10 +42,22 @@ export const useLiveGameState = () => {
     if (!gameId) return;
     
     try {
-      const gameStateData = await fetchGameState(gameId);
+      const { data, error } = await supabase
+        .rpc('get_live_game_state', { game_id: gameId });
+      
+      if (error) throw error;
       
       // Update game state
-      if (gameStateData) {
+      if (data && data.length > 0) {
+        const gameStateData: LiveGameState = {
+          id: data[0].id,
+          status: data[0].status,
+          current_question: data[0].current_question,
+          countdown: data[0].countdown,
+          started_at: data[0].started_at,
+          updated_at: data[0].updated_at
+        };
+        
         setGameState(gameStateData);
         
         // If question state, get current question
@@ -133,7 +144,8 @@ export const useLiveGameState = () => {
               position: question.position,
               question: question.question_text,
               options: options || [],
-              category: 'general' // Default category
+              category: 'general', // Default category
+              correctOption: question.correct_option
             };
           })
         );
@@ -270,10 +282,12 @@ export const useLiveGameState = () => {
     return {
       id: currentQuestion.id.toString(),
       question: currentQuestion.question,
+      correctOption: currentQuestion.correctOption,
+      position: currentQuestion.position,
       options: currentQuestion.options.map((opt: any) => ({
         id: opt.id,
         text: opt.option_text,
-        isCorrect: false // We don't reveal which option is correct
+        isCorrect: opt.option_id === currentQuestion.correctOption
       }))
     };
   }, [currentQuestion]);
@@ -322,8 +336,10 @@ export const useLiveGameState = () => {
 
   // Time sync and connection related methods (simplified versions)
   const syncWithServer = useCallback(() => {
-    // Simplified version
-    console.log('Time sync with server...');
+    // Simplified time sync implementation
+    console.log('Time sync with server initiated');
+    setReconnectAttempts(prev => prev + 1);
+    setIsConnected(true);
   }, []);
   
   const getAdjustedTime = useCallback(() => {
@@ -386,3 +402,5 @@ export const useLiveGameState = () => {
     refreshLeaderboard: fetchLeaderboardData
   };
 };
+
+export default useLiveGameState;
