@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,10 +28,9 @@ export const useLiveGameState = () => {
   const [lastPoints, setLastPoints] = useState(0);
   const [lastAnswerResult, setLastAnswerResult] = useState<AnswerResult | null>(null);
   
-  // Connection and sync state
+  // Connection state
   const [isConnected, setIsConnected] = useState(true); 
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const [clientTimeOffset, setClientTimeOffset] = useState(0);
   
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -335,17 +335,14 @@ export const useLiveGameState = () => {
     }
   }, [gameId, user, gameState]);
 
-  // Time sync and connection related methods (simplified versions)
-  const syncWithServer = useCallback(() => {
-    // Simplified time sync implementation
-    console.log('Time sync with server initiated');
-    setReconnectAttempts(prev => prev + 1);
-    setIsConnected(true);
-  }, []);
-  
-  const getAdjustedTime = useCallback(() => {
-    return Date.now() + clientTimeOffset;
-  }, [clientTimeOffset]);
+  // Handle reconnection
+  const scheduleReconnect = useCallback(() => {
+    setReconnectAttempts(prev => {
+      const attempts = prev + 1;
+      setTimeout(fetchGameStateData, 2000);
+      return attempts;
+    });
+  }, [fetchGameStateData]);
   
   // Function to start game (for host)
   const startGame = useCallback(async () => {
@@ -371,9 +368,6 @@ export const useLiveGameState = () => {
     }
   }, [gameId, fetchGameStateData]);
 
-  // Check if user is game host
-  const isGameHost = false; // Simplified, without host check
-
   return {
     gameId,
     gameState,
@@ -391,14 +385,12 @@ export const useLiveGameState = () => {
     error,
     isConnected,
     reconnectAttempts,
-    clientTimeOffset,
-    isGameHost,
+    isGameHost: false, // Simplificado
     setSelectedOption,
     handleSelectOption: (optionId: string) => submitAnswer(gameState?.current_question || 0, optionId, 0),
     submitAnswer,
     startGame,
-    syncWithServer,
-    getAdjustedTime,
+    scheduleReconnect,
     refreshGameState: fetchGameStateData,
     refreshLeaderboard: fetchLeaderboardData
   };

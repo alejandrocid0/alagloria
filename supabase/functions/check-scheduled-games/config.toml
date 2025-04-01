@@ -1,8 +1,0 @@
-
-[global]
-entrypoint = "index.ts"
-
-[db]
-allow_schemas = ["public", "storage"]
-on_demand = true
-root_password = "postgres"

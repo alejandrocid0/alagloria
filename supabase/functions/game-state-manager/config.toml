@@ -1,5 +1,0 @@
-
-# This is the port that the server will run on
-port = 54321
-# The token expiration is set to 30 days
-token_expiry = 216000

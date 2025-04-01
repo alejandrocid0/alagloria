@@ -36,7 +36,7 @@ export const useGamePlayState = () => {
   } = useGameActions();
 
   // Manejo de temporizadores y cambios de estado automáticos
-  const { countdown } = useGameCountdown({
+  const { countdown, timeRemaining: questionTimeRemaining } = useGameCountdown({
     currentState,
     selectedOption,
     currentQuestion,
@@ -53,7 +53,7 @@ export const useGamePlayState = () => {
     currentQuestion,
     gameQuestions,
     myPoints,
-    timeRemaining,
+    timeRemaining: questionTimeRemaining,
     ranking,
     onStateChange: (state) => setCurrentState(state as any),
     onMyPointsChange: setMyPoints,
@@ -71,7 +71,7 @@ export const useGamePlayState = () => {
     countdown,
     currentQuestion,
     selectedOption,
-    timeRemaining,
+    timeRemaining: questionTimeRemaining,
     myPoints,
     ranking,
     myRank,
