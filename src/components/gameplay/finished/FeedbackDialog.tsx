@@ -16,13 +16,15 @@ import { toast } from 'sonner';
 interface FeedbackDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  gameTitle: string;
+  gameTitle?: string;
+  gameId?: string;
 }
 
 const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ 
   isOpen, 
   onOpenChange,
-  gameTitle
+  gameTitle = "partida",
+  gameId
 }) => {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,8 +38,9 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Include the game title in the message for more context
-      const fullMessage = `[Feedback de partida "${gameTitle}"]: ${message}`;
+      // Incluir título del juego y ID para más contexto
+      const gameInfo = gameId ? `[ID: ${gameId}]` : '';
+      const fullMessage = `[Feedback de partida "${gameTitle}" ${gameInfo}]: ${message}`;
       
       const { error } = await sendSuggestion(fullMessage);
       
