@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,9 +48,11 @@ export const useLiveGameState = () => {
       
       // Update game state
       if (data && data.length > 0) {
+        const status = data[0].status as "waiting" | "question" | "result" | "leaderboard" | "finished";
+        
         const gameStateData: LiveGameState = {
           id: data[0].id,
-          status: data[0].status,
+          status: status,
           current_question: data[0].current_question,
           countdown: data[0].countdown,
           started_at: data[0].started_at,

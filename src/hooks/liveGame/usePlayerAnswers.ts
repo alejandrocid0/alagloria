@@ -65,18 +65,34 @@ export const usePlayerAnswers = (
       
       if (result) {
         // Update the last answer result
-        setLastAnswerResult(result);
+        const answerResult: AnswerResult = {
+          is_correct: result.is_correct,
+          points: result.points,
+          correctOption: result.correctoption
+        };
+        setLastAnswerResult(answerResult);
         
         // Update the leaderboard
         try {
-          const updatedLeaderboard = await gameService.getGameLeaderboard(gameId);
-          console.log('[Answer] Updated leaderboard:', updatedLeaderboard);
-          updateLeaderboard(updatedLeaderboard);
+          const leaderboardData = await gameService.getGameLeaderboard(gameId);
+          console.log('[Answer] Raw leaderboard data:', leaderboardData);
+          
+          // Convert to proper Player type
+          const formattedLeaderboard: Player[] = leaderboardData.map((player: any, index: number) => ({
+            id: player.user_id,
+            name: player.name,
+            points: player.total_points,
+            rank: index + 1,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=5D3891&color=fff`,
+            lastAnswer: player.last_answer as 'correct' | 'incorrect' | null
+          }));
+          
+          updateLeaderboard(formattedLeaderboard);
         } catch (error) {
           console.error('[Answer] Failed to fetch updated leaderboard:', error);
         }
         
-        return result;
+        return answerResult;
       } else {
         throw new Error('No se recibió respuesta del servidor');
       }

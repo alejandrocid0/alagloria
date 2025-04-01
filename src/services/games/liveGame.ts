@@ -47,20 +47,22 @@ export function subscribeToGameUpdates(gameId: string, callback: (payload: any) 
 /**
  * Submit an answer to a question
  */
-export async function submitAnswer(gameId: string, questionPosition: number, optionId: string, answerTimeMs: number = 0) {
+export async function submitAnswer(
+  gameId: string, 
+  userId: string, 
+  questionPosition: number, 
+  optionId: string, 
+  answerTimeMs: number = 0
+) {
   if (!gameId) return null;
   
   try {
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
     // Submit the answer
     const { data, error } = await supabase.rpc(
       'submit_game_answer',
       {
         p_game_id: gameId,
-        p_user_id: user.id,
+        p_user_id: userId,
         p_question_position: questionPosition,
         p_selected_option: optionId,
         p_answer_time_ms: answerTimeMs

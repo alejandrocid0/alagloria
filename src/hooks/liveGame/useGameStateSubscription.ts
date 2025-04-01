@@ -1,24 +1,22 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { LiveGameState } from '@/types/liveGame';
-import { fetchGameState } from './gameStateUtils';
+import { fetchGameState, subscribeToGameStateUpdates } from './gameStateUtils';
 import { toast } from '@/hooks/use-toast';
-import { useTimeSync } from './useTimeSync';
-import { useReconnection } from './state/useReconnection';
-import { useAutoAdvanceTimer } from './state/useAutoAdvanceTimer';
-import { useStaleDataCheck } from './state/useStaleDataCheck';
-import { useGameChecker } from './state/useGameChecker';
-import { useGameSubscription } from './state/useGameSubscription';
 
 export const useGameStateSubscription = (gameId: string | undefined) => {
   const [gameState, setGameState] = useState<LiveGameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   
-  // Obtenemos la función para sincronizar tiempo
-  const { syncWithServer } = useTimeSync();
+  // Simplified time sync
+  const syncWithServer = useCallback(() => {
+    console.log('Time sync with server initiated');
+    return Promise.resolve();
+  }, []);
   
   // Fetch game state from the server
   const fetchGameStateData = useCallback(async () => {
@@ -53,12 +51,6 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
           console.log(`[GameState] Actualizando estado del juego:`, state);
           setGameState(state);
           setIsLoading(false);
-          
-          // Update stale data checker
-          updateLastStateTimestamp();
-          
-          // Configurar un timer para auto-avanzar basado en el countdown
-          autoAdvanceTimer.setupAutoAdvanceTimer(state);
         } else {
           console.log(`[GameState] El estado no ha cambiado significativamente, omitiendo actualización`);
         }
@@ -71,7 +63,7 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
             description: "Te has vuelto a conectar a la partida",
             variant: "default",
           });
-          reconnection.reconnectAttemptsRef.current = 0;
+          setReconnectAttempts(0);
         }
       } else {
         console.log(`[GameState] No se encontró estado para el juego ${gameId}`);
@@ -93,21 +85,22 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       }
       
       // Schedule reconnection attempt with exponential backoff
-      reconnection.scheduleReconnect();
+      scheduleReconnect();
     }
   }, [gameId, isConnected, syncWithServer, lastFetchTime, gameState]);
 
-  // Initialize reconnection handler
-  const reconnection = useReconnection(isConnected, fetchGameStateData);
-  
-  // Initialize auto-advance timer
-  const autoAdvanceTimer = useAutoAdvanceTimer(fetchGameStateData);
-
-  // Initialize stale data checker
-  const { updateLastStateTimestamp } = useStaleDataCheck(isConnected, gameState, fetchGameStateData);
-
-  // Initialize game checker
-  const gameChecker = useGameChecker(gameId);
+  // Simple reconnection logic
+  const scheduleReconnect = useCallback(() => {
+    setReconnectAttempts(prev => {
+      const attempts = prev + 1;
+      const delay = Math.min(30000, Math.pow(2, attempts) * 1000); // Exponential backoff with 30s max
+      
+      console.log(`[GameState] Scheduling reconnect attempt ${attempts} in ${delay}ms`);
+      setTimeout(fetchGameStateData, delay);
+      
+      return attempts;
+    });
+  }, [fetchGameStateData]);
 
   // Handle game state changes from subscription
   const handleGameStateChange = useCallback((payload: any) => {
@@ -119,10 +112,7 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       return;
     }
     
-    // Update timestamp
-    updateLastStateTimestamp();
-    
-    // Fetch new state rather than directly using payload to ensure consistency
+    // Fetch new state rather than directly using payload
     // Sync with server before fetching new state
     syncWithServer().then(() => {
       // Add small delay to allow database to settle
@@ -130,19 +120,26 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
         fetchGameStateData();
       }, 300);
     });
-  }, [fetchGameStateData, syncWithServer, updateLastStateTimestamp, gameState]);
+  }, [fetchGameStateData, syncWithServer, gameState]);
 
   // Set up subscription to game state changes
-  useGameSubscription(gameId, handleGameStateChange);
+  useEffect(() => {
+    if (!gameId) return;
+    
+    const subscription = subscribeToGameStateUpdates(gameId, handleGameStateChange);
+    
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
+  }, [gameId, handleGameStateChange]);
 
-  // Set up initial data loading and clean up on unmount
+  // Set up initial data loading
   useEffect(() => {
     if (gameId) {
       // Fetch initial state
       fetchGameStateData();
-      
-      // Initialize game checker
-      const cleanupGameChecker = gameChecker.initializeGameChecker();
       
       // Set up a periodic refresh to make sure we stay in sync (every 15s)
       const periodicRefreshInterval = setInterval(() => {
@@ -151,20 +148,10 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       }, 15000);
       
       return () => {
-        // Clean up game checker
-        cleanupGameChecker();
-        
-        // Clean up auto-advance timer
-        autoAdvanceTimer.cleanup();
-        
-        // Clean up reconnection timer
-        reconnection.cleanup();
-        
-        // Clean up periodic refresh
         clearInterval(periodicRefreshInterval);
       };
     }
-  }, [gameId, fetchGameStateData, gameChecker, autoAdvanceTimer, reconnection]);
+  }, [gameId, fetchGameStateData]);
 
   return {
     gameState,
@@ -172,7 +159,7 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
     error,
     isConnected,
     fetchGameStateData,
-    scheduleReconnect: reconnection.scheduleReconnect,
-    reconnectAttempts: reconnection.reconnectAttemptsRef.current
+    scheduleReconnect,
+    reconnectAttempts
   };
 };

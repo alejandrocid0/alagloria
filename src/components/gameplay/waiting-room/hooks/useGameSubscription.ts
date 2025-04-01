@@ -1,18 +1,18 @@
 
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Player } from '@/types/liveGame';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useGameSubscription = (
-  gameId?: string,
-  setHasGameStarted?: (value: boolean) => void,
-  setPlayersOnline?: (players: Player[]) => void
+  gameId: string | undefined,
+  setHasGameStarted: (hasStarted: boolean) => void,
+  setPlayersOnline: (players: Player[]) => void
 ) => {
-  // Subscribe to game state changes
   useEffect(() => {
-    if (!gameId || !setHasGameStarted) return;
+    if (!gameId) return;
     
-    const channel = supabase
+    // Subscribe to live game updates
+    const gameChannel = supabase
       .channel(`game-state-${gameId}`)
       .on('postgres_changes', 
         { 
@@ -22,57 +22,70 @@ export const useGameSubscription = (
           filter: `id=eq.${gameId}`
         },
         (payload) => {
-          console.log('Game state change detected:', payload);
-          
-          // Check if the game has started
-          if (payload.new && payload.new.status !== 'waiting') {
-            setHasGameStarted(true);
+          console.log('Game state update received:', payload);
+          // Check if payload has new data with a status property
+          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new) {
+            // If status is anything other than 'waiting', game has started
+            if (payload.new.status !== 'waiting') {
+              setHasGameStarted(true);
+            }
           }
         }
       )
       .subscribe();
     
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [gameId, setHasGameStarted]);
-  
-  // Subscribe to player updates
-  useEffect(() => {
-    if (!gameId || !setPlayersOnline) return;
-    
-    // Initial fetch of players
-    const fetchPlayers = async () => {
+    // Fetch initial participants list
+    const fetchParticipants = async () => {
       try {
         const { data, error } = await supabase
           .from('game_participants')
-          .select('user_id, profiles:user_id(name, avatar_url)')
+          .select(`
+            user_id,
+            profiles:user_id (
+              name,
+              avatar_url
+            )
+          `)
           .eq('game_id', gameId);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching participants:', error);
+          return;
+        }
         
         if (data) {
-          const formattedPlayers: Player[] = data.map((player, index) => ({
-            id: player.user_id,
-            name: player.profiles?.name || `Player ${index + 1}`,
-            points: 0,
-            rank: index + 1,
-            avatar: player.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.profiles?.name || 'Player')}`,
-            lastAnswer: null
-          }));
+          // Transform data to match Player type
+          const players: Player[] = data.map((item, index) => {
+            // Safely extract profile data
+            const profile = item.profiles || {};
+            const name = typeof profile === 'object' && 'name' in profile ? String(profile.name) : 'Anonymous';
+            const avatarUrl = typeof profile === 'object' && 'avatar_url' in profile 
+              ? String(profile.avatar_url) 
+              : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=5D3891&color=fff`;
+            
+            return {
+              id: item.user_id,
+              name: name,
+              points: 0,
+              rank: index + 1,
+              avatar: avatarUrl,
+              lastAnswer: null
+            };
+          });
           
-          setPlayersOnline(formattedPlayers);
+          setPlayersOnline(players);
         }
       } catch (err) {
-        console.error('Error fetching players:', err);
+        console.error('Error in fetchParticipants:', err);
       }
     };
     
-    fetchPlayers();
+    // Call once at start
+    fetchParticipants();
     
-    // Subscribe to player join/leave events
-    const channel = supabase
-      .channel(`players-${gameId}`)
+    // Subscribe to participant changes
+    const participantsChannel = supabase
+      .channel(`participants-${gameId}`)
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -81,14 +94,15 @@ export const useGameSubscription = (
           filter: `game_id=eq.${gameId}`
         },
         () => {
-          // Refetch players on any change
-          fetchPlayers();
+          // Just refetch the entire list
+          fetchParticipants();
         }
       )
       .subscribe();
     
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(gameChannel);
+      supabase.removeChannel(participantsChannel);
     };
-  }, [gameId, setPlayersOnline]);
+  }, [gameId, setHasGameStarted, setPlayersOnline]);
 };
