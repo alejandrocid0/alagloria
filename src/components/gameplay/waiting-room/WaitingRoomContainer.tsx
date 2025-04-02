@@ -43,7 +43,7 @@ const WaitingRoomContainer = () => {
   const millisecondsUntilStart = gameDate ? Math.max(0, gameDate.getTime() - currentTime.getTime()) : 0;
   const secondsUntilStart = Math.max(0, Math.floor(millisecondsUntilStart / 1000));
   
-  // Hook de cuenta regresiva
+  // Hook de cuenta regresiva con la implementación refactorizada
   const {
     countdown,
     hasGameStarted,
