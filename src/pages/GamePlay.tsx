@@ -1,18 +1,15 @@
 
-import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import LiveGameRenderer from '@/components/gameplay/LiveGameRenderer';
 import GamePlayLoading from '@/components/gameplay/GamePlayLoading';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import GameControls from '@/components/gameplay/GameControls';
 import { toast } from '@/hooks/use-toast';
 
 const GamePlay = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
   
   // Función para manejar la recarga manual de datos
   const handleManualRefresh = () => {
@@ -25,11 +22,6 @@ const GamePlay = () => {
     window.location.reload();
   };
   
-  // Show loading state
-  if (isLoading) {
-    return <GamePlayLoading />;
-  }
-  
   // Only render if user is authenticated
   if (!user) return null;
   
@@ -39,17 +31,7 @@ const GamePlay = () => {
       
       <div className="pt-20 md:pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-5xl">
-          <div className="mb-4 flex justify-end">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleManualRefresh}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" /> 
-              Recargar datos
-            </Button>
-          </div>
+          <GameControls onRefresh={handleManualRefresh} />
           
           {/* Renderizar el juego en vivo */}
           <LiveGameRenderer />
