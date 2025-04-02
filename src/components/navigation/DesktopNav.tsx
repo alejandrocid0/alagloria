@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -56,7 +55,6 @@ const DesktopNav = ({
             </div>
             
             {isAdmin ? (
-              // Para administradores, solo mostrar el botón de Administración
               <Link
                 to="/admin"
                 className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
@@ -65,7 +63,6 @@ const DesktopNav = ({
                 <span>Administración</span>
               </Link>
             ) : (
-              // Para usuarios normales, mantener el menú desplegable
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center">
@@ -91,7 +88,6 @@ const DesktopNav = ({
               </DropdownMenu>
             )}
             
-            {/* Botón de cerrar sesión siempre visible para todos los usuarios */}
             <button 
               onClick={handleSignOut}
               className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
@@ -109,7 +105,7 @@ const DesktopNav = ({
               Iniciar Sesión
             </Link>
             <Link 
-              to="/signup" 
+              to="/register" 
               className="px-4 py-2 rounded-md bg-gloria-gold text-white hover:bg-gloria-gold/90 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               Registrarse

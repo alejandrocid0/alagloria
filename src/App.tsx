@@ -18,6 +18,7 @@ import GameWaitingRoom from '@/pages/GameWaitingRoom';
 import GamePlay from '@/pages/GamePlay';
 import Dashboard from '@/pages/Dashboard';
 import HowToPlay from '@/pages/HowToPlay';
+import Signup from '@/pages/Signup';
 import { Toaster } from "@/components/ui/toaster";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/games" element={<Games />} />
         <Route path="/game/:gameId" element={<Game />} />
         <Route path="/game/:gameId/play" element={<GamePlay />} />

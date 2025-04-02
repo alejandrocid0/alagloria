@@ -101,7 +101,7 @@ const MobileMenu = ({
                 Iniciar Sesión
               </Link>
               <Link 
-                to="/signup" 
+                to="/register" 
                 className="py-3 px-4 rounded-md bg-gloria-gold text-white text-center"
                 onClick={closeMenu}
               >

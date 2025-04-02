@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -20,7 +19,6 @@ const Login = () => {
   const location = useLocation();
   const message = location.state?.message;
 
-  // Manejar la redirección si el usuario ya está autenticado
   useEffect(() => {
     if (session) {
       navigate('/games');
@@ -36,7 +34,6 @@ const Login = () => {
       const { error } = await signIn(email, password);
       
       if (!error) {
-        // Redirección a la página de partidas después de un inicio de sesión exitoso
         navigate('/games');
       }
     } catch (err) {
@@ -149,7 +146,7 @@ const Login = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 ¿No tienes una cuenta?{' '}
-                <Link to="/signup" className="text-gloria-purple hover:text-gloria-gold transition-colors font-medium">
+                <Link to="/register" className="text-gloria-purple hover:text-gloria-gold transition-colors font-medium">
                   Regístrate
                 </Link>
               </p>
