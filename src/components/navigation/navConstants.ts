@@ -10,3 +10,7 @@ export const adminLinks = [
   { title: 'Panel de Administración', path: '/admin' }
 ];
 
+// Rutas de usuario autenticado
+export const userLinks = [
+  { title: 'Mi Perfil', path: '/dashboard' }
+];

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -10,13 +10,20 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  React.useEffect(() => {
+  useEffect(() => {
     // Redirect to login if no user
     if (!user) {
       navigate('/login', { state: { redirectTo: `/profile/${id}` } });
+      return;
+    }
+    
+    // If viewing own profile, redirect to dashboard
+    if (user.id === id) {
+      navigate('/dashboard');
     }
   }, [user, navigate, id]);
 
+  // This will only show briefly or for other users' profiles
   return (
     <>
       <Navbar />
