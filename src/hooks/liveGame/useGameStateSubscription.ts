@@ -19,8 +19,9 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
   
   // Create a void-returning wrapper for useConnectionStatus
   const fetchGameStateWrapper = useCallback(async () => {
+    if (!gameId) return;
     await fetchGameStateData(true);
-  }, [fetchGameStateData]);
+  }, [fetchGameStateData, gameId]);
   
   const { 
     isConnected, 
@@ -31,14 +32,15 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
 
   // Ref para evitar actualizaciones múltiples
   const lastUpdateTimestampRef = useRef<number>(0);
+  const notificationShownRef = useRef<boolean>(false);
 
   // Handle game state changes from subscription
   const handleGameStateChange = useCallback((payload: any) => {
     console.log('[GameState] Cambio detectado por suscripción:', payload);
     
-    // Evitar procesamiento de eventos demasiado cercanos en el tiempo
+    // Evitar procesamiento de eventos demasiado cercanos en el tiempo (throttling)
     const now = Date.now();
-    if (now - lastUpdateTimestampRef.current < 500) {
+    if (now - lastUpdateTimestampRef.current < 1000) {
       console.log('[GameState] Ignorando cambio por throttling');
       return;
     }
@@ -51,7 +53,6 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
       return;
     }
     
-    // Fetch new state rather than directly using payload
     // Sync with server before fetching new state
     syncWithServer().then(() => {
       // Add small delay to allow database to settle
@@ -64,12 +65,30 @@ export const useGameStateSubscription = (gameId: string | undefined) => {
   // Update connection state based on fetch results
   useEffect(() => {
     if (error) {
-      setIsConnected(false);
+      if (isConnected) {
+        setIsConnected(false);
+        if (!notificationShownRef.current) {
+          gameNotifications.connectionLost();
+          notificationShownRef.current = true;
+          setTimeout(() => {
+            notificationShownRef.current = false;
+          }, 5000);
+        }
+      }
       scheduleReconnect();
     } else if (gameState) {
-      setIsConnected(true);
+      if (!isConnected) {
+        setIsConnected(true);
+        if (!notificationShownRef.current && reconnectAttempts > 0) {
+          gameNotifications.connectSuccess();
+          notificationShownRef.current = true;
+          setTimeout(() => {
+            notificationShownRef.current = false;
+          }, 5000);
+        }
+      }
     }
-  }, [error, gameState, setIsConnected, scheduleReconnect]);
+  }, [error, gameState, setIsConnected, scheduleReconnect, isConnected, reconnectAttempts]);
 
   // Set up subscription to game state changes
   useEffect(() => {

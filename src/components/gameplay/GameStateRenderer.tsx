@@ -4,7 +4,7 @@ import { Player } from '@/types/game';
 import LoadingState from './LoadingState';
 import ErrorState from './ErrorState';
 import GameContent from './states/GameContent';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { gameNotifications } from '@/components/ui/notification-toast';
 
 interface GameStateRendererProps {
@@ -53,7 +53,9 @@ const GameStateRenderer = ({
 }: GameStateRendererProps) => {
   const [shouldShowWaiting, setShouldShowWaiting] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [hasNotifiedMissingQuestion, setHasNotifiedMissingQuestion] = useState(false);
+  
+  // Ref para evitar notificaciones múltiples
+  const hasNotifiedMissingQuestionRef = useRef<boolean>(false);
   
   // Simple effect to check if scheduled time is in the future
   useEffect(() => {
@@ -102,7 +104,7 @@ const GameStateRenderer = ({
   }
   
   // Warn if critical data is missing - evitar notificaciones múltiples
-  if (gameState.status === 'question' && !adaptedCurrentQuestion && !hasNotifiedMissingQuestion) {
+  if (gameState.status === 'question' && !adaptedCurrentQuestion && !hasNotifiedMissingQuestionRef.current) {
     console.warn('[GameStateRenderer] Missing current question data in question state:', {
       gameState,
       currentQuestion,
@@ -113,7 +115,7 @@ const GameStateRenderer = ({
     // Solo mostrar notificación una vez
     if (retryCount > 0) {
       gameNotifications.warning('Datos de preguntas incompletos. Intentando recuperar.');
-      setHasNotifiedMissingQuestion(true);
+      hasNotifiedMissingQuestionRef.current = true;
     }
   }
 

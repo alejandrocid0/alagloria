@@ -31,7 +31,6 @@ export const useCountdown = (initialSeconds: number, gameId: string | undefined)
         
         // Si llegamos a 0, la partida comienza
         if (newCount <= 0) {
-          clearInterval(intervalId);
           setHasGameStarted(true);
           return 0;
         }

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { LiveGameState } from '@/types/liveGame';
 import { Player } from '@/types/game';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,10 @@ export const useGameStateValues = (
   const [lastPoints, setLastPoints] = useState(0);
   const [answerStartTime, setAnswerStartTime] = useState<number | null>(null);
   const [hasAnsweredCurrentQuestion, setHasAnsweredCurrentQuestion] = useState(false);
+  
+  // Ref para controlar actualizaciones múltiples
+  const processingAnswerRef = useRef<boolean>(false);
+  const currentQuestionIdRef = useRef<string | null>(null);
 
   // Update leaderboard when data changes
   useEffect(() => {
@@ -46,25 +50,32 @@ export const useGameStateValues = (
   useEffect(() => {
     if (gameState?.status === 'question' && currentQuestion) {
       const currentQuestionId = currentQuestion.id;
-      console.log(`[GameStateValues] New question detected: ${currentQuestionId}`);
       
-      // Resetear estado solo si es una pregunta nueva
-      setSelectedOption(null);
-      setHasAnsweredCurrentQuestion(false);
-      
-      // Store the time when question was presented
-      setAnswerStartTime(Date.now());
+      // Solo resetear el estado si es una pregunta nueva
+      if (currentQuestionIdRef.current !== currentQuestionId) {
+        console.log(`[GameStateValues] New question detected: ${currentQuestionId}`);
+        currentQuestionIdRef.current = currentQuestionId;
+        
+        setSelectedOption(null);
+        setHasAnsweredCurrentQuestion(false);
+        processingAnswerRef.current = false;
+        
+        // Store the time when question was presented
+        setAnswerStartTime(Date.now());
+      }
     }
   }, [gameState?.status, currentQuestion]);
 
   // Handler for selecting an option
   const handleSelectOption = useCallback(async (optionId: string) => {
-    if (hasAnsweredCurrentQuestion || selectedOption || !gameState || gameState.status !== 'question') {
+    // Evitar múltiples envíos de respuesta
+    if (processingAnswerRef.current || hasAnsweredCurrentQuestion || selectedOption || !gameState || gameState.status !== 'question') {
       console.log('[GameStateValues] Ignoring option selection - already answered or not in question state');
       return;
     }
     
     console.log(`[GameStateValues] Selected option: ${optionId}`);
+    processingAnswerRef.current = true;
     setSelectedOption(optionId);
     setHasAnsweredCurrentQuestion(true);
     
@@ -77,6 +88,8 @@ export const useGameStateValues = (
       await submitAnswerFunction(optionId, answerTime);
     } catch (error) {
       console.error('[GameStateValues] Error submitting answer:', error);
+    } finally {
+      processingAnswerRef.current = false;
     }
   }, [selectedOption, gameState, submitAnswerFunction, answerStartTime, hasAnsweredCurrentQuestion]);
 
