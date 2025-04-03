@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
 import Button from '@/components/Button';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
@@ -28,9 +29,14 @@ const Waitlist = () => {
     setIsSubmitting(true);
     
     try {
-      // Aquí iría la lógica para guardar en la lista de espera
-      // Por ahora simplemente simulamos una espera
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Guardar en Supabase
+      const { error } = await supabase
+        .from('waitlist_subscribers')
+        .insert([
+          { name, email }
+        ]);
+        
+      if (error) throw error;
       
       setHasSubmitted(true);
       toast({
@@ -38,6 +44,7 @@ const Waitlist = () => {
         description: "Te avisaremos cuando la aplicación esté disponible",
       });
     } catch (error) {
+      console.error("Error al guardar en lista de espera:", error);
       toast({
         title: "Error",
         description: "Ha ocurrido un error. Por favor, inténtalo de nuevo.",

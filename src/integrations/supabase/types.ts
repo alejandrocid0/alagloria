@@ -586,6 +586,30 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       games_with_details: {
