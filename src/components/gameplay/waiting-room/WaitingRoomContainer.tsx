@@ -10,15 +10,18 @@ import { useWaitingRoomState } from './hooks/useWaitingRoomState';
 import { useParticipants } from './hooks/useParticipants';
 import { useCountdown } from './hooks/useCountdown';
 import { useScheduledGamesCheck } from './hooks/useScheduledGamesCheck';
+import { useTimeSync } from '@/hooks/liveGame/useTimeSync';
 import LoadingIndicator from './LoadingIndicator';
+import ConnectionStatus from '../ConnectionStatus';
 
 const WaitingRoomContainer = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { gameState, refreshGameState } = useLiveGameState();
+  const { gameState, refreshGameState, isConnected, reconnectAttempts } = useLiveGameState();
   const gameInfo = useGameInfo(gameId);
   const [isJoining, setIsJoining] = useState(false);
+  const { syncWithServer } = useTimeSync();
   
   // Obtener los participantes del juego
   const { playersOnline } = useParticipants(gameId);
@@ -35,6 +38,12 @@ const WaitingRoomContainer = () => {
     navigate,
     setIsJoining
   });
+  
+  // Sincronizar tiempo con el servidor al inicio
+  useEffect(() => {
+    console.log('[WaitingRoom] Synchronizing time with server');
+    syncWithServer();
+  }, [syncWithServer]);
   
   // Determinar tiempo inicial para la cuenta regresiva
   const initialCountdown = gameState?.countdown || 0;
@@ -99,18 +108,24 @@ const WaitingRoomContainer = () => {
   }
   
   return (
-    <WaitingRoom 
-      gameTitle={gameInfo.title}
-      playersOnline={playersOnline}
-      isGameHost={isGameHost}
-      countdown={countdown}
-      hasGameStarted={hasGameStarted}
-      showPulse={showPulse}
-      isWithinFiveMinutes={isWithinFiveMinutes}
-      formatTimeRemaining={formatTimeRemaining}
-      onPlayNow={handlePlayNow}
-      onStartGame={handleStartGame}
-    />
+    <>
+      <ConnectionStatus 
+        isConnected={isConnected} 
+        reconnectAttempts={reconnectAttempts}
+      />
+      <WaitingRoom 
+        gameTitle={gameInfo.title}
+        playersOnline={playersOnline}
+        isGameHost={isGameHost}
+        countdown={countdown}
+        hasGameStarted={hasGameStarted}
+        showPulse={showPulse}
+        isWithinFiveMinutes={isWithinFiveMinutes}
+        formatTimeRemaining={formatTimeRemaining}
+        onPlayNow={handlePlayNow}
+        onStartGame={handleStartGame}
+      />
+    </>
   );
 };
 

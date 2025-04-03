@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTimeFormatting } from './useTimeFormatting';
 import { useVisualEffects } from './useVisualEffects';
 import { useCountdownSync } from './useCountdownSync';
+import { useTimeSync } from '@/hooks/liveGame/useTimeSync';
 
 export interface UseCountdownProps {
   initialSeconds: number;
@@ -28,6 +28,10 @@ export const useCountdown = (
     initialSeconds > 0 ? initialSeconds : null
   );
   const [hasGameStarted, setHasGameStarted] = useState(false);
+  const [targetTimestamp, setTargetTimestamp] = useState<number | null>(null);
+  
+  // Get time synchronization utilities
+  const { getServerTime, syncWithServer } = useTimeSync();
   
   // Get formatting function for time display
   const { formatTimeRemaining } = useTimeFormatting();
@@ -35,38 +39,69 @@ export const useCountdown = (
   // Get visual effects state management
   const { showPulse, isWithinFiveMinutes, updateVisualEffects } = useVisualEffects();
   
-  // Get countdown synchronization functionality
-  const { syncCountdown } = useCountdownSync(setCountdown);
-  
-  // Effect for managing the countdown timer
+  // Sync timestamp when countdown or other critical values change
   useEffect(() => {
     if (countdown === null || hasGameStarted) return;
     
-    // Update visual effects based on current countdown
-    updateVisualEffects(countdown);
+    // Set the target timestamp based on the synchronized server time
+    const serverNow = getServerTime();
+    const endTime = serverNow + (countdown * 1000);
+    setTargetTimestamp(endTime);
     
-    // Set up the countdown interval
-    const intervalId = setInterval(() => {
-      setCountdown((currentCount) => {
-        if (currentCount === null) return null;
-        
-        const newCount = currentCount - 1;
-        
-        // If countdown reaches zero, the game has started
-        if (newCount <= 0) {
-          setHasGameStarted(true);
-          return 0;
-        }
-        
-        // Update visual effects for specific time thresholds
-        updateVisualEffects(newCount);
-        
-        return newCount;
+    console.log(`[Countdown] Target end time set to ${new Date(endTime).toISOString()} (${countdown}s from now)`);
+  }, [countdown, hasGameStarted, getServerTime]);
+  
+  // Sync countdown with server time
+  const syncCountdown = useCallback((serverCountdown: number) => {
+    if (serverCountdown > 0) {
+      console.log(`[Countdown] Syncronizing countdown with server: ${serverCountdown}s`);
+      setCountdown(serverCountdown);
+      
+      // Re-sync time with server to ensure accuracy
+      syncWithServer().then(() => {
+        const serverNow = getServerTime();
+        const endTime = serverNow + (serverCountdown * 1000);
+        setTargetTimestamp(endTime);
+        console.log(`[Countdown] Updated target time to ${new Date(endTime).toISOString()}`);
       });
-    }, 1000);
+    }
+  }, [getServerTime, syncWithServer]);
+  
+  // Effect for managing the countdown timer based on target timestamp
+  useEffect(() => {
+    if (targetTimestamp === null || hasGameStarted) return;
+    
+    const calculateTimeRemaining = () => {
+      const serverNow = getServerTime();
+      const msRemaining = Math.max(0, targetTimestamp - serverNow);
+      const secondsRemaining = Math.ceil(msRemaining / 1000);
+      
+      // Only update countdown if it's changed to avoid unnecessary renders
+      setCountdown(prev => {
+        if (prev !== secondsRemaining) {
+          // Update visual effects based on current countdown
+          updateVisualEffects(secondsRemaining);
+          
+          // If countdown reaches zero, the game has started
+          if (secondsRemaining <= 0) {
+            setHasGameStarted(true);
+            return 0;
+          }
+          
+          return secondsRemaining;
+        }
+        return prev;
+      });
+    };
+    
+    // Calculate immediately then set up interval
+    calculateTimeRemaining();
+    
+    // Use a high-precision interval to keep countdown accurate
+    const intervalId = setInterval(calculateTimeRemaining, 250);
     
     return () => clearInterval(intervalId);
-  }, [countdown, hasGameStarted, updateVisualEffects]);
+  }, [targetTimestamp, hasGameStarted, getServerTime, updateVisualEffects]);
   
   return {
     countdown,
