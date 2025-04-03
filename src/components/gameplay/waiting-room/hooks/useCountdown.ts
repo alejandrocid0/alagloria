@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTimeFormatting } from './useTimeFormatting';
 import { useVisualEffects } from './useVisualEffects';
-import { useCountdownSync } from './useCountdownSync';
 import { useTimeSync } from '@/hooks/liveGame/useTimeSync';
 
 export interface UseCountdownProps {
@@ -54,7 +53,7 @@ export const useCountdown = (
   // Sync countdown with server time
   const syncCountdown = useCallback((serverCountdown: number) => {
     if (serverCountdown > 0) {
-      console.log(`[Countdown] Syncronizing countdown with server: ${serverCountdown}s`);
+      console.log(`[Countdown] Synchronizing countdown with server: ${serverCountdown}s`);
       setCountdown(serverCountdown);
       
       // Re-sync time with server to ensure accuracy
@@ -64,6 +63,10 @@ export const useCountdown = (
         setTargetTimestamp(endTime);
         console.log(`[Countdown] Updated target time to ${new Date(endTime).toISOString()}`);
       });
+    } else if (serverCountdown === 0) {
+      // If countdown reaches zero from server, trigger game start
+      setCountdown(0);
+      setHasGameStarted(true);
     }
   }, [getServerTime, syncWithServer]);
   

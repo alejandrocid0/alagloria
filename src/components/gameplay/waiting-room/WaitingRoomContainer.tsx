@@ -21,6 +21,7 @@ const WaitingRoomContainer = () => {
   const { gameState, refreshGameState, isConnected, reconnectAttempts } = useLiveGameState();
   const gameInfo = useGameInfo(gameId);
   const [isJoining, setIsJoining] = useState(false);
+  const [gameStartTransitionActive, setGameStartTransitionActive] = useState(false);
   const { syncWithServer } = useTimeSync();
   
   // Obtener los participantes del juego
@@ -79,20 +80,45 @@ const WaitingRoomContainer = () => {
 
   // Verificar si la partida ya comenzó
   useEffect(() => {
-    if (gameState?.status === 'question') {
+    if (gameState?.status === 'question' || hasGameStarted) {
       console.log('[WaitingRoom] Game has started, transitioning to question state');
+      
+      if (!gameStartTransitionActive) {
+        setGameStartTransitionActive(true);
+        setHasGameStarted(true);
+        
+        // Mostrar notificación
+        gameNotifications.gameStarting();
+        
+        // Redireccionar tras un breve retraso
+        setTimeout(() => {
+          setIsJoining(true);
+          navigate(`/game/${gameId}`);
+        }, 1500);
+      }
+    }
+  }, [gameState, hasGameStarted, setHasGameStarted, gameId, navigate, gameStartTransitionActive]);
+  
+  // Iniciar transición automática cuando el contador llega a cero
+  useEffect(() => {
+    if (countdown === 0 && !hasGameStarted && !gameStartTransitionActive) {
+      console.log('[WaitingRoom] Countdown reached zero, starting game transition');
+      setGameStartTransitionActive(true);
       setHasGameStarted(true);
       
-      // Mostrar notificación
+      // Notificar al usuario
       gameNotifications.gameStarting();
       
-      // Redireccionar tras un breve retraso
-      setTimeout(() => {
-        setIsJoining(true);
-        navigate(`/game/${gameId}`);
-      }, 1500);
+      // Intentar actualizar el estado del juego
+      refreshGameState().then(() => {
+        // Redireccionar incluso si refreshGameState falla
+        setTimeout(() => {
+          setIsJoining(true);
+          navigate(`/game/${gameId}`);
+        }, 1500);
+      });
     }
-  }, [gameState, setHasGameStarted, gameId, navigate]);
+  }, [countdown, hasGameStarted, refreshGameState, gameId, navigate, gameStartTransitionActive]);
   
   // Actualizar estado del juego al cargar
   useEffect(() => {
@@ -114,7 +140,7 @@ const WaitingRoomContainer = () => {
         reconnectAttempts={reconnectAttempts}
       />
       <WaitingRoom 
-        gameTitle={gameInfo.title}
+        gameTitle={gameInfo.title || "Partida"}
         playersOnline={playersOnline}
         isGameHost={isGameHost}
         countdown={countdown}

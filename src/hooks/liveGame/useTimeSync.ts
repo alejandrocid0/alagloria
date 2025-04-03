@@ -5,10 +5,15 @@ import { gameTimeSync } from '@/services/games/modules/gameTimeSync';
 export const useTimeSync = () => {
   const [serverTimeOffset, setServerTimeOffset] = useState<number>(0);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const [syncInProgress, setSyncInProgress] = useState<boolean>(false);
   
   // Sync local time with server time
   const syncWithServer = useCallback(async () => {
+    // Evitar múltiples sincronizaciones simultáneas
+    if (syncInProgress) return serverTimeOffset;
+    
     try {
+      setSyncInProgress(true);
       const offset = await gameTimeSync.syncWithServerTime();
       setServerTimeOffset(offset);
       setLastSyncTime(Date.now());
@@ -17,8 +22,10 @@ export const useTimeSync = () => {
     } catch (err) {
       console.error('[TimeSync] Failed to sync with server:', err);
       return serverTimeOffset; // Return existing offset on error
+    } finally {
+      setSyncInProgress(false);
     }
-  }, [serverTimeOffset]);
+  }, [serverTimeOffset, syncInProgress]);
 
   // Get current server time (approximated)
   const getServerTime = useCallback(() => {
