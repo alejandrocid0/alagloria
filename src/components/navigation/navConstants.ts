@@ -1,4 +1,11 @@
 
+// Para la página de lista de espera
+export const waitlistNavLinks = [
+  { title: 'Inicio', path: '/' },
+  { title: 'Lista de espera', path: '/waitlist' },
+];
+
+// Para usuarios que están desarrollando la app
 export const navLinks = [
   { title: 'Inicio', path: '/' },
   { title: 'Partidas', path: '/games' },

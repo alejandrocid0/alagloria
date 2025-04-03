@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ interface DesktopNavProps {
   user: AuthUser | null;
   isAdmin: boolean;
   handleSignOut: () => Promise<void>;
+  showAuthButtons?: boolean;
 }
 
 const DesktopNav = ({ 
@@ -23,7 +25,8 @@ const DesktopNav = ({
   profile, 
   user, 
   isAdmin, 
-  handleSignOut 
+  handleSignOut,
+  showAuthButtons = true
 }: DesktopNavProps) => {
   const location = useLocation();
   const isAuthenticated = !!user;
@@ -47,72 +50,74 @@ const DesktopNav = ({
         ))}
       </div>
       
-      <div className="flex items-center space-x-3">
-        {isAuthenticated ? (
-          <div className="flex items-center space-x-3">
-            <div className="text-gloria-purple font-medium">
-              Hola, {profile?.name}
-            </div>
-            
-            {isAdmin ? (
-              <Link
-                to="/admin"
+      {showAuthButtons && (
+        <div className="flex items-center space-x-3">
+          {isAuthenticated ? (
+            <div className="flex items-center space-x-3">
+              <div className="text-gloria-purple font-medium">
+                Hola, {profile?.name}
+              </div>
+              
+              {isAdmin ? (
+                <Link
+                  to="/admin"
+                  className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
+                >
+                  <Settings size={16} className="inline mr-2" />
+                  <span>Administración</span>
+                </Link>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center">
+                      <span>Mi Perfil</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="w-full cursor-pointer">
+                        Estadísticas
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/suggestions" className="w-full cursor-pointer">
+                        Buzón de sugerencias
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                      Cerrar sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
+              <button 
+                onClick={handleSignOut}
                 className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
               >
-                <Settings size={16} className="inline mr-2" />
-                <span>Administración</span>
+                <LogOut size={16} className="inline mr-2" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          ) : (
+            <>
+              <Link 
+                to="/login" 
+                className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
+              >
+                Iniciar Sesión
               </Link>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center">
-                    <span>Mi Perfil</span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard" className="w-full cursor-pointer">
-                      Estadísticas
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/suggestions" className="w-full cursor-pointer">
-                      Buzón de sugerencias
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                    Cerrar sesión
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            
-            <button 
-              onClick={handleSignOut}
-              className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200 flex items-center"
-            >
-              <LogOut size={16} className="inline mr-2" />
-              <span>Cerrar Sesión</span>
-            </button>
-          </div>
-        ) : (
-          <>
-            <Link 
-              to="/login" 
-              className="px-4 py-2 rounded-md border border-gloria-purple text-gloria-purple hover:bg-gloria-purple hover:text-white transition-all duration-200"
-            >
-              Iniciar Sesión
-            </Link>
-            <Link 
-              to="/register" 
-              className="px-4 py-2 rounded-md bg-gloria-gold text-white hover:bg-gloria-gold/90 transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              Registrarse
-            </Link>
-          </>
-        )}
-      </div>
+              <Link 
+                to="/register" 
+                className="px-4 py-2 rounded-md bg-gloria-gold text-white hover:bg-gloria-gold/90 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Registrarse
+              </Link>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

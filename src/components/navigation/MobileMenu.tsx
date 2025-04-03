@@ -11,6 +11,7 @@ interface MobileMenuProps {
   isAdmin: boolean;
   closeMenu: () => void;
   handleSignOut: () => Promise<void>;
+  showAuthButtons?: boolean;
 }
 
 const MobileMenu = ({ 
@@ -19,7 +20,8 @@ const MobileMenu = ({
   user, 
   isAdmin, 
   closeMenu, 
-  handleSignOut 
+  handleSignOut,
+  showAuthButtons = true
 }: MobileMenuProps) => {
   const location = useLocation();
   const isAuthenticated = !!user;
@@ -42,74 +44,77 @@ const MobileMenu = ({
             {link.title}
           </Link>
         ))}
-        <div className="flex flex-col space-y-2 pt-2">
-          {isAuthenticated ? (
-            <>
-              <div className="py-2 px-4 text-gloria-purple font-medium flex items-center">
-                <User size={16} className="mr-2" />
-                {profile?.name}
-              </div>
-              
-              {isAdmin ? (
-                // Para usuarios administradores, mostrar solo el botón de administración
-                <Link 
-                  to="/admin"
+        
+        {showAuthButtons && (
+          <div className="flex flex-col space-y-2 pt-2">
+            {isAuthenticated ? (
+              <>
+                <div className="py-2 px-4 text-gloria-purple font-medium flex items-center">
+                  <User size={16} className="mr-2" />
+                  {profile?.name}
+                </div>
+                
+                {isAdmin ? (
+                  // Para usuarios administradores, mostrar solo el botón de administración
+                  <Link 
+                    to="/admin"
+                    className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                    onClick={closeMenu}
+                  >
+                    <Settings size={16} className="mr-2" />
+                    Administración
+                  </Link>
+                ) : (
+                  // Para usuarios normales, mostrar todos los enlaces de perfil
+                  <>
+                    <Link 
+                      to="/dashboard"
+                      className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                      onClick={closeMenu}
+                    >
+                      <User size={16} className="mr-2" />
+                      Estadísticas
+                    </Link>
+                    
+                    <Link 
+                      to="/suggestions"
+                      className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                      onClick={closeMenu}
+                    >
+                      <MessageSquare size={16} className="mr-2" />
+                      Buzón de sugerencias
+                    </Link>
+                  </>
+                )}
+                
+                <button 
+                  onClick={handleSignOut}
                   className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
+                >
+                  <LogOut size={16} className="mr-2" />
+                  Cerrar Sesión
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/login" 
+                  className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center"
                   onClick={closeMenu}
                 >
-                  <Settings size={16} className="mr-2" />
-                  Administración
+                  Iniciar Sesión
                 </Link>
-              ) : (
-                // Para usuarios normales, mostrar todos los enlaces de perfil
-                <>
-                  <Link 
-                    to="/dashboard"
-                    className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
-                    onClick={closeMenu}
-                  >
-                    <User size={16} className="mr-2" />
-                    Estadísticas
-                  </Link>
-                  
-                  <Link 
-                    to="/suggestions"
-                    className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
-                    onClick={closeMenu}
-                  >
-                    <MessageSquare size={16} className="mr-2" />
-                    Buzón de sugerencias
-                  </Link>
-                </>
-              )}
-              
-              <button 
-                onClick={handleSignOut}
-                className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center flex items-center justify-center"
-              >
-                <LogOut size={16} className="mr-2" />
-                Cerrar Sesión
-              </button>
-            </>
-          ) : (
-            <>
-              <Link 
-                to="/login" 
-                className="py-3 px-4 rounded-md border border-gloria-purple text-gloria-purple text-center"
-                onClick={closeMenu}
-              >
-                Iniciar Sesión
-              </Link>
-              <Link 
-                to="/register" 
-                className="py-3 px-4 rounded-md bg-gloria-gold text-white text-center"
-                onClick={closeMenu}
-              >
-                Registrarse
-              </Link>
-            </>
-          )}
-        </div>
+                <Link 
+                  to="/register" 
+                  className="py-3 px-4 rounded-md bg-gloria-gold text-white text-center"
+                  onClick={closeMenu}
+                >
+                  Registrarse
+                </Link>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
@@ -49,14 +48,6 @@ const WaitlistPage = () => {
                 href="/waitlist"
               >
                 Únete a la lista de espera
-              </Button>
-              
-              <Button 
-                variant="outline"
-                size="lg"
-                href="/how-to-play"
-              >
-                Cómo Jugar
               </Button>
             </motion.div>
           </motion.div>

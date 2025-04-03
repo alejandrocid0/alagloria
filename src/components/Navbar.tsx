@@ -3,19 +3,26 @@ import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 
 // Import our new components
 import NavLogo from './navigation/NavLogo';
 import DesktopNav from './navigation/DesktopNav';
 import MobileMenu from './navigation/MobileMenu';
-import { navLinks } from './navigation/navConstants';
+import { navLinks, waitlistNavLinks } from './navigation/navConstants';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, profile, signOut, loading } = useAuth();
+  const location = useLocation();
   
   const isAdmin = profile?.is_admin || false;
+  const isDeveloper = localStorage.getItem('gloria_dev_mode') === 'true' || isAdmin;
+  
+  // Determinar qué enlaces mostrar basado en la ruta actual
+  const isWaitlistPage = location.pathname === '/' || location.pathname === '/waitlist';
+  const currentNavLinks = isDeveloper ? navLinks : (isWaitlistPage ? waitlistNavLinks : navLinks);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,11 +54,12 @@ const Navbar = () => {
           
           {/* Desktop Navigation */}
           <DesktopNav 
-            navLinks={navLinks}
+            navLinks={currentNavLinks}
             profile={profile}
             user={user}
             isAdmin={isAdmin}
             handleSignOut={handleSignOut}
+            showAuthButtons={isDeveloper}
           />
           
           {/* Mobile Navigation Toggle */}
@@ -67,12 +75,13 @@ const Navbar = () => {
         {/* Mobile Navigation Menu */}
         {isOpen && (
           <MobileMenu 
-            navLinks={navLinks}
+            navLinks={currentNavLinks}
             profile={profile}
             user={user}
             isAdmin={isAdmin}
             closeMenu={closeMenu}
             handleSignOut={handleSignOut}
+            showAuthButtons={isDeveloper}
           />
         )}
       </div>
