@@ -11,8 +11,9 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   isConnected, 
   reconnectAttempts 
 }) => {
-  // No need to show connection status if there's been no reconnection attempts
-  if (reconnectAttempts === 0) return null;
+  // Solo mostrar el estado de conexión si hay intentos de reconexión y no estamos conectados
+  // o si hubo un problema reciente (reconectAttempts > 0)
+  if (reconnectAttempts === 0 || (isConnected && reconnectAttempts < 2)) return null;
   
   return (
     <div className={`px-4 py-1 text-sm text-center ${

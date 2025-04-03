@@ -27,7 +27,6 @@ export const useLiveGameState = () => {
   // Connection state tracking
   const [isConnected, setIsConnected] = useState(true);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const [notificationShown, setNotificationShown] = useState(false);
   
   // Get game state subscriptions and updates
   const {
@@ -79,8 +78,8 @@ export const useLiveGameState = () => {
   
   // Handler for manual refresh
   const refreshGameState = useCallback(async () => {
-    setReconnectAttempts(prev => prev + 1);
     try {
+      setIsConnected(false); // Establecer desconectado durante la reconexión
       const gameStateData = await fetchGameStateData(true);
       await fetchLeaderboardData();
       
@@ -88,21 +87,14 @@ export const useLiveGameState = () => {
         await fetchQuestionsData();
       }
       
-      setIsConnected(true);
-      
-      // Avoid multiple notifications
-      if (!notificationShown && reconnectAttempts > 0) {
-        gameNotifications.success('Conexión reestablecida');
-        setNotificationShown(true);
-        setTimeout(() => {
-          setNotificationShown(false);
-        }, 5000);
-      }
+      setIsConnected(true); // Solo establecer conectado si todas las operaciones tuvieron éxito
+      setReconnectAttempts(prev => prev + 1); // Incrementar intentos solo para propósitos de seguimiento
     } catch (err) {
       console.error('Error reconnecting:', err);
       setIsConnected(false);
+      scheduleReconnect(); // Solo programar reconexión si falló
     }
-  }, [fetchGameStateData, fetchLeaderboardData, fetchQuestionsData, reconnectAttempts, notificationShown]);
+  }, [fetchGameStateData, fetchLeaderboardData, fetchQuestionsData, scheduleReconnect]);
   
   // Initialize game data
   useGameInitialization({

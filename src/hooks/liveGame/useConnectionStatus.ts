@@ -5,6 +5,7 @@ import { gameNotifications } from '@/components/ui/notification-toast';
 export const useConnectionStatus = (onReconnect: () => Promise<void>) => {
   const [isConnected, setIsConnected] = useState(true);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [notificationCooldown, setNotificationCooldown] = useState(false);
   
   // Schedule reconnection with exponential backoff
   const scheduleReconnect = useCallback(() => {
@@ -19,18 +20,27 @@ export const useConnectionStatus = (onReconnect: () => Promise<void>) => {
     });
   }, [onReconnect]);
 
-  // Handle connection state changes
+  // Handle connection state changes with debounce to prevent notification spam
   const updateConnectionState = useCallback((isConnected: boolean) => {
-    const wasConnected = isConnected;
     setIsConnected(isConnected);
     
-    if (!wasConnected && isConnected) {
-      gameNotifications.connectSuccess();
-      setReconnectAttempts(0);
-    } else if (wasConnected && !isConnected) {
-      gameNotifications.connectionLost();
+    // Only show notifications if we're not in cooldown period
+    if (!notificationCooldown) {
+      if (!isConnected) {
+        gameNotifications.connectionLost();
+        setNotificationCooldown(true);
+        // Set a cooldown period of 30 seconds for connection notifications
+        setTimeout(() => setNotificationCooldown(false), 30000);
+      } else if (reconnectAttempts > 0) {
+        // Only show reconnection success if there was at least one previous attempt
+        gameNotifications.connectSuccess();
+        setReconnectAttempts(0);
+        setNotificationCooldown(true);
+        // Set a cooldown period of 30 seconds for connection notifications
+        setTimeout(() => setNotificationCooldown(false), 30000);
+      }
     }
-  }, []);
+  }, [reconnectAttempts, notificationCooldown]);
 
   return {
     isConnected,
