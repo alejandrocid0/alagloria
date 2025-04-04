@@ -25,43 +25,29 @@ import GamePlay from '@/pages/GamePlay';
 import Dashboard from '@/pages/Dashboard';
 import Signup from '@/pages/Signup';
 
-// Clave para almacenar el estado de desarrollador en localStorage
-const DEV_MODE_KEY = 'gloria_dev_mode';
-
-// Parámetro URL para activar el modo desarrollador
-const DEV_MODE_PARAM = 'dev_mode';
-const DEV_MODE_VALUE = 'true';
+// Dominio principal donde solo mostraremos la landing page
+const MAIN_DOMAIN = 'alagloria.es';
 
 const AppRouter = () => {
-  const [isDeveloper, setIsDeveloper] = useState(false);
+  const [showFullApp, setShowFullApp] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
   
-  // Comprobar si el usuario es desarrollador
+  // Comprobar el dominio actual y determinar qué versión mostrar
   useEffect(() => {
-    // Verificar si hay un parámetro en la URL para activar el modo desarrollador
-    const params = new URLSearchParams(location.search);
-    const devModeParam = params.get(DEV_MODE_PARAM);
+    const hostname = window.location.hostname;
     
-    if (devModeParam === DEV_MODE_VALUE) {
-      // Guardar en localStorage para mantener la sesión
-      localStorage.setItem(DEV_MODE_KEY, 'true');
-      setIsDeveloper(true);
-      return;
-    }
-    
-    // Verificar si hay una bandera en localStorage
-    const devModeStored = localStorage.getItem(DEV_MODE_KEY) === 'true';
-    
-    // Verificar si el usuario está autenticado y tiene un rol de admin
+    // Mostrar app completa si:
+    // 1. No estamos en el dominio principal (estamos en lovable.app u otro dominio de desarrollo)
+    // 2. El usuario es administrador
+    const isMainDomain = hostname === MAIN_DOMAIN;
     const isAdmin = user && user.role === 'admin';
     
-    // Es desarrollador si tiene la bandera en localStorage o es admin
-    setIsDeveloper(devModeStored || isAdmin);
+    setShowFullApp(!isMainDomain || isAdmin);
   }, [location, user]);
   
-  // Si no es desarrollador, mostrar rutas limitadas
-  if (!isDeveloper) {
+  // Si estamos en el dominio principal y no somos admin, mostrar rutas limitadas
+  if (!showFullApp) {
     return (
       <Routes>
         <Route path="/" element={<WaitlistPage />} />
@@ -73,7 +59,7 @@ const AppRouter = () => {
     );
   }
   
-  // Si es desarrollador, mostrar todas las rutas originales
+  // En otros casos (desarrollo, lovable.app, admin), mostrar todas las rutas
   return (
     <Routes>
       <Route path="/" element={<Home />} />
