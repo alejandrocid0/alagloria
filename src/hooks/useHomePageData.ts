@@ -32,12 +32,20 @@ export const useHomePageData = () => {
         
         setUpcomingGames(gamesForHomepage);
         
-        const totalParticipants = games.reduce((sum, game) => sum + game.participants, 0);
+        // Obtener el conteo de usuarios ÚNICOS
+        const { count: uniqueUsersCount, error: usersError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+          
+        if (usersError) {
+          console.error("Error obteniendo el conteo de usuarios:", usersError);
+        }
+        
         const totalGames = games.length;
         const totalPrizes = games.reduce((sum, game) => sum + game.prizePool, 0);
         
         setStats({
-          users: totalParticipants,
+          users: uniqueUsersCount || 0,
           games: totalGames,
           prizes: totalPrizes
         });
@@ -71,6 +79,17 @@ export const useHomePageData = () => {
         }, 
         () => {
           console.log('Game participants changed, reloading data...');
+          loadGames();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'profiles'
+        }, 
+        () => {
+          console.log('Profiles changed, reloading data...');
           loadGames();
         }
       )

@@ -59,6 +59,72 @@ const GamesList = () => {
     }
 
     try {
+      // Primero, eliminamos las entradas relacionadas en live_games si existen
+      const { error: liveGameError } = await supabase
+        .from('live_games')
+        .delete()
+        .eq('id', gameId);
+      
+      if (liveGameError) {
+        console.warn('Error al eliminar de live_games:', liveGameError);
+        // Continuamos con el proceso incluso si falla esta eliminación
+      }
+      
+      // Eliminamos las respuestas de los jugadores
+      const { error: answersError } = await supabase
+        .from('live_game_answers')
+        .delete()
+        .eq('game_id', gameId);
+        
+      if (answersError) {
+        console.warn('Error al eliminar las respuestas:', answersError);
+        // Continuamos con el proceso incluso si falla esta eliminación
+      }
+      
+      // Eliminamos a los participantes
+      const { error: participantsError } = await supabase
+        .from('game_participants')
+        .delete()
+        .eq('game_id', gameId);
+        
+      if (participantsError) {
+        console.warn('Error al eliminar los participantes:', participantsError);
+        // Continuamos con el proceso incluso si falla esta eliminación
+      }
+      
+      // Buscar todas las preguntas de la partida
+      const { data: questions, error: questionsQueryError } = await supabase
+        .from('questions')
+        .select('id')
+        .eq('game_id', gameId);
+        
+      if (questionsQueryError) {
+        console.warn('Error al obtener las preguntas:', questionsQueryError);
+      } else if (questions && questions.length > 0) {
+        // Eliminar todas las opciones de las preguntas
+        for (const question of questions) {
+          const { error: optionsError } = await supabase
+            .from('options')
+            .delete()
+            .eq('question_id', question.id);
+            
+          if (optionsError) {
+            console.warn(`Error al eliminar las opciones de la pregunta ${question.id}:`, optionsError);
+          }
+        }
+        
+        // Ahora eliminamos las preguntas
+        const { error: questionsError } = await supabase
+          .from('questions')
+          .delete()
+          .eq('game_id', gameId);
+          
+        if (questionsError) {
+          console.warn('Error al eliminar las preguntas:', questionsError);
+        }
+      }
+      
+      // Finalmente eliminamos la partida
       const { error } = await supabase
         .from('games')
         .delete()
@@ -78,7 +144,7 @@ const GamesList = () => {
       console.error('Error deleting game:', error);
       toast({
         title: 'Error',
-        description: 'No se pudo eliminar la partida',
+        description: 'No se pudo eliminar la partida. Consulta la consola para más detalles.',
         variant: 'destructive',
       });
     }
