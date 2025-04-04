@@ -9,11 +9,14 @@ const NavLogo = ({ onClick }: NavLogoProps) => {
   return (
     <Link 
       to="/" 
-      className="text-gloria-purple text-2xl font-serif font-bold flex items-center"
+      className="flex items-center"
       onClick={onClick}
     >
-      <span className="text-gloria-gold">A la</span>
-      <span className="ml-2">Gloria</span>
+      <img 
+        src="/logo.png" 
+        alt="A la Gloria" 
+        className="h-10 w-auto" 
+      />
     </Link>
   );
 };
