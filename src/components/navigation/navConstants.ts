@@ -5,7 +5,7 @@ export const waitlistNavLinks = [
   { title: 'Lista de espera', path: '/waitlist' },
 ];
 
-// Para usuarios que están desarrollando la app
+// Para usuarios que están en la app principal (alagloria.lovable.app)
 export const navLinks = [
   { title: 'Inicio', path: '/' },
   { title: 'Partidas', path: '/games' },

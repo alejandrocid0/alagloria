@@ -11,18 +11,31 @@ import DesktopNav from './navigation/DesktopNav';
 import MobileMenu from './navigation/MobileMenu';
 import { navLinks, waitlistNavLinks } from './navigation/navConstants';
 
+// Dominio principal donde solo mostraremos la landing page
+const MAIN_DOMAIN = 'alagloria.es';
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showFullNav, setShowFullNav] = useState(false);
   const { user, profile, signOut, loading } = useAuth();
   const location = useLocation();
   
   const isAdmin = profile?.is_admin || false;
-  const isDeveloper = localStorage.getItem('gloria_dev_mode') === 'true' || isAdmin;
   
-  // Determinar qué enlaces mostrar basado en la ruta actual
-  const isWaitlistPage = location.pathname === '/' || location.pathname === '/waitlist';
-  const currentNavLinks = isDeveloper ? navLinks : (isWaitlistPage ? waitlistNavLinks : navLinks);
+  useEffect(() => {
+    // Determinar si mostrar el menú completo basado en el dominio actual
+    const hostname = window.location.hostname;
+    const isMainDomain = hostname === MAIN_DOMAIN;
+    
+    // Mostrar menú completo si:
+    // 1. No estamos en el dominio principal (estamos en lovable.app u otro dominio)
+    // 2. El usuario es administrador
+    setShowFullNav(!isMainDomain || isAdmin);
+  }, [isAdmin]);
+  
+  // Determinar qué enlaces mostrar basado en el dominio
+  const currentNavLinks = showFullNav ? navLinks : waitlistNavLinks;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,7 +72,7 @@ const Navbar = () => {
             user={user}
             isAdmin={isAdmin}
             handleSignOut={handleSignOut}
-            showAuthButtons={isDeveloper}
+            showAuthButtons={showFullNav}
           />
           
           {/* Mobile Navigation Toggle */}
@@ -81,7 +94,7 @@ const Navbar = () => {
             isAdmin={isAdmin}
             closeMenu={closeMenu}
             handleSignOut={handleSignOut}
-            showAuthButtons={isDeveloper}
+            showAuthButtons={showFullNav}
           />
         )}
       </div>
