@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user_id: user.id,
           email: user.email || profile?.email || '',
           message,
+          status: 'pending' // Aseguramos que el estado inicial sea 'pending'
         });
 
       if (error) {
