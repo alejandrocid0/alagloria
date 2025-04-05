@@ -4,20 +4,21 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import WaitingRoomContainer from '@/components/gameplay/waiting-room/WaitingRoomContainer';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const GameWaitingRoom = () => {
   const { user } = useAuth();
+  const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   
-  // Redirigir a login si no hay usuario autenticado
+  // Redirigir a login si no hay usuario autenticado y no es la demo
   useEffect(() => {
-    if (!user) {
+    if (!user && gameId !== 'demo-123') {
       navigate('/login', { state: { from: location.pathname } });
     }
-  }, [user, navigate]);
+  }, [user, navigate, gameId]);
   
   return (
     <>

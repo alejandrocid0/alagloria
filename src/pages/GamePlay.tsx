@@ -22,8 +22,8 @@ const GamePlay = () => {
     window.location.reload();
   };
   
-  // Only render if user is authenticated
-  if (!user) return null;
+  // Mostrar para usuarios autenticados o para la partida demo
+  if (!user && gameId !== 'demo-123') return null;
   
   return (
     <div className="min-h-screen bg-gray-100">

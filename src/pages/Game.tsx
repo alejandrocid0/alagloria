@@ -12,12 +12,12 @@ const Game = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Redireccionar a login si no hay usuario
+  // Redireccionar a login si no hay usuario y no es la demo
   useEffect(() => {
-    if (!user) {
+    if (!user && gameId !== 'demo-123') {
       navigate('/login', { state: { from: location.pathname } });
     }
-  }, [user, navigate]);
+  }, [user, navigate, gameId]);
   
   // Verificar el estado del juego al cargar
   useEffect(() => {
@@ -41,19 +41,24 @@ const Game = () => {
     checkGameState();
   }, [gameId, navigate]);
   
-  return (
-    <>
-      <Navbar />
-      
-      <section className="pt-24 pb-20">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <LiveGameRenderer />
-        </div>
-      </section>
-      
-      <Footer />
-    </>
-  );
+  // Para la demo o usuarios autenticados
+  if (gameId === 'demo-123' || user) {
+    return (
+      <>
+        <Navbar />
+        
+        <section className="pt-24 pb-20">
+          <div className="container mx-auto px-4 max-w-7xl">
+            <LiveGameRenderer />
+          </div>
+        </section>
+        
+        <Footer />
+      </>
+    );
+  }
+  
+  return null;
 };
 
 export default Game;

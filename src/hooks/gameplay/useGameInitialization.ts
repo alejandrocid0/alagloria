@@ -23,6 +23,12 @@ export const useGameInitialization = () => {
       return;
     }
     
+    // Si no es la demo y no hay usuario, redireccionar a login
+    if (gameId !== 'demo-123' && !user) {
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    
     setLoading(true);
     
     try {
