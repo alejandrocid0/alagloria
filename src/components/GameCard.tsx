@@ -6,6 +6,7 @@ import Button from './Button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { useCheckGameJoin } from '@/hooks/useCheckGameJoin';
 
 export interface GameCardProps {
   id: string;
@@ -24,7 +25,8 @@ const GameCard = ({ id, title, date, participants, maxParticipants, image, categ
   const isPastGame = date < new Date();
   const percentageFilled = (participants / maxParticipants) * 100;
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { hasJoined } = useCheckGameJoin(id, user?.id || null);
   
   const formattedDate = date.toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -153,13 +155,13 @@ const GameCard = ({ id, title, date, participants, maxParticipants, image, categ
           </span>
           
           <Button
-            variant={isPastGame ? "ghost" : isGameFull ? "outline" : "secondary"}
+            variant={isPastGame ? "ghost" : isGameFull ? "outline" : hasJoined ? "primary" : "secondary"}
             size="sm"
             disabled={isPastGame || isGameFull}
-            href={isPastGame ? `/results/${id}` : isGameFull ? "#" : `/join/${id}`}
+            href={isPastGame ? `/results/${id}` : isGameFull ? "#" : hasJoined ? `/game/${id}/waiting` : `/join/${id}`}
             onClick={(e) => e.stopPropagation()} // Evita que el click en el botón dispare el handler del card
           >
-            {isPastGame ? "Ver resultados" : isGameFull ? "Completa" : "Unirse gratis"}
+            {isPastGame ? "Ver resultados" : isGameFull ? "Completa" : hasJoined ? "Entra ahora" : "Unirse gratis"}
           </Button>
         </div>
       </div>

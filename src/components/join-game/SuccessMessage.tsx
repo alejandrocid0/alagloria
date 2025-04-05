@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { Check, Calendar, Clock } from 'lucide-react';
-import Button from '@/components/Button';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Game } from '@/components/games/types';
 
 interface SuccessMessageProps {
@@ -10,60 +11,54 @@ interface SuccessMessageProps {
   gameId: string;
 }
 
-const SuccessMessage: React.FC<SuccessMessageProps> = ({ gameData, formattedDate, gameId }) => {
+const SuccessMessage = ({ gameData, formattedDate, gameId }: SuccessMessageProps) => {
+  const navigate = useNavigate();
+  
+  const handleEnterGame = () => {
+    navigate(`/game/${gameId}/waiting`);
+  };
+  
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-xl shadow-md p-8 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Check className="h-8 w-8 text-green-500" />
+    <div className="bg-white p-8 rounded-xl shadow-sm max-w-xl mx-auto">
+      <div className="flex flex-col items-center text-center mb-8">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
         
-        <h2 className="text-2xl font-serif font-bold text-gloria-purple mb-4">
-          ¡Te has unido a la partida!
+        <h2 className="text-2xl font-serif font-bold text-gray-800 mb-3">
+          ¡Inscripción Completada!
         </h2>
         
-        <p className="text-gray-600 mb-8">
-          Has completado tu inscripción a <span className="font-semibold">{gameData.title}</span>. 
-          Recuerda conectarte el <span className="font-semibold">{formattedDate}</span> para participar.
+        <p className="text-gray-600">
+          Te has unido correctamente a la partida.
         </p>
+      </div>
+      
+      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <p className="text-gray-600 mb-2">
+          <span className="font-medium">Partida:</span> {gameData.title}
+        </p>
+        <p className="text-gray-600 mb-2">
+          <span className="font-medium">Fecha:</span> {formattedDate}
+        </p>
+        <p className="text-gray-600">
+          <span className="font-medium">Participantes:</span> {gameData.participants} / {gameData.maxParticipants}
+        </p>
+      </div>
+      
+      <div className="text-center">
+        <Button
+          variant="default"
+          size="lg"
+          className="bg-gloria-purple hover:bg-gloria-purple/90 text-white px-8"
+          onClick={handleEnterGame}
+        >
+          Entra ahora
+        </Button>
         
-        <div className="bg-gloria-cream/20 rounded-lg p-6 mb-8">
-          <h3 className="font-semibold text-gloria-purple mb-4">Detalles de la partida</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="text-center">
-              <Calendar className="h-6 w-6 text-gloria-purple mx-auto mb-2" />
-              <div className="text-sm text-gray-500">Fecha</div>
-              <div className="font-medium">{gameData.date.toLocaleDateString('es-ES')}</div>
-            </div>
-            
-            <div className="text-center">
-              <Clock className="h-6 w-6 text-gloria-purple mx-auto mb-2" />
-              <div className="text-sm text-gray-500">Hora</div>
-              <div className="font-medium">{gameData.date.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="space-y-4">
-          <Button
-            variant="primary"
-            size="lg"
-            className="w-full"
-            href={`/game/${gameId}`}
-          >
-            Ir a la sala de espera
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            href="/games"
-          >
-            Ver más partidas
-          </Button>
-        </div>
+        <p className="mt-4 text-sm text-gray-500">
+          También podrás acceder a la partida desde la sección de "Partidas".
+        </p>
       </div>
     </div>
   );

@@ -59,10 +59,10 @@ const JoinGameForm = ({
           <Button
             variant="default"
             size="lg"
-            className="w-full"
+            className="w-full bg-gloria-purple hover:bg-gloria-purple/90 text-white"
             onClick={handleEnterGame}
           >
-            Entrar
+            Entra ahora
           </Button>
         ) : (
           <Button
