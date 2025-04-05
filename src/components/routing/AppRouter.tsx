@@ -4,6 +4,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import WaitlistPage from '@/pages/WaitlistPage';
 import Waitlist from '@/pages/Waitlist';
 import HowToPlay from '@/pages/HowToPlay';
+import Suggestions from '@/pages/Suggestions';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Importamos todas las rutas originales de la aplicación
@@ -80,6 +81,7 @@ const AppRouter = () => {
       <Route path="/admin/edit/:gameId" element={<EditGame />} />
       <Route path="/game/:gameId/waiting" element={<GameWaitingRoom />} />
       <Route path="/how-to-play" element={<HowToPlay />} />
+      <Route path="/suggestions" element={<Suggestions />} />
       {/* Añadimos también las rutas de la lista de espera para que sean accesibles */}
       <Route path="/waitlist" element={<Waitlist />} />
       <Route path="/waitlist-page" element={<WaitlistPage />} />
