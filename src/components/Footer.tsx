@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { Instagram, Twitter, Facebook, Mail } from 'lucide-react';
+import { Instagram, Linkedin, Youtube } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -16,17 +16,41 @@ const Footer = () => {
               El mejor juego de preguntas sobre la Semana Santa de Sevilla.
             </p>
             <div className="flex space-x-4 mt-6">
-              <a href="#" className="text-white hover:text-gloria-gold transition-colors">
+              <a 
+                href="https://www.instagram.com/alagloria.app/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-white hover:text-gloria-gold transition-colors"
+                aria-label="Instagram"
+              >
                 <Instagram size={20} />
               </a>
-              <a href="#" className="text-white hover:text-gloria-gold transition-colors">
-                <Twitter size={20} />
+              <a 
+                href="https://www.tiktok.com/@alagloria.app" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-white hover:text-gloria-gold transition-colors"
+                aria-label="TikTok"
+              >
+                <TikTokIcon size={20} />
               </a>
-              <a href="#" className="text-white hover:text-gloria-gold transition-colors">
-                <Facebook size={20} />
+              <a 
+                href="https://www.youtube.com/@Alagloriaapp" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-white hover:text-gloria-gold transition-colors"
+                aria-label="YouTube"
+              >
+                <Youtube size={20} />
               </a>
-              <a href="#" className="text-white hover:text-gloria-gold transition-colors">
-                <Mail size={20} />
+              <a 
+                href="https://www.linkedin.com/company/a-la-gloria/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-white hover:text-gloria-gold transition-colors"
+                aria-label="LinkedIn"
+              >
+                <Linkedin size={20} />
               </a>
             </div>
           </div>
@@ -97,6 +121,28 @@ const Footer = () => {
         </div>
       </div>
     </footer>
+  );
+};
+
+// Componente personalizado para el ícono de TikTok ya que no está disponible en Lucide
+const TikTokIcon = ({ size = 20 }) => {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M9 12a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
+      <path d="M16 8v8" />
+      <path d="M12 16v-8" />
+      <path d="M20 12V8a4 4 0 0 0-4-4h-1" />
+      <path d="M16 5.1V4" />
+    </svg>
   );
 };
 
