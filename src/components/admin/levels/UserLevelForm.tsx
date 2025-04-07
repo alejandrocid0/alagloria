@@ -61,7 +61,17 @@ const UserLevelForm = ({
 
   // Manejar envío del formulario
   const handleSubmit = (values: LevelFormValues) => {
-    onSubmit(values);
+    // Asegurarse de que todos los campos requeridos estén presentes
+    const formData: Omit<UserLevel, 'id' | 'created_at' | 'created_by'> = {
+      name: values.name,
+      description: values.description,
+      icon_name: values.icon_name,
+      required_correct_answers: values.required_correct_answers,
+      level_order: values.level_order,
+      category: values.category,
+    };
+    
+    onSubmit(formData);
   };
 
   // Lista de iconos disponibles
