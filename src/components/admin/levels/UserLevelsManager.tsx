@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { 
   fetchUserLevels, 
   createUserLevel, 
-  deleteUserLevel 
+  deleteUserLevel,
+  updateUserLevel
 } from '@/services/userLevelService';
 import { UserLevel } from '@/types/userLevels';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
   TabsTrigger 
 } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Edit } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,8 @@ const UserLevelsManager = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState<UserLevel | null>(null);
   const [activeCategory, setActiveCategory] = useState('cofrade');
   
   useEffect(() => {
@@ -112,6 +115,34 @@ const UserLevelsManager = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+  
+  // Editar un nivel existente
+  const handleEditLevel = async (data: Omit<UserLevel, 'id' | 'created_at' | 'created_by'>) => {
+    if (!currentLevel) return;
+    
+    setSubmitting(true);
+    try {
+      const updatedLevel = await updateUserLevel(currentLevel.id, data);
+      if (updatedLevel) {
+        toast.success('Nivel actualizado correctamente');
+        setEditDialog(false);
+        setCurrentLevel(null);
+      } else {
+        toast.error('Error al actualizar el nivel');
+      }
+    } catch (error) {
+      console.error('Error al actualizar nivel:', error);
+      toast.error('Error al actualizar el nivel');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  // Abrir diálogo de edición
+  const openEditDialog = (level: UserLevel) => {
+    setCurrentLevel(level);
+    setEditDialog(true);
   };
   
   // Eliminar un nivel
@@ -242,7 +273,7 @@ const UserLevelsManager = () => {
                     <TableHead>Descripción</TableHead>
                     <TableHead className="text-right">Respuestas</TableHead>
                     <TableHead className="text-center">Orden</TableHead>
-                    <TableHead className="w-24"></TableHead>
+                    <TableHead className="w-28"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -279,6 +310,14 @@ const UserLevelsManager = () => {
                           >
                             <ArrowDown className="h-3 w-3" />
                           </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-7 w-7 text-amber-500 hover:text-amber-700"
+                            onClick={() => openEditDialog(level)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700">
@@ -310,6 +349,23 @@ const UserLevelsManager = () => {
                 </TableBody>
               </Table>
             )}
+            
+            {/* Diálogo de edición */}
+            <Dialog open={editDialog} onOpenChange={setEditDialog}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Editar Nivel</DialogTitle>
+                </DialogHeader>
+                {currentLevel && (
+                  <UserLevelForm 
+                    onSubmit={handleEditLevel} 
+                    isSubmitting={submitting}
+                    initialValues={currentLevel}
+                    isEditing={true}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </CardContent>
