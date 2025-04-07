@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Edit, Trash2, CalendarIcon, User } from 'lucide-react';
+import { Edit, Trash2, CalendarIcon, User, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GameEditor from './editor/GameEditor';
 import { gameService } from '@/services/gameService';
 
@@ -26,6 +27,7 @@ const GamesList = () => {
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState('upcoming');
 
   const fetchGames = async () => {
     try {
@@ -171,14 +173,97 @@ const GamesList = () => {
     }
   };
 
+  // Filtrar partidas según la pestaña activa
+  const isGameUpcoming = (game: Game) => {
+    return new Date(game.date) > new Date();
+  };
+
+  const upcomingGames = games.filter(isGameUpcoming);
+  const pastGames = games.filter(game => !isGameUpcoming(game));
+
+  const renderGamesList = (gamesList: Game[]) => {
+    if (gamesList.length === 0) {
+      return (
+        <div className="py-8 text-center">
+          <p className="text-gray-500">
+            {activeTab === 'upcoming' 
+              ? 'No hay partidas programadas.'
+              : 'No hay partidas finalizadas.'}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {gamesList.map((game) => (
+          <div
+            key={game.id}
+            className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between"
+          >
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-medium text-gloria-purple truncate">
+                {game.title}
+              </h3>
+              <p className="text-sm text-gray-500 truncate">
+                {game.description || 'Sin descripción'}
+              </p>
+              <div className="flex items-center mt-2 text-sm">
+                <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                <span>{formatGameDate(game.date)}</span>
+              </div>
+              {game.creator_name && (
+                <div className="flex items-center mt-1 text-sm">
+                  <User className="h-4 w-4 mr-1 text-gray-400" />
+                  <span>Creado por: {game.creator_name}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex mt-4 md:mt-0 space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEditGame(game)}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDeleteGame(game.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Partidas Programadas</CardTitle>
-          <CardDescription>
-            Administra las partidas existentes, edita su información o elimínalas.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle>Partidas</CardTitle>
+              <CardDescription>
+                Administra todas las partidas existentes.
+              </CardDescription>
+            </div>
+            <div className="w-full sm:w-auto">
+              <Button 
+                className="w-full sm:w-auto" 
+                variant="outline" 
+                onClick={() => fetchGames()}
+              >
+                <Filter className="h-4 w-4 mr-2" /> Actualizar
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -186,56 +271,30 @@ const GamesList = () => {
               <div className="animate-pulse bg-gloria-purple/20 h-8 w-64 rounded-md mb-4 mx-auto"></div>
               <div className="animate-pulse bg-gloria-purple/10 h-4 w-48 rounded-md mx-auto"></div>
             </div>
-          ) : games.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-gray-500">No hay partidas programadas.</p>
-            </div>
           ) : (
-            <div className="space-y-4">
-              {games.map((game) => (
-                <div
-                  key={game.id}
-                  className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between"
-                >
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-gloria-purple truncate">
-                      {game.title}
-                    </h3>
-                    <p className="text-sm text-gray-500 truncate">
-                      {game.description || 'Sin descripción'}
-                    </p>
-                    <div className="flex items-center mt-2 text-sm">
-                      <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
-                      <span>{formatGameDate(game.date)}</span>
-                    </div>
-                    {game.creator_name && (
-                      <div className="flex items-center mt-1 text-sm">
-                        <User className="h-4 w-4 mr-1 text-gray-400" />
-                        <span>Creado por: {game.creator_name}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex mt-4 md:mt-0 space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditGame(game)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteGame(game.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Eliminar
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Tabs 
+              defaultValue="upcoming" 
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="mb-6 grid grid-cols-2 w-full sm:w-auto">
+                <TabsTrigger value="upcoming">
+                  Próximas ({upcomingGames.length})
+                </TabsTrigger>
+                <TabsTrigger value="past">
+                  Finalizadas ({pastGames.length})
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upcoming" className="mt-2">
+                {renderGamesList(upcomingGames)}
+              </TabsContent>
+              
+              <TabsContent value="past" className="mt-2">
+                {renderGamesList(pastGames)}
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>
