@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRouter from '@/components/routing/AppRouter';
 import { Toaster } from "@/components/ui/toaster";
+import ScrollToTop from '@/components/navigation/ScrollToTop';
+import GoogleAnalyticsTracker from '@/components/navigation/GoogleAnalyticsTracker';
 
 // Dominio principal donde solo mostraremos la landing page
 const MAIN_DOMAIN = 'alagloria.es';
@@ -22,6 +24,8 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
+      <GoogleAnalyticsTracker />
       <AppRouter />
       <Toaster />
     </Router>

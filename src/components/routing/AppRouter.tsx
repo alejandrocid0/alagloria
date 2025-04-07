@@ -45,6 +45,16 @@ const AppRouter = () => {
     const isAdmin = user && user.role === 'admin';
     
     setShowFullApp(!isMainDomain || isAdmin);
+    
+    // Registrar la vista de página en GA para debugging
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'page_view', {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: location.pathname,
+      });
+      console.log('GA Debug: Vista de página registrada:', location.pathname);
+    }
   }, [location, user]);
   
   // Si estamos en el dominio principal y no somos admin, mostrar rutas limitadas
