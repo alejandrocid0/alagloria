@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
 /**
@@ -8,25 +8,65 @@ import { useLocation } from 'react-router-dom';
  */
 const MicrosoftClarityTracker = () => {
   const location = useLocation();
+  const retryCountRef = useRef(0);
+  const maxRetries = 5;
 
   useEffect(() => {
     const { pathname } = location;
     
-    // Esperar un momento para asegurar que Clarity esté completamente inicializado
-    setTimeout(() => {
+    // Función para intentar registrar el cambio de página
+    const trackPageChange = () => {
       try {
-        // Verificar que clarity exista y sea una función que se pueda llamar
-        if (window.clarity && typeof window.clarity === 'function') {
-          // Registrar cambio de página en Microsoft Clarity
+        // Verificar que clarity exista, sea una función y esté correctamente inicializada
+        if (
+          window.clarity && 
+          typeof window.clarity === 'function' && 
+          !String(window.clarity).includes('clarity.q.push')
+        ) {
+          // Clarity está completamente inicializado
           window.clarity('newPage');
           console.log('Clarity: Registrando cambio de página:', pathname);
+          return true; // Éxito
         } else {
+          // Clarity existe pero no está listo completamente
           console.log('Clarity: No disponible aún para registrar:', pathname);
+          return false; // No listo
         }
       } catch (error) {
         console.error('Error al registrar página en Clarity:', error);
+        return false; // Error
       }
-    }, 1000); // Esperar 1 segundo para asegurar que Clarity esté inicializado
+    };
+
+    // Función para intentar con retroceso exponencial
+    const attemptWithBackoff = () => {
+      if (retryCountRef.current >= maxRetries) {
+        console.warn('Clarity: Máximo de intentos alcanzado para registrar:', pathname);
+        return;
+      }
+
+      const success = trackPageChange();
+      
+      if (!success) {
+        // Si no tuvo éxito, incrementar contador e intentar de nuevo con tiempo de espera mayor
+        const nextRetry = Math.min(2000, 500 * Math.pow(1.5, retryCountRef.current));
+        retryCountRef.current += 1;
+        
+        setTimeout(() => {
+          attemptWithBackoff();
+        }, nextRetry);
+      }
+    };
+
+    // Iniciar el proceso de seguimiento con un pequeño retraso inicial
+    setTimeout(() => {
+      attemptWithBackoff();
+    }, 300);
+
+    // Reiniciar el contador cuando cambia la ubicación
+    return () => {
+      retryCountRef.current = 0;
+    };
     
   }, [location]);
 
