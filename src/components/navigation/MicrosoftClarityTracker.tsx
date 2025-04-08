@@ -25,14 +25,16 @@ const MicrosoftClarityTracker = () => {
         ) {
           // Clarity está completamente inicializado
           window.clarity('newPage');
+          // Mantenemos este log para diagnóstico de analítica
           console.log('Clarity: Registrando cambio de página:', pathname);
           return true; // Éxito
         } else {
-          // Clarity existe pero no está listo completamente
+          // Mantenemos este log para diagnóstico
           console.log('Clarity: No disponible aún para registrar:', pathname);
           return false; // No listo
         }
       } catch (error) {
+        // Mantenemos los logs de error
         console.error('Error al registrar página en Clarity:', error);
         return false; // Error
       }
@@ -41,6 +43,7 @@ const MicrosoftClarityTracker = () => {
     // Función para intentar con retroceso exponencial
     const attemptWithBackoff = () => {
       if (retryCountRef.current >= maxRetries) {
+        // Mantenemos los logs de advertencia importantes
         console.warn('Clarity: Máximo de intentos alcanzado para registrar:', pathname);
         return;
       }

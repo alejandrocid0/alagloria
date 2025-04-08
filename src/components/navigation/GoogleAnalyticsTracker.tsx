@@ -20,6 +20,7 @@ const GoogleAnalyticsTracker = () => {
         page_location: window.location.href
       });
       
+      // Mantenemos este log para diagnóstico de analítica
       console.log('GA: Registrando vista de página:', pathname);
     }
   }, [location]);

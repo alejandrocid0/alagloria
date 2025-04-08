@@ -67,7 +67,6 @@ export const useHomePageData = () => {
           table: 'games'
         }, 
         () => {
-          console.log('Games table changed, reloading data...');
           loadGames();
         }
       )
@@ -78,7 +77,6 @@ export const useHomePageData = () => {
           table: 'game_participants'
         }, 
         () => {
-          console.log('Game participants changed, reloading data...');
           loadGames();
         }
       )
@@ -89,7 +87,6 @@ export const useHomePageData = () => {
           table: 'profiles'
         }, 
         () => {
-          console.log('Profiles changed, reloading data...');
           loadGames();
         }
       )

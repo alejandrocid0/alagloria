@@ -69,7 +69,6 @@ const GamesList = () => {
       
       if (liveGameError) {
         console.warn('Error al eliminar de live_games:', liveGameError);
-        // Continuamos con el proceso incluso si falla esta eliminación
       }
       
       // Eliminamos las respuestas de los jugadores
@@ -80,7 +79,6 @@ const GamesList = () => {
         
       if (answersError) {
         console.warn('Error al eliminar las respuestas:', answersError);
-        // Continuamos con el proceso incluso si falla esta eliminación
       }
       
       // Eliminamos a los participantes
@@ -91,7 +89,6 @@ const GamesList = () => {
         
       if (participantsError) {
         console.warn('Error al eliminar los participantes:', participantsError);
-        // Continuamos con el proceso incluso si falla esta eliminación
       }
       
       // Buscar todas las preguntas de la partida

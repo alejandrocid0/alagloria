@@ -36,10 +36,8 @@ export const useAnswerHandler = ({
    * Calcula los puntos basados en el tiempo restante
    */
   const calculatePoints = (timeRemainingSeconds: number): number => {
-    console.log(`Calculando puntos con ${timeRemainingSeconds} segundos restantes`);
     const pointsPercent = timeRemainingSeconds / 20; // Asumiendo 20 segundos como tiempo máximo
     const calculatedPoints = Math.round(200 * pointsPercent);
-    console.log(`Porcentaje de puntos: ${pointsPercent}, Puntos calculados: ${calculatedPoints}`);
     return calculatedPoints;
   };
 
@@ -47,25 +45,21 @@ export const useAnswerHandler = ({
    * Actualiza la clasificación cuando una respuesta es correcta
    */
   const updateRanking = (pointsEarned: number): Player[] => {
-    console.log(`Actualizando ranking con ${pointsEarned} puntos ganados`);
     const newRanking = [...ranking];
     const myPlayerId = "2"; // ID del jugador actual
     
     // Encuentra la posición del jugador actual
     const myPosition = newRanking.findIndex(player => player.id === myPlayerId);
-    console.log(`Posición actual del jugador: ${myPosition + 1}`);
     
     if (myPosition !== -1) {
       // Actualiza los puntos del jugador actual
       newRanking[myPosition].points += pointsEarned;
-      console.log(`Puntos actualizados del jugador: ${newRanking[myPosition].points}`);
       
       // Actualiza los puntos de los demás jugadores (simulación)
       newRanking.forEach(player => {
         if (player.id !== myPlayerId) {
           const randomBonus = Math.random() > 0.5 ? Math.floor(Math.random() * pointsEarned) : 0;
           player.points += randomBonus;
-          console.log(`Jugador ${player.name} recibe ${randomBonus} puntos aleatorios`);
         }
       });
       
@@ -80,10 +74,7 @@ export const useAnswerHandler = ({
    * Maneja la selección de una opción
    */
   const handleSelectOption = (optionId: string) => {
-    console.log(`Opción seleccionada: ${optionId}`);
-    
     if (optionId === "time_expired") {
-      console.log('Tiempo expirado - Pasando a resultado');
       // Si es una expiración de tiempo, simplemente pasamos al estado de resultado
       onStateChange('result');
       return;
@@ -91,13 +82,10 @@ export const useAnswerHandler = ({
     
     // Convertir a string el ID de la opción correcta para comparación
     const correctOptionStr = String(gameQuestions[currentQuestion]?.correctOption);
-    console.log(`Comparando respuesta: seleccionada=${optionId}, correcta=${correctOptionStr}`);
     const isCorrect = optionId === correctOptionStr;
     
     if (isCorrect) {
-      console.log('¡Respuesta correcta!');
       const pointsEarned = calculatePoints(timeRemaining);
-      console.log(`Puntos ganados: ${pointsEarned}`);
       
       onLastPointsChange(pointsEarned);
       onMyPointsChange(myPoints + pointsEarned);
@@ -107,7 +95,6 @@ export const useAnswerHandler = ({
       
       // Actualiza el ranking del jugador
       const newRank = updatedRanking.findIndex(player => player.id === "2") + 1;
-      console.log(`Nuevo ranking del jugador: ${newRank}`);
       onMyRankChange(newRank);
       
       toast({
@@ -116,8 +103,6 @@ export const useAnswerHandler = ({
         variant: "default"
       });
     } else {
-      console.log('Respuesta incorrecta');
-      
       // Actualización para el caso de respuesta incorrecta
       if (gameId !== 'demo-123') {
         const updatedRanking = [...ranking];
@@ -127,7 +112,6 @@ export const useAnswerHandler = ({
           if (player.id !== "2") {
             const randomBonus = Math.random() > 0.3 ? Math.floor(Math.random() * 200) : 0;
             player.points += randomBonus;
-            console.log(`Jugador ${player.name} recibe ${randomBonus} puntos aleatorios`);
           }
         });
         
@@ -135,7 +119,6 @@ export const useAnswerHandler = ({
         onRankingChange(sortedRanking);
         
         const newRank = sortedRanking.findIndex(player => player.id === "2") + 1;
-        console.log(`Nuevo ranking del jugador: ${newRank}`);
         onMyRankChange(newRank);
       }
       
@@ -146,7 +129,6 @@ export const useAnswerHandler = ({
       });
     }
     
-    console.log('Cambiando a estado de resultado');
     onStateChange('result');
   };
 

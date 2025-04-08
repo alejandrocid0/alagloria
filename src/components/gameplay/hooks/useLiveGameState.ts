@@ -57,7 +57,6 @@ export const useLiveGameState = () => {
   useEffect(() => {
     // Solo si tenemos información de la partida y no está cargando
     if (!isLoading && gameState && gameState.status === 'waiting') {
-      console.log('Redirigiendo a sala de espera: juego en estado de espera');
       setRedirectToWaiting(true);
     }
   }, [isLoading, gameState]);

@@ -11,8 +11,6 @@ export const fetchGamesFromSupabase = async (): Promise<Game[]> => {
       return [];
     }
 
-    console.log('Games data from Supabase:', gamesData);
-
     const formattedGames = gamesData.map(game => ({
       id: game.id,
       title: game.title,
