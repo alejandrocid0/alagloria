@@ -1,6 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Permite a un usuario unirse a una partida
+ * @param gameId ID de la partida
+ * @param userId ID del usuario
+ * @returns Objeto con el resultado de la operación
+ */
 export async function joinGame(gameId: string, userId: string) {
   try {
     // Verificar si el usuario ya está registrado para esta partida
@@ -38,34 +44,4 @@ export async function joinGame(gameId: string, userId: string) {
     console.error('Error in joinGame:', error);
     throw error;
   }
-}
-
-export async function leaveGame(gameId: string, userId: string) {
-  const { error: leaveError } = await supabase
-    .from('game_participants')
-    .delete()
-    .eq('game_id', gameId)
-    .eq('user_id', userId);
-  
-  if (leaveError) {
-    console.error('Error leaving game:', leaveError);
-    throw new Error(`Error al abandonar la partida: ${leaveError.message}`);
-  }
-  
-  return { success: true };
-}
-
-export async function getGameParticipants(gameId: string) {
-  const { data, error } = await supabase
-    .from('game_participants')
-    .select('count')
-    .eq('game_id', gameId);
-  
-  if (error) {
-    console.error('Error counting participants:', error);
-    throw new Error(`Error al contar participantes: ${error.message}`);
-  }
-  
-  // Convert count to number properly
-  return data && data[0] ? parseInt(String(data[0].count)) : 0;
 }
