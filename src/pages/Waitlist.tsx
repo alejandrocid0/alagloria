@@ -6,12 +6,14 @@ import { motion } from 'framer-motion';
 import Button from '@/components/Button';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [acceptedPolicy, setAcceptedPolicy] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,6 +23,15 @@ const Waitlist = () => {
       toast({
         title: "Error",
         description: "Por favor completa todos los campos",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!acceptedPolicy) {
+      toast({
+        title: "Error",
+        description: "Debes aceptar la política de privacidad para continuar",
         variant: "destructive",
       });
       return;
@@ -145,12 +156,27 @@ const Waitlist = () => {
                   />
                 </div>
                 
+                <div className="flex items-start space-x-2 mb-6">
+                  <Checkbox 
+                    id="privacy-policy"
+                    checked={acceptedPolicy}
+                    onCheckedChange={(checked) => setAcceptedPolicy(checked === true)}
+                  />
+                  <label 
+                    htmlFor="privacy-policy" 
+                    className="text-sm text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Acepto la <a href="#" className="text-gloria-purple hover:underline">política de privacidad</a> y los términos de uso.
+                  </label>
+                </div>
+                
                 <Button 
                   variant="secondary"
                   size="lg"
                   className="w-full"
                   type="submit"
                   isLoading={isSubmitting}
+                  disabled={isSubmitting || !acceptedPolicy}
                 >
                   {isSubmitting ? 'Procesando...' : 'Unirme a la lista de espera'}
                 </Button>
