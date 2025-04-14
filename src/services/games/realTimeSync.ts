@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -28,24 +27,19 @@ export const realTimeSync = {
     // Configurar la suscripción con los filtros adecuados
     const channel = supabase.channel(fullChannelName);
     
-    // La sintaxis correcta para supabase-js v2 es usar channel.on() con un objeto de configuración
-    channel
-      .on(
-        'postgres_changes', 
-        {
-          event: '*',
-          schema: 'public',
-          table: table,
-          filter: filter
-        },
-        (payload) => {
-          console.log(`[RealTimeSync] Evento recibido en ${table}:`, payload);
-          callback(payload);
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
-      });
+    // Configurar correctamente la suscripción para cambios en la base de datos
+    channel.on('postgres_changes', { 
+      event: '*',
+      schema: 'public',
+      table: table,
+      filter: filter
+    }, (payload) => {
+      console.log(`[RealTimeSync] Evento recibido en ${table}:`, payload);
+      callback(payload);
+    })
+    .subscribe((status) => {
+      console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
+    });
     
     return channel;
   },
