@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -25,8 +26,7 @@ export const realTimeSync = {
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
     // Configurar la suscripción con los filtros adecuados
-    const channel = supabase
-      .channel(fullChannelName);
+    const channel = supabase.channel(fullChannelName);
       
     channel.on(
       'postgres_changes',

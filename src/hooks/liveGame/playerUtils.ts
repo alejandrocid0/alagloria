@@ -57,8 +57,8 @@ export async function getCurrentPlayerInfo(gameId: string, userId: string) {
     // Obtener datos del leaderboard para este usuario
     const { data, error } = await supabase
       .rpc('get_game_leaderboard', { game_id: gameId })
-      .select()
-      .eq('user_id', userId)
+      .select('*')
+      .filter('user_id', 'eq', userId)
       .single();
     
     if (error) {
