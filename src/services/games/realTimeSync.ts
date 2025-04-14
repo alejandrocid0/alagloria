@@ -28,13 +28,13 @@ export const realTimeSync = {
     // Configurar la suscripción con los filtros adecuados
     const channel = supabase.channel(fullChannelName);
     
-    // Corregir la sintaxis para eventos de Postgres usando el método .on() correctamente
+    // La sintaxis correcta para supabase-js v2 es usar channel.on() con un objeto de configuración
     channel
       .on(
-        'postgres_changes', // Evento de cambios en Postgres
-        { 
-          event: '*',  // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
-          schema: 'public', 
+        'postgres_changes', 
+        {
+          event: '*',
+          schema: 'public',
           table: table,
           filter: filter
         },
