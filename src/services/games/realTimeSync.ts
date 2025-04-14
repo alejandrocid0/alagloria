@@ -27,23 +27,25 @@ export const realTimeSync = {
     
     // Configurar la suscripción con los filtros adecuados
     const channel = supabase.channel(fullChannelName);
-      
-    channel.on(
-      'postgres_changes',
-      { 
-        event: '*',  // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
-        schema: 'public', 
-        table: table,
-        filter: filter
-      },
-      (payload) => {
-        console.log(`[RealTimeSync] Evento recibido en ${table}:`, payload);
-        callback(payload);
-      }
-    )
-    .subscribe((status) => {
-      console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
-    });
+    
+    // Corregir la sintaxis para eventos de Postgres usando el método .on() correctamente
+    channel
+      .on(
+        'postgres_changes', // Evento de cambios en Postgres
+        { 
+          event: '*',  // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: 'public', 
+          table: table,
+          filter: filter
+        },
+        (payload) => {
+          console.log(`[RealTimeSync] Evento recibido en ${table}:`, payload);
+          callback(payload);
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
+      });
     
     return channel;
   },

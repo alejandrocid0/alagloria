@@ -55,11 +55,16 @@ export async function submitAnswer(
 export async function getCurrentPlayerInfo(gameId: string, userId: string) {
   try {
     // Obtener datos del leaderboard para este usuario
+    // Para filtrar los resultados de un RPC, necesitamos usar una sintaxis diferente
+    // ya que no podemos usar .filter() directamente en el resultado del RPC
     const { data, error } = await supabase
       .rpc('get_game_leaderboard', { game_id: gameId })
-      .select('*')
-      .filter('user_id', 'eq', userId)
-      .single();
+      .then(response => {
+        if (response.error) throw response.error;
+        // Filtrar manualmente los resultados para encontrar el usuario específico
+        const userData = response.data?.find(item => item.user_id === userId);
+        return { data: userData, error: null };
+      });
     
     if (error) {
       console.error('[PlayerUtils] Error al obtener info del jugador:', error);
