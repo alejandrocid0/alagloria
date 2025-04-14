@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { realTimeSync } from '@/services/games/realTimeSync';
 import { fetchGameState } from './gameStateUtils';
 import { fetchGameLeaderboard } from './leaderboardUtils';
-import { fetchGameQuestions } from './questionsUtils';
-import { submitAnswer as submitPlayerAnswer } from './useAnswerSubmission';
+import { fetchQuestions } from './questionsUtils';
+import { submitAnswer as submitPlayerAnswer } from './playerUtils';
 import { LiveGameState, Player, Question, AnswerResult } from '@/types/liveGame';
 
 export const useLiveGameState = (gameId?: string) => {
@@ -58,7 +58,7 @@ export const useLiveGameState = (gameId?: string) => {
         
         // Si hay una pregunta actual, cargarla
         if (newGameState.current_question > 0) {
-          const gameQuestions = await fetchGameQuestions(gameId);
+          const gameQuestions = await fetchQuestions(gameId);
           setQuestions(gameQuestions);
           
           // Encontrar la pregunta actual
