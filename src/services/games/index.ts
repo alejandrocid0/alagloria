@@ -4,6 +4,7 @@ import * as questions from './questions';
 import * as participants from './participants';
 import * as liveGame from './liveGame';
 import * as results from './results';
+import { realTimeSync } from './realTimeSync';
 
 // Re-export all functions from the various modules
 export const gameService = {
@@ -30,5 +31,8 @@ export const gameService = {
   
   // Game results
   saveGameResult: results.saveGameResult,
-  checkExistingGameResult: results.checkExistingGameResult
+  checkExistingGameResult: results.checkExistingGameResult,
+  
+  // Realtime synchronization service
+  realTimeSync
 };

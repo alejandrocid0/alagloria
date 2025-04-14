@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { advanceGameState, startGame, fetchGameState } from '@/hooks/liveGame/gameStateUtils';
 import { LiveGameState } from '@/types/liveGame';
+import { realTimeSync } from '@/services/games/realTimeSync';
 
 export const useLiveGameMonitor = (gameId: string | undefined) => {
   const [gameState, setGameState] = useState<LiveGameState | null>(null);
@@ -36,7 +37,7 @@ export const useLiveGameMonitor = (gameId: string | undefined) => {
     }
   }, [gameId]);
 
-  // Load player count
+  // Load player count using getGameParticipants
   const loadPlayersCount = useCallback(async () => {
     if (!gameId) return;
     
@@ -133,67 +134,32 @@ export const useLiveGameMonitor = (gameId: string | undefined) => {
     }
   }, [gameId, loadGameState]);
 
-  // Subscribe to game changes
+  // Subscribe to game changes using the centralized realTimeSync service
   useEffect(() => {
     if (!gameId) return;
     
+    // Initial data load
     loadGameState();
     loadPlayersCount();
     loadAnswersCount();
     
     // Subscribe to game state changes
-    const gameSubscription = supabase
-      .channel(`game-monitor-${gameId}`)
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'live_games',
-          filter: `id=eq.${gameId}`
-        },
-        payload => {
-          console.log('Game state changed:', payload);
-          loadGameState();
-        }
-      )
-      .subscribe();
+    const gameSubscription = realTimeSync.subscribeToGameState(gameId, () => {
+      console.log('[GameMonitor] Estado del juego actualizado');
+      loadGameState();
+    });
     
     // Subscribe to participants changes
-    const participantsSubscription = supabase
-      .channel(`participants-monitor-${gameId}`)
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'game_participants',
-          filter: `game_id=eq.${gameId}`
-        },
-        payload => {
-          console.log('Participants changed:', payload);
-          loadPlayersCount();
-        }
-      )
-      .subscribe();
+    const participantsSubscription = realTimeSync.subscribeToParticipants(gameId, () => {
+      console.log('[GameMonitor] Lista de participantes actualizada');
+      loadPlayersCount();
+    });
     
     // Subscribe to answers changes
-    const answersSubscription = supabase
-      .channel(`answers-monitor-${gameId}`)
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'live_game_answers',
-          filter: `game_id=eq.${gameId}`
-        },
-        payload => {
-          console.log('Answers changed:', payload);
-          loadAnswersCount();
-        }
-      )
-      .subscribe();
+    const answersSubscription = realTimeSync.subscribeToAnswers(gameId, () => {
+      console.log('[GameMonitor] Nuevas respuestas registradas');
+      loadAnswersCount();
+    });
     
     // Check admin status
     const checkAdmin = async () => {
@@ -228,9 +194,9 @@ export const useLiveGameMonitor = (gameId: string | undefined) => {
     
     return () => {
       clearInterval(intervalId);
-      supabase.removeChannel(gameSubscription);
-      supabase.removeChannel(participantsSubscription);
-      supabase.removeChannel(answersSubscription);
+      realTimeSync.unsubscribe(gameSubscription);
+      realTimeSync.unsubscribe(participantsSubscription);
+      realTimeSync.unsubscribe(answersSubscription);
     };
   }, [gameId, loadGameState, loadPlayersCount, loadAnswersCount]);
 

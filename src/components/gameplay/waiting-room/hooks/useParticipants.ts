@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Player } from '@/types/liveGame';
+import { realTimeSync } from '@/services/games/realTimeSync';
 
 export const useParticipants = (gameId: string | undefined) => {
   const [playersOnline, setPlayersOnline] = useState<Player[]>([]);
@@ -70,38 +71,22 @@ export const useParticipants = (gameId: string | undefined) => {
     }
   }, [gameId]);
 
-  // Suscribirse a cambios en los participantes
+  // Suscribirse a cambios en los participantes usando el nuevo servicio de sincronización
   useEffect(() => {
     if (!gameId) return;
     
     console.log('[Participants] Configurando suscripción a participantes del juego:', gameId);
     fetchParticipants();
     
-    // Usar un canal específico con un nombre basado en el ID del juego
-    const channelName = `game-participants-${gameId}`;
-    console.log('[Participants] Creando canal de tiempo real:', channelName);
-    
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'game_participants',
-          filter: `game_id=eq.${gameId}`
-        },
-        (payload) => {
-          console.log('[Participants] Cambio detectado en participantes:', payload);
-          fetchParticipants();
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[Participants] Estado de la suscripción a participantes: ${status}`);
-      });
+    // Usar el servicio centralizado para suscribirse a cambios en participantes
+    const subscription = realTimeSync.subscribeToParticipants(gameId, () => {
+      console.log('[Participants] Cambio detectado en participantes, actualizando datos');
+      fetchParticipants();
+    });
       
     return () => {
       console.log('[Participants] Limpiando suscripción a participantes');
-      supabase.removeChannel(channel);
+      realTimeSync.unsubscribe(subscription);
     };
   }, [gameId, fetchParticipants]);
 
