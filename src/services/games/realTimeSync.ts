@@ -24,21 +24,25 @@ export const realTimeSync = {
     
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
-    // Crear el canal y configurar el callback para cuando cambie el estado
-    const channel = supabase.channel(fullChannelName)
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: table, 
-          filter: filter 
-        },
-        callback
-      )
-      .subscribe((status) => {
-        console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
-      });
+    // Crear el canal y configurar el callback
+    const channel = supabase.channel(fullChannelName);
+    
+    // Añadir la suscripción a los cambios de PostgreSQL
+    channel.on(
+      'postgres_changes',
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: table, 
+        filter: filter 
+      },
+      callback
+    );
+    
+    // Suscribirse al canal después de configurar los listeners
+    channel.subscribe((status) => {
+      console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
+    });
     
     return channel;
   },
