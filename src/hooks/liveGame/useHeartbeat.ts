@@ -18,7 +18,7 @@ export const useHeartbeat = (gameId: string | undefined) => {
         const { error } = await supabase
           .from('game_participants')
           .update({ 
-            created_at: new Date().toISOString(),
+            last_heartbeat: new Date().toISOString(),
           })
           .eq('game_id', gameId)
           .eq('user_id', user.id);

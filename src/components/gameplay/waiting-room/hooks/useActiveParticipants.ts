@@ -5,6 +5,13 @@ import { Player } from '@/types/liveGame';
 
 const INACTIVE_THRESHOLD = 60000; // 60 segundos sin heartbeat = inactivo
 
+interface ParticipantData {
+  user_id: string;
+  profiles: {
+    name: string;
+  } | null;
+}
+
 export const useActiveParticipants = (gameId: string | undefined) => {
   const [activeParticipants, setActiveParticipants] = useState<Player[]>([]);
 
@@ -39,11 +46,12 @@ export const useActiveParticipants = (gameId: string | undefined) => {
             )
           `)
           .eq('game_id', gameId)
-          .gte('updated_at', new Date(Date.now() - INACTIVE_THRESHOLD).toISOString());
+          .gte('last_heartbeat', new Date(Date.now() - INACTIVE_THRESHOLD).toISOString());
 
         if (error) throw error;
 
-        const activePlayers: Player[] = (data || []).map(participant => ({
+        const participants = data as ParticipantData[];
+        const activePlayers: Player[] = participants.map(participant => ({
           id: participant.user_id,
           name: participant.profiles?.name || 'Unknown Player',
           points: 0,
