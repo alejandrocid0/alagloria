@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
@@ -22,27 +21,24 @@ export const realTimeSync = {
   ): RealtimeChannel => {
     console.log(`[RealTimeSync] Suscribiéndose a ${table} con filtro:`, filter);
     
-    // Crear un nombre de canal específico
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
-    // Crear un canal de Supabase
     const channel = supabase.channel(fullChannelName);
     
-    // Suscribirse a cambios en la tabla especificada
-    channel
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: table, 
-          filter: filter 
-        },
-        callback
-      )
-      .subscribe((status) => {
-        console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
-      });
+    channel.subscribe((status) => {
+      console.log(`[RealTimeSync] Estado de la suscripción a ${table}: ${status}`);
+    });
+
+    channel.on(
+      'postgres_changes' as const,
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: table, 
+        filter: filter 
+      },
+      callback
+    );
     
     return channel;
   },
@@ -99,7 +95,6 @@ export const realTimeSync = {
    * @returns Canal de tiempo real para limpieza posterior
    */
   subscribeToLeaderboard: (gameId: string, callback: (payload: RealtimePostgresChangesPayload<{[key: string]: any}>) => void): RealtimeChannel => {
-    // Para el leaderboard, monitoreamos los cambios en las respuestas ya que es lo que afecta al leaderboard
     return realTimeSync.subscribeToTable(
       `leaderboard-${gameId}`,
       'live_game_answers',
