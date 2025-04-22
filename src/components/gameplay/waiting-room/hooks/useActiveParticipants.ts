@@ -43,7 +43,7 @@ export const useActiveParticipants = (gameId: string | undefined) => {
 
         if (error) throw error;
 
-        const activePlayers: Player[] = data.map(participant => ({
+        const activePlayers: Player[] = (data || []).map(participant => ({
           id: participant.user_id,
           name: participant.profiles?.name || 'Unknown Player',
           points: 0,
