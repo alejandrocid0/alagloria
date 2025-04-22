@@ -13,6 +13,8 @@ import { useTimeSync } from '@/hooks/liveGame/useTimeSync';
 import { useGameSync } from '@/hooks/liveGame/useGameSync';
 import LoadingIndicator from './LoadingIndicator';
 import ConnectionStatus from '../ConnectionStatus';
+import { useHeartbeat } from '@/hooks/liveGame/useHeartbeat';
+import { useActiveParticipants } from './hooks/useActiveParticipants';
 
 const WaitingRoomContainer = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -24,10 +26,8 @@ const WaitingRoomContainer = () => {
   const [gameStartTransitionActive, setGameStartTransitionActive] = useState(false);
   const { syncWithServer } = useTimeSync();
   
-  // Obtener los participantes del juego
   const { playersOnline } = useParticipants(gameId);
   
-  // Estado y acciones de la sala de espera
   const { 
     isGameHost,
     handlePlayNow,
@@ -40,20 +40,17 @@ const WaitingRoomContainer = () => {
     setIsJoining
   });
   
-  // Sincronizar tiempo con el servidor al inicio
   useEffect(() => {
     console.log('[WaitingRoom] Synchronizing time with server');
     syncWithServer();
   }, [syncWithServer]);
   
-  // Determinar tiempo inicial para la cuenta regresiva
   const initialCountdown = gameState?.countdown || 0;
   const gameDate = gameInfo?.date ? new Date(gameInfo.date) : null;
   const currentTime = new Date();
   const millisecondsUntilStart = gameDate ? Math.max(0, gameDate.getTime() - currentTime.getTime()) : 0;
   const secondsUntilStart = Math.max(0, Math.floor(millisecondsUntilStart / 1000));
   
-  // Hook de cuenta regresiva con la implementación refactorizada
   const {
     countdown,
     hasGameStarted,
@@ -64,21 +61,18 @@ const WaitingRoomContainer = () => {
     syncCountdown
   } = useCountdown(initialCountdown > 0 ? initialCountdown : secondsUntilStart, gameId);
 
-  // Verificación de partidas programadas
   useScheduledGamesCheck({
     gameId,
     countdown,
     refreshGameState
   });
   
-  // Sincronizar countdown con el servidor cuando cambie
   useEffect(() => {
     if (gameState?.countdown) {
       syncCountdown(gameState.countdown);
     }
   }, [gameState?.countdown, syncCountdown]);
 
-  // Verificar si la partida ya comenzó
   useEffect(() => {
     if (gameState?.status === 'question' || hasGameStarted) {
       console.log('[WaitingRoom] Game has started, transitioning to question state');
@@ -87,10 +81,8 @@ const WaitingRoomContainer = () => {
         setGameStartTransitionActive(true);
         setHasGameStarted(true);
         
-        // Mostrar notificación
         gameNotifications.gameStarting();
         
-        // Redireccionar tras un breve retraso
         setTimeout(() => {
           setIsJoining(true);
           navigate(`/game/${gameId}`);
@@ -99,19 +91,15 @@ const WaitingRoomContainer = () => {
     }
   }, [gameState, hasGameStarted, setHasGameStarted, gameId, navigate, gameStartTransitionActive]);
   
-  // Iniciar transición automática cuando el contador llega a cero
   useEffect(() => {
     if (countdown === 0 && !hasGameStarted && !gameStartTransitionActive) {
       console.log('[WaitingRoom] Countdown reached zero, starting game transition');
       setGameStartTransitionActive(true);
       setHasGameStarted(true);
       
-      // Notificar al usuario
       gameNotifications.gameStarting();
       
-      // Intentar actualizar el estado del juego
       refreshGameState().then(() => {
-        // Redireccionar incluso si refreshGameState falla
         setTimeout(() => {
           setIsJoining(true);
           navigate(`/game/${gameId}`);
@@ -120,7 +108,6 @@ const WaitingRoomContainer = () => {
     }
   }, [countdown, hasGameStarted, refreshGameState, gameId, navigate, gameStartTransitionActive]);
   
-  // Actualizar estado del juego al cargar
   useEffect(() => {
     if (gameId) {
       console.log('[WaitingRoom] Refreshing game state on component mount');
@@ -128,10 +115,11 @@ const WaitingRoomContainer = () => {
     }
   }, [gameId, refreshGameState]);
 
-  // Use our new game sync hook
   const { isConnected, reconnectAttempts } = useGameSync(gameId);
   
-  // Si estamos en proceso de unirse a la partida, mostrar indicador de carga
+  useHeartbeat(gameId);
+  const activeParticipants = useActiveParticipants(gameId);
+  
   if (isJoining) {
     return <LoadingIndicator />;
   }
@@ -144,7 +132,7 @@ const WaitingRoomContainer = () => {
       />
       <WaitingRoom 
         gameTitle={gameInfo.title || "Partida"}
-        playersOnline={playersOnline}
+        playersOnline={activeParticipants}
         isGameHost={isGameHost}
         countdown={countdown}
         hasGameStarted={hasGameStarted}

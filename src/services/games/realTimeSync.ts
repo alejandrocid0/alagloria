@@ -24,7 +24,7 @@ export const realTimeSync = {
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
     // Create channel
-    const channel = supabase.channel(fullChannelName)
+    const channel = supabase.channel(fullChannelName);
     
     // Add PostgreSQL changes subscription
     channel
@@ -33,10 +33,13 @@ export const realTimeSync = {
         { 
           event: '*', 
           schema: 'public', 
-          table: table, 
+          table: table,
           filter: filter 
         },
-        callback
+        (payload) => {
+          console.log(`[RealTimeSync] Received update for ${table}:`, payload);
+          callback(payload);
+        }
       )
       .subscribe((status) => {
         console.log(`[RealTimeSync] Subscription status for ${table}: ${status}`);
