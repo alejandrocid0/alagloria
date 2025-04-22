@@ -26,7 +26,7 @@ const WaitingRoomContainer = () => {
   const [gameStartTransitionActive, setGameStartTransitionActive] = useState(false);
   const { syncWithServer } = useTimeSync();
   
-  const { playersOnline } = useParticipants(gameId);
+  const activeParticipants = useActiveParticipants(gameId);
   
   const { 
     isGameHost,
@@ -118,7 +118,6 @@ const WaitingRoomContainer = () => {
   const { isConnected, reconnectAttempts } = useGameSync(gameId);
   
   useHeartbeat(gameId);
-  const activeParticipants = useActiveParticipants(gameId);
   
   if (isJoining) {
     return <LoadingIndicator />;

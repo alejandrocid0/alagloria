@@ -5,10 +5,12 @@ import { Player } from '@/types/liveGame';
 
 const INACTIVE_THRESHOLD = 60000; // 60 segundos sin heartbeat = inactivo
 
+// Tipo para los datos de participantes que recibimos de Supabase
 interface ParticipantData {
   user_id: string;
   profiles: {
     name: string;
+    // Podríamos añadir más campos del perfil si los necesitamos
   } | null;
 }
 
@@ -41,16 +43,19 @@ export const useActiveParticipants = (gameId: string | undefined) => {
           .from('game_participants')
           .select(`
             user_id,
-            profiles:user_id (
-              name
-            )
+            profiles:profiles!user_id(name)
           `)
           .eq('game_id', gameId)
           .gte('last_heartbeat', new Date(Date.now() - INACTIVE_THRESHOLD).toISOString());
 
-        if (error) throw error;
+        if (error) {
+          console.error('[ActiveParticipants] Error fetching active participants:', error);
+          return;
+        }
 
-        const participants = data as ParticipantData[];
+        // Asegurarnos de que data es del tipo correcto con aserción de tipo
+        const participants = data as unknown as ParticipantData[];
+        
         const activePlayers: Player[] = participants.map(participant => ({
           id: participant.user_id,
           name: participant.profiles?.name || 'Unknown Player',
