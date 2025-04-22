@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +10,7 @@ import { useParticipants } from './hooks/useParticipants';
 import { useCountdown } from './hooks/useCountdown';
 import { useScheduledGamesCheck } from './hooks/useScheduledGamesCheck';
 import { useTimeSync } from '@/hooks/liveGame/useTimeSync';
+import { useGameSync } from '@/hooks/liveGame/useGameSync';
 import LoadingIndicator from './LoadingIndicator';
 import ConnectionStatus from '../ConnectionStatus';
 
@@ -18,7 +18,7 @@ const WaitingRoomContainer = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { gameState, refreshGameState, isConnected, reconnectAttempts } = useLiveGameState();
+  const { gameState, refreshGameState, isConnected: liveGameStateIsConnected, reconnectAttempts: liveGameStateReconnectAttempts } = useLiveGameState();
   const gameInfo = useGameInfo(gameId);
   const [isJoining, setIsJoining] = useState(false);
   const [gameStartTransitionActive, setGameStartTransitionActive] = useState(false);
@@ -127,6 +127,9 @@ const WaitingRoomContainer = () => {
       refreshGameState();
     }
   }, [gameId, refreshGameState]);
+
+  // Use our new game sync hook
+  const { isConnected, reconnectAttempts } = useGameSync(gameId);
   
   // Si estamos en proceso de unirse a la partida, mostrar indicador de carga
   if (isJoining) {
