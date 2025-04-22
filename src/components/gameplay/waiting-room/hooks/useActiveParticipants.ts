@@ -11,7 +11,7 @@ export const useActiveParticipants = (gameId: string | undefined) => {
   useEffect(() => {
     if (!gameId) return;
 
-    // Suscribirse a cambios en los participantes
+    // Configurar canal de tiempo real
     const channel = supabase.channel(`active-players-${gameId}`)
       .on(
         'postgres_changes',
@@ -19,10 +19,9 @@ export const useActiveParticipants = (gameId: string | undefined) => {
           event: '*',
           schema: 'public',
           table: 'game_participants',
-          filter: { game_id: `eq.${gameId}` }
+          filter: `game_id=eq.${gameId}`
         },
         () => {
-          // Actualizar lista de participantes activos
           fetchActiveParticipants();
         }
       )
@@ -33,9 +32,14 @@ export const useActiveParticipants = (gameId: string | undefined) => {
       try {
         const { data, error } = await supabase
           .from('game_participants')
-          .select('user_id, profiles:profiles(name)')
+          .select(`
+            user_id,
+            profiles:user_id (
+              name
+            )
+          `)
           .eq('game_id', gameId)
-          .gte('last_heartbeat', new Date(Date.now() - INACTIVE_THRESHOLD).toISOString());
+          .gte('updated_at', new Date(Date.now() - INACTIVE_THRESHOLD).toISOString());
 
         if (error) throw error;
 
@@ -43,7 +47,8 @@ export const useActiveParticipants = (gameId: string | undefined) => {
           id: participant.user_id,
           name: participant.profiles?.name || 'Unknown Player',
           points: 0,
-          rank: 0
+          rank: 0,
+          lastAnswer: null
         }));
 
         setActiveParticipants(activePlayers);
