@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,7 @@ import LoadingIndicator from './LoadingIndicator';
 import ConnectionStatus from '../ConnectionStatus';
 import { useHeartbeat } from '@/hooks/liveGame/useHeartbeat';
 import { useActiveParticipants } from './hooks/useActiveParticipants';
+import { toast } from '@/components/ui/use-toast';
 
 const WaitingRoomContainer = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -26,7 +28,26 @@ const WaitingRoomContainer = () => {
   const [gameStartTransitionActive, setGameStartTransitionActive] = useState(false);
   const { syncWithServer } = useTimeSync();
   
-  const activeParticipants = useActiveParticipants(gameId);
+  const { activeParticipants, isLoading: isLoadingParticipants, error: participantsError, refetch: refetchParticipants } = useActiveParticipants(gameId);
+  
+  // Mostrar error si hay problemas al cargar participantes
+  useEffect(() => {
+    if (participantsError) {
+      console.error("[WaitingRoom] Error loading participants:", participantsError);
+      toast({
+        title: "Error de conexión",
+        description: "Hubo un problema al cargar los participantes. Intentando reconectar...",
+        variant: "destructive",
+      });
+      
+      // Intentar recargar después de un breve retraso
+      const retryTimer = setTimeout(() => {
+        refetchParticipants();
+      }, 5000);
+      
+      return () => clearTimeout(retryTimer);
+    }
+  }, [participantsError, refetchParticipants]);
   
   const { 
     isGameHost,
@@ -140,6 +161,7 @@ const WaitingRoomContainer = () => {
         formatTimeRemaining={formatTimeRemaining}
         onPlayNow={handlePlayNow}
         onStartGame={handleStartGame}
+        isLoadingPlayers={isLoadingParticipants}
       />
     </>
   );

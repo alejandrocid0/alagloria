@@ -1,31 +1,30 @@
-
 import React from 'react';
-import { Player } from '@/types/liveGame';
-import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import CountdownDisplay from './waiting-room/CountdownDisplay';
-import GameTimerProgress from './waiting-room/GameTimerProgress';
-import ActionButtons from './waiting-room/ActionButtons';
-import FinalActions from './waiting-room/FinalActions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Clock, Play, Users } from 'lucide-react';
 import PlayersListSection from './waiting-room/PlayersListSection';
+import CountdownSection from './waiting-room/CountdownSection';
+import GameInfoSection from './waiting-room/GameInfoSection';
 
 interface WaitingRoomProps {
   gameTitle: string;
-  playersOnline: Player[];
-  isGameHost?: boolean;
+  playersOnline: any[];
+  isGameHost: boolean;
   countdown: number;
   hasGameStarted: boolean;
   showPulse: boolean;
   isWithinFiveMinutes: boolean;
   formatTimeRemaining: (seconds: number) => string;
-  onPlayNow: () => void;
-  onStartGame: () => void;
+  onPlayNow: () => Promise<void>;
+  onStartGame: () => Promise<void>;
+  isLoadingPlayers?: boolean;
 }
 
-const WaitingRoom: React.FC<WaitingRoomProps> = ({
+const WaitingRoom = ({
   gameTitle,
   playersOnline,
-  isGameHost = false,
+  isGameHost,
   countdown,
   hasGameStarted,
   showPulse,
@@ -33,75 +32,91 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   formatTimeRemaining,
   onPlayNow,
   onStartGame,
-}) => {
-  // Calcular tiempo inicial aproximado para la barra de progreso
-  const totalTime = 3600; // Una hora por defecto
-  
+  isLoadingPlayers = false
+}: WaitingRoomProps) => {
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
-      <div className="bg-gloria-purple p-4">
-        <h2 className="text-xl font-serif font-bold text-white">{gameTitle}</h2>
-        <p className="text-sm text-gloria-purple-100">Sala de espera</p>
-      </div>
-      
-      <div className="p-6">
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-serif font-bold text-gloria-purple">
-              {hasGameStarted ? 'La partida está en curso' : 'Esperando a que comience la partida'}
-            </h3>
-            
-            <CountdownDisplay
-              countdown={countdown}
-              hasGameStarted={hasGameStarted}
-              showPulse={showPulse}
-              formatTimeRemaining={formatTimeRemaining}
-            />
-          </div>
-          
-          <GameTimerProgress
-            hasGameStarted={hasGameStarted}
-            countdown={countdown}
-            totalTime={totalTime}
-          />
-          
-          <div className="flex gap-4 mb-6">
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex-1">
-              <p className="text-sm text-blue-800 font-medium">{playersOnline.length} Participantes</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="border-2 border-gloria-purple/20 shadow-lg">
+        <CardHeader className="bg-gloria-purple/5 border-b border-gloria-purple/20">
+          <CardTitle className="text-2xl font-serif text-gloria-purple flex items-center">
+            <Clock className="mr-2 h-6 w-6" />
+            Sala de espera: {gameTitle}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <GameInfoSection 
+                gameTitle={gameTitle}
+                isGameHost={isGameHost}
+              />
+              
+              <PlayersListSection 
+                playersOnline={playersOnline}
+                isLoading={isLoadingPlayers}
+              />
             </div>
             
-            <div className="bg-green-50 border border-green-100 rounded-lg p-4 flex-1">
-              <p className="text-sm text-green-800 font-medium">Estado: {hasGameStarted ? 'En curso' : isWithinFiveMinutes ? 'Comenzando pronto' : 'Esperando'}</p>
+            <div className="space-y-6">
+              <CountdownSection 
+                countdown={countdown}
+                hasGameStarted={hasGameStarted}
+                showPulse={showPulse}
+                isWithinFiveMinutes={isWithinFiveMinutes}
+                formatTimeRemaining={formatTimeRemaining}
+              />
+              
+              <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-serif font-bold text-gloria-purple mb-4 flex items-center">
+                  <Users className="mr-2 h-5 w-5" />
+                  Opciones de juego
+                </h3>
+                
+                <div className="space-y-4">
+                  {isGameHost && (
+                    <div>
+                      <Button 
+                        onClick={onStartGame}
+                        className="w-full bg-gloria-purple hover:bg-gloria-purple/90"
+                        disabled={hasGameStarted || playersOnline.length === 0}
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Iniciar partida ahora
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Como anfitrión, puedes iniciar la partida en cualquier momento
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!isGameHost && (
+                    <div>
+                      <Button 
+                        onClick={onPlayNow}
+                        className="w-full bg-gloria-purple hover:bg-gloria-purple/90"
+                        disabled={!isWithinFiveMinutes && countdown > 10}
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Jugar ahora
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        {isWithinFiveMinutes 
+                          ? "La partida comenzará pronto" 
+                          : "Espera a que el anfitrión inicie la partida"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-          
-          <ActionButtons
-            hasGameStarted={hasGameStarted}
-            handlePlayNow={onPlayNow}
-          />
-        </div>
-        
-        {/* Usar el componente especializado para la lista de jugadores */}
-        <PlayersListSection playersOnline={playersOnline} />
-        
-        <div className="flex justify-center">
-          {isGameHost && !hasGameStarted ? (
-            <Button
-              onClick={onStartGame}
-              className="bg-gloria-purple hover:bg-gloria-purple/90 text-white"
-            >
-              Iniciar partida
-            </Button>
-          ) : (
-            <FinalActions
-              hasGameStarted={hasGameStarted} 
-              isWithinFiveMinutes={isWithinFiveMinutes}
-              handlePlayNow={onPlayNow}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
