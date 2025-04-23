@@ -49,6 +49,7 @@ const WaitingRoomContainer = () => {
     }
   }, [participantsError, refetchParticipants]);
   
+  // Fix: Change the type of handlePlayNow and handleStartGame to return a Promise
   const { 
     isGameHost,
     handlePlayNow,
@@ -144,6 +145,15 @@ const WaitingRoomContainer = () => {
     return <LoadingIndicator />;
   }
   
+  // Fix: Wrap the function calls in promises to match the expected type
+  const handlePlayNowWrapper = () => {
+    return Promise.resolve(handlePlayNow());
+  };
+  
+  const handleStartGameWrapper = () => {
+    return Promise.resolve(handleStartGame());
+  };
+  
   return (
     <>
       <ConnectionStatus 
@@ -159,8 +169,8 @@ const WaitingRoomContainer = () => {
         showPulse={showPulse}
         isWithinFiveMinutes={isWithinFiveMinutes}
         formatTimeRemaining={formatTimeRemaining}
-        onPlayNow={handlePlayNow}
-        onStartGame={handleStartGame}
+        onPlayNow={handlePlayNowWrapper}
+        onStartGame={handleStartGameWrapper}
         isLoadingPlayers={isLoadingParticipants}
       />
     </>
