@@ -4,6 +4,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
  * Service for handling all real-time sync operations
+ * Properly implemented according to Supabase v2 API
  */
 export const realTimeSync = {
   subscribeToTable: (
@@ -14,19 +15,15 @@ export const realTimeSync = {
   ): RealtimeChannel => {
     console.log(`[RealTimeSync] Subscribing to ${table} with filter:`, filter);
     
-    // Crear un nombre único para el canal basado en los parámetros
+    // Create a unique name for the channel based on parameters
     const channelId = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
     try {
-      // Crear un nuevo canal de Supabase con configuración específica
-      const channel = supabase.channel(channelId, {
-        config: {
-          broadcast: { self: true },
-          presence: { key: channelId },
-        },
-      });
+      // Create a new Supabase channel with specific configuration
+      const channel = supabase.channel(channelId);
 
-      // Configurar el listener para cambios en la base de datos usando el método correcto
+      // Configure the listener for database changes using the correct syntax
+      // THIS IS THE FIX: using the channel.on() method with the correct parameters
       channel.on(
         'postgres_changes',
         { 
@@ -41,7 +38,7 @@ export const realTimeSync = {
         }
       );
 
-      // Suscribirse al canal y manejar el estado de la conexión
+      // Subscribe to the channel and handle connection state
       channel.subscribe((status) => {
         console.log(`[RealTimeSync] Channel ${channelId} status:`, status);
         
@@ -51,7 +48,7 @@ export const realTimeSync = {
         
         if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.error(`[RealTimeSync] Channel error or closed for ${table}`);
-          // Intentar reconectar después de un error
+          // Try to reconnect after an error
           setTimeout(() => {
             console.log(`[RealTimeSync] Attempting to reconnect to ${table}`);
             channel.subscribe();
