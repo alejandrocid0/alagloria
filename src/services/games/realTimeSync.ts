@@ -16,7 +16,7 @@ export const realTimeSync = {
     
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
-    // Create channel
+    // Create channel with the correct API pattern
     const channel = supabase
       .channel(fullChannelName)
       .on(
