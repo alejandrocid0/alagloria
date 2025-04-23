@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
  * Service for handling all real-time sync operations
@@ -18,29 +18,24 @@ export const realTimeSync = {
     channelName: string,
     table: string,
     filter: Record<string, any>,
-    callback: (payload: RealtimePostgresChangesPayload<{[key: string]: any}>) => void
+    callback: (payload: any) => void
   ): RealtimeChannel => {
     console.log(`[RealTimeSync] Subscribing to ${table} with filter:`, filter);
     
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
-    // Create channel with PostgreSQL changes configuration
-    const channel = supabase.channel(fullChannelName, {
-      config: {
-        postgres_changes: {
-          event: '*',
-          schema: 'public',
-          table: table,
-          filter: filter
-        }
-      }
-    });
-    
-    // Add event handler for any changes
-    channel.on('postgres_changes', { event: '*' }, (payload) => {
-      console.log(`[RealTimeSync] Received update for ${table}:`, payload);
-      callback(payload);
-    });
+    // Create channel and subscribe to changes
+    const channel = supabase
+      .channel(fullChannelName)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: table,
+        filter: filter
+      }, (payload) => {
+        console.log(`[RealTimeSync] Received update for ${table}:`, payload);
+        callback(payload);
+      });
 
     // Subscribe to the channel
     channel.subscribe((status) => {
@@ -52,11 +47,8 @@ export const realTimeSync = {
 
   /**
    * Creates a subscription specifically for game state changes
-   * @param gameId ID of the game
-   * @param callback Function to execute when the game state changes
-   * @returns Real-time channel for cleanup later
    */
-  subscribeToGameState: (gameId: string, callback: (payload: RealtimePostgresChangesPayload<{[key: string]: any}>) => void): RealtimeChannel => {
+  subscribeToGameState: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `game-state-${gameId}`,
       'live_games',
@@ -67,11 +59,8 @@ export const realTimeSync = {
 
   /**
    * Creates a subscription specifically for participant changes
-   * @param gameId ID of the game
-   * @param callback Function to execute when participants change
-   * @returns Real-time channel for cleanup later
    */
-  subscribeToParticipants: (gameId: string, callback: (payload: RealtimePostgresChangesPayload<{[key: string]: any}>) => void): RealtimeChannel => {
+  subscribeToParticipants: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `participants-${gameId}`,
       'game_participants',
@@ -82,11 +71,8 @@ export const realTimeSync = {
 
   /**
    * Creates a subscription specifically for answer changes
-   * @param gameId ID of the game
-   * @param callback Function to execute when new answers are received
-   * @returns Real-time channel for cleanup later
    */
-  subscribeToAnswers: (gameId: string, callback: (payload: RealtimePostgresChangesPayload<{[key: string]: any}>) => void): RealtimeChannel => {
+  subscribeToAnswers: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `answers-${gameId}`,
       'live_game_answers',
@@ -97,11 +83,8 @@ export const realTimeSync = {
 
   /**
    * Creates a subscription specifically for leaderboard changes
-   * @param gameId ID of the game
-   * @param callback Function to execute when the leaderboard changes
-   * @returns Real-time channel for cleanup later
    */
-  subscribeToLeaderboard: (gameId: string, callback: (payload: RealtimePostgresChangesPayload<{[key: string]: any}>) => void): RealtimeChannel => {
+  subscribeToLeaderboard: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `leaderboard-${gameId}`,
       'live_game_answers',
@@ -112,7 +95,6 @@ export const realTimeSync = {
 
   /**
    * Unsubscribes from a channel when no longer needed
-   * @param channel Channel to unsubscribe from
    */
   unsubscribe: (channel: RealtimeChannel): void => {
     if (channel) {
