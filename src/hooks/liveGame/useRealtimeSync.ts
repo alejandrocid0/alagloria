@@ -29,8 +29,8 @@ export const useRealtimeSync = ({
     const now = Date.now();
     const lastUpdate = lastUpdateRef.current[type] || 0;
     
-    // Basic throttling (prevent updates faster than 500ms)
     if (now - lastUpdate < 500) {
+      console.log(`[RealtimeSync] Throttling update for ${type}`);
       return;
     }
     
@@ -43,8 +43,9 @@ export const useRealtimeSync = ({
   useEffect(() => {
     if (!gameId) return;
 
-    const setupSubscription = (type: SubscriptionType) => {
-      try {
+    try {
+      // Set up subscriptions based on requested types
+      subscriptionTypes.forEach(type => {
         let channel: RealtimeChannel;
         
         switch (type) {
@@ -64,27 +65,25 @@ export const useRealtimeSync = ({
             channel = realTimeSync.subscribeToLeaderboard(gameId,
               (payload) => handleUpdate(type, payload));
             break;
-          default:
-            return;
         }
 
-        channelsRef.current[type] = channel;
-      } catch (error) {
-        console.error(`[RealtimeSync] Error setting up ${type} subscription:`, error);
-        setIsConnected(false);
-        setReconnectAttempts(prev => prev + 1);
-        onConnectionChange?.(false);
-        
-        toast({
-          title: "Error de conexión",
-          description: "Se perdió la conexión con el servidor. Intentando reconectar...",
-          variant: "destructive"
-        });
-      }
-    };
+        if (channel) {
+          channelsRef.current[type] = channel;
+        }
+      });
 
-    // Set up all requested subscriptions
-    subscriptionTypes.forEach(setupSubscription);
+    } catch (error) {
+      console.error('[RealtimeSync] Error setting up subscriptions:', error);
+      setIsConnected(false);
+      setReconnectAttempts(prev => prev + 1);
+      onConnectionChange?.(false);
+      
+      toast({
+        title: "Error de conexión",
+        description: "Se perdió la conexión con el servidor. Intentando reconectar...",
+        variant: "destructive"
+      });
+    }
 
     // Cleanup function
     return () => {

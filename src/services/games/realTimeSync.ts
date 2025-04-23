@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -8,11 +7,6 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 export const realTimeSync = {
   /**
    * Creates a subscription to a specific table
-   * @param channelName Name of the channel
-   * @param table Name of the table to subscribe to
-   * @param filter Filter condition (optional)
-   * @param callback Function to execute when changes are received
-   * @returns Real-time channel for cleanup later
    */
   subscribeToTable: (
     channelName: string,
@@ -24,18 +18,23 @@ export const realTimeSync = {
     
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
-    // Create channel and subscribe to changes
-    const channel = supabase
-      .channel(fullChannelName)
-      .on('postgres_changes', {
+    // Create channel
+    const channel = supabase.channel(fullChannelName);
+    
+    // Add subscription
+    channel.on(
+      'postgres_changes',
+      {
         event: '*',
         schema: 'public',
         table: table,
         filter: filter
-      }, (payload) => {
+      },
+      (payload) => {
         console.log(`[RealTimeSync] Received update for ${table}:`, payload);
         callback(payload);
-      });
+      }
+    );
 
     // Subscribe to the channel
     channel.subscribe((status) => {
