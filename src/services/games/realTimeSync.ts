@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -18,11 +19,12 @@ export const realTimeSync = {
     // Create channel
     const channel = supabase.channel(fullChannelName);
     
-    // Add subscription
+    // The issue is with this part. We need to use the correct pattern for subscribing to postgres changes
+    // We need to use .on() with the correct event pattern
     channel.on(
-      'postgres_changes',
+      'postgres_changes', // This is the correct event name
       {
-        event: '*',
+        event: '*',  // Listen for all event types (INSERT, UPDATE, DELETE)
         schema: 'public',
         table: table,
         filter: filter
@@ -84,3 +86,4 @@ export const realTimeSync = {
     }
   }
 };
+
