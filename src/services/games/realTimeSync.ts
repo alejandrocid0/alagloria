@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -6,9 +5,6 @@ import { RealtimeChannel } from '@supabase/supabase-js';
  * Service for handling all real-time sync operations
  */
 export const realTimeSync = {
-  /**
-   * Creates a subscription to a specific table
-   */
   subscribeToTable: (
     channelName: string,
     table: string,
@@ -45,9 +41,6 @@ export const realTimeSync = {
     return channel;
   },
 
-  /**
-   * Creates a subscription specifically for game state changes
-   */
   subscribeToGameState: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `game-state-${gameId}`,
@@ -57,9 +50,6 @@ export const realTimeSync = {
     );
   },
 
-  /**
-   * Creates a subscription specifically for participant changes
-   */
   subscribeToParticipants: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `participants-${gameId}`,
@@ -69,9 +59,6 @@ export const realTimeSync = {
     );
   },
 
-  /**
-   * Creates a subscription specifically for answer changes
-   */
   subscribeToAnswers: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `answers-${gameId}`,
@@ -81,9 +68,6 @@ export const realTimeSync = {
     );
   },
 
-  /**
-   * Creates a subscription specifically for leaderboard changes
-   */
   subscribeToLeaderboard: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `leaderboard-${gameId}`,
@@ -93,9 +77,6 @@ export const realTimeSync = {
     );
   },
 
-  /**
-   * Unsubscribes from a channel when no longer needed
-   */
   unsubscribe: (channel: RealtimeChannel): void => {
     if (channel) {
       console.log('[RealTimeSync] Unsubscribing');
