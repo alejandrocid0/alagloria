@@ -4,9 +4,12 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
  * Service for handling all real-time sync operations
- * Properly implemented according to Supabase v2 API
+ * Using the correct Supabase v2 Realtime API
  */
 export const realTimeSync = {
+  /**
+   * Subscribe to changes in a specific table with filters
+   */
   subscribeToTable: (
     channelName: string,
     table: string,
@@ -19,42 +22,40 @@ export const realTimeSync = {
     const channelId = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
     try {
-      // Create a new Supabase channel with specific configuration
+      // Create a new channel with the unique ID
       const channel = supabase.channel(channelId);
-
-      // Configure the listener for database changes using the correct syntax
-      // THIS IS THE FIX: using the channel.on() method with the correct parameters
-      channel.on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: table,
-          filter: filter
-        },
-        (payload) => {
-          console.log(`[RealTimeSync] Received update for ${table}:`, payload);
-          callback(payload);
-        }
-      );
-
-      // Subscribe to the channel and handle connection state
-      channel.subscribe((status) => {
-        console.log(`[RealTimeSync] Channel ${channelId} status:`, status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log(`[RealTimeSync] Successfully subscribed to ${table}`);
-        }
-        
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          console.error(`[RealTimeSync] Channel error or closed for ${table}`);
-          // Try to reconnect after an error
-          setTimeout(() => {
-            console.log(`[RealTimeSync] Attempting to reconnect to ${table}`);
-            channel.subscribe();
-          }, 5000);
-        }
-      });
+      
+      // Configure the channel to listen for database changes
+      channel
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: table,
+            filter: filter
+          },
+          (payload) => {
+            console.log(`[RealTimeSync] Received update for ${table}:`, payload);
+            callback(payload);
+          }
+        )
+        .subscribe((status) => {
+          console.log(`[RealTimeSync] Channel ${channelId} status:`, status);
+          
+          if (status === 'SUBSCRIBED') {
+            console.log(`[RealTimeSync] Successfully subscribed to ${table}`);
+          }
+          
+          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            console.error(`[RealTimeSync] Channel error or closed for ${table}`);
+            // Try to reconnect after an error
+            setTimeout(() => {
+              console.log(`[RealTimeSync] Attempting to reconnect to ${table}`);
+              channel.subscribe();
+            }, 5000);
+          }
+        });
 
       return channel;
     } catch (error) {
@@ -63,6 +64,9 @@ export const realTimeSync = {
     }
   },
 
+  /**
+   * Subscribe to game state changes
+   */
   subscribeToGameState: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `game-state-${gameId}`,
@@ -72,6 +76,9 @@ export const realTimeSync = {
     );
   },
 
+  /**
+   * Subscribe to participants changes
+   */
   subscribeToParticipants: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `participants-${gameId}`,
@@ -81,6 +88,9 @@ export const realTimeSync = {
     );
   },
 
+  /**
+   * Subscribe to answers changes
+   */
   subscribeToAnswers: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `answers-${gameId}`,
@@ -90,6 +100,9 @@ export const realTimeSync = {
     );
   },
 
+  /**
+   * Subscribe to leaderboard changes
+   */
   subscribeToLeaderboard: (gameId: string, callback: (payload: any) => void): RealtimeChannel => {
     return realTimeSync.subscribeToTable(
       `leaderboard-${gameId}`,
@@ -99,6 +112,9 @@ export const realTimeSync = {
     );
   },
 
+  /**
+   * Unsubscribe from a channel
+   */
   unsubscribe: (channel: RealtimeChannel): void => {
     if (channel) {
       console.log('[RealTimeSync] Unsubscribing from channel');
