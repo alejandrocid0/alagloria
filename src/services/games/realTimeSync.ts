@@ -26,16 +26,20 @@ export const realTimeSync = {
         },
       });
 
-      // Configurar el listener para cambios en la base de datos
-      channel.postgresChanges({
-        event: '*',
-        schema: 'public',
-        table: table,
-        filter: filter
-      }).subscribe((payload) => {
-        console.log(`[RealTimeSync] Received update for ${table}:`, payload);
-        callback(payload);
-      });
+      // Configurar el listener para cambios en la base de datos usando el método correcto
+      channel.on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: table,
+          filter: filter
+        },
+        (payload) => {
+          console.log(`[RealTimeSync] Received update for ${table}:`, payload);
+          callback(payload);
+        }
+      );
 
       // Suscribirse al canal y manejar el estado de la conexión
       channel.subscribe((status) => {
