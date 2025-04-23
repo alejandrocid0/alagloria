@@ -24,27 +24,28 @@ export const realTimeSync = {
     
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
-    // Create channel
-    const channel = supabase.channel(fullChannelName);
-    
-    // Add PostgreSQL changes subscription - Fix: Using proper subscription pattern
-    channel
-      .on(
-        'postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
+    // Create channel with PostgreSQL changes configuration
+    const channel = supabase.channel(fullChannelName, {
+      config: {
+        postgres_changes: {
+          event: '*',
+          schema: 'public',
           table: table,
-          filter: filter 
-        },
-        (payload) => {
-          console.log(`[RealTimeSync] Received update for ${table}:`, payload);
-          callback(payload);
+          filter: filter
         }
-      )
-      .subscribe((status) => {
-        console.log(`[RealTimeSync] Subscription status for ${table}: ${status}`);
-      });
+      }
+    });
+    
+    // Add event handler for any changes
+    channel.on('postgres_changes', { event: '*' }, (payload) => {
+      console.log(`[RealTimeSync] Received update for ${table}:`, payload);
+      callback(payload);
+    });
+
+    // Subscribe to the channel
+    channel.subscribe((status) => {
+      console.log(`[RealTimeSync] Subscription status for ${table}: ${status}`);
+    });
     
     return channel;
   },
