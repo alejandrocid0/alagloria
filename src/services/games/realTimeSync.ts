@@ -17,28 +17,24 @@ export const realTimeSync = {
     const fullChannelName = `${channelName}-${table}-${JSON.stringify(filter)}`;
     
     // Create channel
-    const channel = supabase.channel(fullChannelName);
-    
-    // The issue is with this part. We need to use the correct pattern for subscribing to postgres changes
-    // We need to use .on() with the correct event pattern
-    channel.on(
-      'postgres_changes', // This is the correct event name
-      {
-        event: '*',  // Listen for all event types (INSERT, UPDATE, DELETE)
-        schema: 'public',
-        table: table,
-        filter: filter
-      },
-      (payload) => {
-        console.log(`[RealTimeSync] Received update for ${table}:`, payload);
-        callback(payload);
-      }
-    );
-
-    // Subscribe to the channel
-    channel.subscribe((status) => {
-      console.log(`[RealTimeSync] Subscription status for ${table}: ${status}`);
-    });
+    const channel = supabase
+      .channel(fullChannelName)
+      .on(
+        'postgres_changes', 
+        { 
+          event: '*',  // Listen for all event types (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: table,
+          filter: filter
+        },
+        (payload) => {
+          console.log(`[RealTimeSync] Received update for ${table}:`, payload);
+          callback(payload);
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[RealTimeSync] Subscription status for ${table}: ${status}`);
+      });
     
     return channel;
   },
@@ -86,4 +82,3 @@ export const realTimeSync = {
     }
   }
 };
-
