@@ -17,6 +17,7 @@ import ConnectionStatus from '../ConnectionStatus';
 import { useHeartbeat } from '@/hooks/liveGame/useHeartbeat';
 import { useActiveParticipants } from './hooks/useActiveParticipants';
 import { toast } from '@/components/ui/use-toast';
+import { gameStateSync } from '@/services/games/gameStateSync';
 
 const WaitingRoomContainer = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -27,6 +28,7 @@ const WaitingRoomContainer = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [gameStartTransitionActive, setGameStartTransitionActive] = useState(false);
   const { syncWithServer } = useTimeSync();
+  const [lastCheckTime, setLastCheckTime] = useState<number>(0);
   
   const { activeParticipants, isLoading: isLoadingParticipants, error: participantsError, refetch: refetchParticipants } = useActiveParticipants(gameId);
   
@@ -73,6 +75,8 @@ const WaitingRoomContainer = () => {
   const millisecondsUntilStart = gameDate ? Math.max(0, gameDate.getTime() - currentTime.getTime()) : 0;
   const secondsUntilStart = Math.max(0, Math.floor(millisecondsUntilStart / 1000));
   
+  console.log(`[WaitingRoom] Game scheduled time: ${gameDate?.toISOString()}, current time: ${currentTime.toISOString()}, seconds until start: ${secondsUntilStart}`);
+  
   const {
     countdown,
     hasGameStarted,
@@ -89,12 +93,57 @@ const WaitingRoomContainer = () => {
     refreshGameState
   });
   
+  // Verificar manualmente el estado del juego cada 15 segundos como respaldo
+  const checkGameStateManually = async () => {
+    if (!gameId) return;
+    
+    // Evitar verificaciones demasiado frecuentes
+    const now = Date.now();
+    if (now - lastCheckTime < 15000) return;
+    
+    setLastCheckTime(now);
+    console.log('[WaitingRoom] Manually checking game state');
+    
+    try {
+      // Intentar obtener el estado actual del juego directamente
+      const currentState = await gameStateSync.getGameState(gameId);
+      console.log('[WaitingRoom] Manual game state check result:', currentState);
+      
+      if (currentState && (currentState.status === 'question' || currentState.status === 'result' || currentState.status === 'leaderboard')) {
+        console.log('[WaitingRoom] Game has started, transitioning to active game screen');
+        setHasGameStarted(true);
+        setGameStartTransitionActive(true);
+        
+        gameNotifications.gameStarting();
+        
+        setTimeout(() => {
+          setIsJoining(true);
+          navigate(`/game/${gameId}`);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('[WaitingRoom] Error manually checking game state:', err);
+    }
+  };
+  
+  // Verificar periódicamente si el juego ha comenzado
+  useEffect(() => {
+    const checkInterval = setInterval(checkGameStateManually, 15000);
+    
+    // Verificar inmediatamente al montar el componente
+    checkGameStateManually();
+    
+    return () => clearInterval(checkInterval);
+  }, [gameId, lastCheckTime]);
+  
+  // Sincronizar countdown con el servidor cuando cambie
   useEffect(() => {
     if (gameState?.countdown) {
       syncCountdown(gameState.countdown);
     }
   }, [gameState?.countdown, syncCountdown]);
 
+  // Detectar cambios en el estado del juego para redirigir si ha comenzado
   useEffect(() => {
     if (gameState?.status === 'question' || hasGameStarted) {
       console.log('[WaitingRoom] Game has started, transitioning to question state');
@@ -113,6 +162,7 @@ const WaitingRoomContainer = () => {
     }
   }, [gameState, hasGameStarted, setHasGameStarted, gameId, navigate, gameStartTransitionActive]);
   
+  // Manejar caso especial cuando el contador llega a cero
   useEffect(() => {
     if (countdown === 0 && !hasGameStarted && !gameStartTransitionActive) {
       console.log('[WaitingRoom] Countdown reached zero, starting game transition');
@@ -121,6 +171,7 @@ const WaitingRoomContainer = () => {
       
       gameNotifications.gameStarting();
       
+      // Verificar estado del juego para confirmar que ha iniciado
       refreshGameState().then(() => {
         setTimeout(() => {
           setIsJoining(true);
@@ -130,6 +181,15 @@ const WaitingRoomContainer = () => {
     }
   }, [countdown, hasGameStarted, refreshGameState, gameId, navigate, gameStartTransitionActive]);
   
+  // Comprobar si la hora actual es posterior a la hora programada
+  useEffect(() => {
+    if (gameDate && currentTime >= gameDate && !hasGameStarted && !gameStartTransitionActive) {
+      console.log('[WaitingRoom] Current time is past scheduled time, checking game state');
+      checkGameStateManually();
+    }
+  }, [gameDate, currentTime, hasGameStarted, gameStartTransitionActive]);
+  
+  // Cargar estado inicial al montar componente
   useEffect(() => {
     if (gameId) {
       console.log('[WaitingRoom] Refreshing game state on component mount');

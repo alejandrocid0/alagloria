@@ -67,8 +67,27 @@ async function createLiveGameEntry(game: any, now: Date) {
   const gameTime = new Date(game.date);
   const diffInSeconds = Math.round((gameTime.getTime() - now.getTime()) / 1000);
   
-  // Only create new live_game if it's in the future or just started
-  if (diffInSeconds > -30) {
+  // Cambio clave: Si la partida ya ha comenzado o está a punto de comenzar,
+  // iniciar directamente en estado 'question' en lugar de 'waiting'
+  if (diffInSeconds <= 0) {
+    const { error: createError } = await supabaseClient
+      .from('live_games')
+      .insert({
+        id: game.id,
+        status: 'question',  // Iniciar directamente en 'question' en vez de 'waiting'
+        countdown: 20,       // Tiempo estándar para la primera pregunta
+        current_question: 0, // Comenzando en la primera pregunta
+        started_at: now.toISOString(),
+        updated_at: now.toISOString()
+      });
+    
+    if (createError) {
+      console.error(`Error creating live game for ${game.id}:`, createError);
+    } else {
+      console.log(`Game ${game.id} started directly in question state`);
+    }
+  } else {
+    // Si es en el futuro, crear en estado 'waiting' con countdown
     const { error: createError } = await supabaseClient
       .from('live_games')
       .insert({
@@ -84,24 +103,6 @@ async function createLiveGameEntry(game: any, now: Date) {
       console.error(`Error creating live game for ${game.id}:`, createError);
     } else {
       console.log(`Initialized new live game "${game.title}" with ${diffInSeconds} seconds countdown`);
-    }
-  } else {
-    // If game should have already started, create it in 'question' state
-    const { error: createError } = await supabaseClient
-      .from('live_games')
-      .insert({
-        id: game.id,
-        status: 'question',
-        countdown: 20,
-        current_question: 0,
-        started_at: now.toISOString(),
-        updated_at: now.toISOString()
-      });
-    
-    if (createError) {
-      console.error(`Error creating live game for ${game.id}:`, createError);
-    } else {
-      console.log(`Game ${game.id} started directly in question state`);
     }
   }
 }
@@ -317,4 +318,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-

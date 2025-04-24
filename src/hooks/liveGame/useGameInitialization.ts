@@ -26,6 +26,7 @@ export const useGameInitialization = ({
 }: UseGameInitializationProps) => {
   // Ref para controlar la carga inicial
   const isInitialLoadCompletedRef = useRef<boolean>(false);
+  const retryAttemptsRef = useRef<number>(0);
   
   // Cargar los datos iniciales con una secuencia optimizada
   useEffect(() => {
@@ -34,6 +35,7 @@ export const useGameInitialization = ({
       return;
     }
     
+    // Si ya se completó la carga inicial, no volver a cargar
     if (isInitialLoadCompletedRef.current) {
       return;
     }
@@ -51,21 +53,28 @@ export const useGameInitialization = ({
         
         // Luego cargar el estado actual del juego
         const gameStateResult = await fetchGameStateData(true);
+        console.log('[GameInitialization] Game state loaded:', gameStateResult);
         
         // Cargar la tabla de clasificación
         await fetchLeaderboardData();
         
         console.log('[GameInitialization] Initial data load completed successfully');
         isInitialLoadCompletedRef.current = true;
+        retryAttemptsRef.current = 0;
       } catch (err) {
         console.error('[GameInitialization] Error during initial data load:', err);
         setError('Error al cargar los datos iniciales');
         
-        // Programar un reintento
+        // Incrementar contador de reintentos y programar un reintento
+        retryAttemptsRef.current++;
+        const retryDelay = Math.min(2000 * retryAttemptsRef.current, 10000); // Backoff exponencial con máximo de 10 segundos
+        
+        console.log(`[GameInitialization] Scheduling retry attempt ${retryAttemptsRef.current} in ${retryDelay}ms`);
         setTimeout(() => {
+          console.log('[GameInitialization] Retrying data load');
           isInitialLoadCompletedRef.current = false; // Permitir reintento
           scheduleReconnect();
-        }, 3000);
+        }, retryDelay);
       } finally {
         setIsLoading(false);
       }
@@ -77,7 +86,15 @@ export const useGameInitialization = ({
     const periodicUpdate = setInterval(() => {
       if (isConnected) {
         console.log('[GameInitialization] Performing periodic data refresh');
-        fetchGameStateData(false);
+        fetchGameStateData(false)
+          .then(gameState => {
+            if (gameState) {
+              console.log('[GameInitialization] Periodic refresh updated game state:', gameState);
+            }
+          })
+          .catch(error => {
+            console.error('[GameInitialization] Error in periodic refresh:', error);
+          });
       }
     }, 15000); // Cada 15 segundos
     
