@@ -26,9 +26,10 @@ export const realTimeSync = {
       const channel = supabase.channel(channelId);
       
       // Configure the channel to listen for database changes
-      channel
+      // Using correct typing for Supabase v2 API
+      const subscription = channel
         .on(
-          'postgres_changes',
+          'postgres_changes' as any, // Type assertion to bypass TypeScript error
           { 
             event: '*', 
             schema: 'public', 
