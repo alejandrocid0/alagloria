@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,7 @@ import { useHeartbeat } from '@/hooks/liveGame/useHeartbeat';
 import { useActiveParticipants } from './hooks/useActiveParticipants';
 import { toast } from '@/components/ui/use-toast';
 import { gameStateSync } from '@/services/games/gameStateSync';
+import { supabase } from '@/integrations/supabase/client';
 
 const WaitingRoomContainer = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -105,11 +105,45 @@ const WaitingRoomContainer = () => {
     console.log('[WaitingRoom] Manually checking game state');
     
     try {
+      // Primero, verificar si la partida tiene configurado auto_start
+      const { data: gameConfig, error: gameConfigError } = await supabase
+        .from('games')
+        .select('auto_start, date')
+        .eq('id', gameId)
+        .single();
+      
+      if (gameConfigError) {
+        console.error('[WaitingRoom] Error fetching game config:', gameConfigError);
+        return;
+      }
+      
+      const isAutoStart = gameConfig?.auto_start === true;
+      const scheduledTime = new Date(gameConfig?.date);
+      const currentTime = new Date();
+      const shouldHaveStarted = currentTime >= scheduledTime;
+      
+      console.log(`[WaitingRoom] Game config: auto_start=${isAutoStart}, scheduled=${scheduledTime.toISOString()}, should have started=${shouldHaveStarted}`);
+      
       // Intentar obtener el estado actual del juego directamente
       const currentState = await gameStateSync.getGameState(gameId);
       console.log('[WaitingRoom] Manual game state check result:', currentState);
       
+      // Verificar si hay inconsistencias en el estado
+      if (currentState?.status === 'waiting' && shouldHaveStarted && isAutoStart) {
+        console.warn('[WaitingRoom] Potential state inconsistency: Game should have auto-started but is still in waiting state');
+        // No forzamos nada, dejamos que sea el servidor quien lo resuelva
+      } else if (currentState?.status === 'question' && !shouldHaveStarted) {
+        console.warn('[WaitingRoom] Potential state inconsistency: Game is in question state but scheduled time has not been reached yet');
+      }
+      
+      // Solo redirigir si la partida ya ha comenzado oficialmente
       if (currentState && (currentState.status === 'question' || currentState.status === 'result' || currentState.status === 'leaderboard')) {
+        // Verificación adicional: Si no debería haber comenzado y no es auto_start, no redirigir automáticamente
+        if (!shouldHaveStarted && !isAutoStart) {
+          console.warn('[WaitingRoom] Game has started prematurely and auto_start is disabled. Not redirecting automatically.');
+          return;
+        }
+        
         console.log('[WaitingRoom] Game has started, transitioning to active game screen');
         setHasGameStarted(true);
         setGameStartTransitionActive(true);
@@ -165,29 +199,52 @@ const WaitingRoomContainer = () => {
   // Manejar caso especial cuando el contador llega a cero
   useEffect(() => {
     if (countdown === 0 && !hasGameStarted && !gameStartTransitionActive) {
-      console.log('[WaitingRoom] Countdown reached zero, starting game transition');
-      setGameStartTransitionActive(true);
-      setHasGameStarted(true);
+      console.log('[WaitingRoom] Countdown reached zero, verifying game start conditions');
       
-      gameNotifications.gameStarting();
-      
-      // Verificar estado del juego para confirmar que ha iniciado
-      refreshGameState().then(() => {
-        setTimeout(() => {
-          setIsJoining(true);
-          navigate(`/game/${gameId}`);
-        }, 1500);
-      });
+      // Verificar si realmente es el momento de comenzar la partida
+      if (gameDate && new Date() >= gameDate) {
+        console.log('[WaitingRoom] Scheduled time has been reached, starting game transition');
+        setGameStartTransitionActive(true);
+        setHasGameStarted(true);
+        
+        gameNotifications.gameStarting();
+        
+        // Verificar estado del juego para confirmar que ha iniciado
+        refreshGameState().then(() => {
+          setTimeout(() => {
+            setIsJoining(true);
+            navigate(`/game/${gameId}`);
+          }, 1500);
+        });
+      } else {
+        console.log('[WaitingRoom] Countdown reached zero, but scheduled time has not been reached yet');
+        // Re-verificar el estado de la partida con el servidor
+        refreshGameState();
+      }
     }
-  }, [countdown, hasGameStarted, refreshGameState, gameId, navigate, gameStartTransitionActive]);
+  }, [countdown, hasGameStarted, refreshGameState, gameId, navigate, gameStartTransitionActive, gameDate]);
   
   // Comprobar si la hora actual es posterior a la hora programada
   useEffect(() => {
     if (gameDate && currentTime >= gameDate && !hasGameStarted && !gameStartTransitionActive) {
-      console.log('[WaitingRoom] Current time is past scheduled time, checking game state');
-      checkGameStateManually();
+      console.log(`[WaitingRoom] Current time (${currentTime.toISOString()}) is past scheduled time (${gameDate.toISOString()}), checking game state`);
+      
+      // Primero verificar si el estado actual es realmente "waiting"
+      if (gameState?.status === 'waiting') {
+        console.log('[WaitingRoom] Game is still in waiting state despite scheduled time being reached, manually checking game state');
+        
+        // Verificar si la partida debe iniciarse automáticamente o requiere acción del anfitrión
+        // Nota: Como no tenemos acceso directo a la propiedad auto_start, siempre hacemos la verificación manual
+        console.log('[WaitingRoom] Checking if game should auto-start or requires manual host action');
+        
+        // Forzar verificación del estado actual del juego para ver si debería haberse iniciado
+        checkGameStateManually();
+      } else {
+        // Si el estado ya no es "waiting", verificar directamente
+        checkGameStateManually();
+      }
     }
-  }, [gameDate, currentTime, hasGameStarted, gameStartTransitionActive]);
+  }, [gameDate, currentTime, hasGameStarted, gameStartTransitionActive, gameState?.status, checkGameStateManually]);
   
   // Cargar estado inicial al montar componente
   useEffect(() => {

@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.2.0'
 
 // CORS headers for browser access
@@ -67,14 +66,18 @@ async function createLiveGameEntry(game: any, now: Date) {
   const gameTime = new Date(game.date);
   const diffInSeconds = Math.round((gameTime.getTime() - now.getTime()) / 1000);
   
-  // Cambio clave: Si la partida ya ha comenzado o está a punto de comenzar,
-  // iniciar directamente en estado 'question' en lugar de 'waiting'
-  if (diffInSeconds <= 0) {
+  // Verificar si la partida debe iniciarse automáticamente
+  const shouldAutoStart = game.auto_start === true;
+  
+  // Solo iniciar en estado 'question' si:
+  // 1. La hora programada ya ha pasado
+  // 2. La partida está configurada para iniciar automáticamente
+  if (diffInSeconds <= 0 && shouldAutoStart) {
     const { error: createError } = await supabaseClient
       .from('live_games')
       .insert({
         id: game.id,
-        status: 'question',  // Iniciar directamente en 'question' en vez de 'waiting'
+        status: 'question',  // Iniciar en estado 'question'
         countdown: 20,       // Tiempo estándar para la primera pregunta
         current_question: 0, // Comenzando en la primera pregunta
         started_at: now.toISOString(),
@@ -84,10 +87,11 @@ async function createLiveGameEntry(game: any, now: Date) {
     if (createError) {
       console.error(`Error creating live game for ${game.id}:`, createError);
     } else {
-      console.log(`Game ${game.id} started directly in question state`);
+      console.log(`Game ${game.id} started directly in question state (auto_start=true)`);
     }
   } else {
-    // Si es en el futuro, crear en estado 'waiting' con countdown
+    // En todos los demás casos, iniciar en estado 'waiting'
+    // Incluso si la hora ha pasado pero no está configurado para inicio automático
     const { error: createError } = await supabaseClient
       .from('live_games')
       .insert({
@@ -102,7 +106,7 @@ async function createLiveGameEntry(game: any, now: Date) {
     if (createError) {
       console.error(`Error creating live game for ${game.id}:`, createError);
     } else {
-      console.log(`Initialized new live game "${game.title}" with ${diffInSeconds} seconds countdown`);
+      console.log(`Initialized new live game "${game.title}" with ${diffInSeconds} seconds countdown (auto_start=${shouldAutoStart})`);
     }
   }
 }
@@ -140,7 +144,7 @@ async function processWaitingGames() {
 async function shouldStartGame(game: any): Promise<boolean> {
   const { data: gameData, error: gameError } = await supabaseClient
     .from('games')
-    .select('date')
+    .select('date, auto_start')
     .eq('id', game.id)
     .single();
   
@@ -149,11 +153,19 @@ async function shouldStartGame(game: any): Promise<boolean> {
     return false;
   }
   
+  // Verificar si la partida tiene habilitado el inicio automático
+  const shouldAutoStart = gameData.auto_start === true;
+  
+  // Verificar si ha llegado la hora programada
   const scheduledTime = new Date(gameData.date);
   const currentTime = new Date();
   const diffInSeconds = Math.round((scheduledTime.getTime() - currentTime.getTime()) / 1000);
+  const timeHasCome = diffInSeconds <= 0;
   
-  return diffInSeconds <= 0;
+  console.log(`Game ${game.id} check: scheduled=${scheduledTime.toISOString()}, auto_start=${shouldAutoStart}, time has come=${timeHasCome}`);
+  
+  // Solo iniciar automáticamente si auto_start=true y ha llegado la hora
+  return shouldAutoStart && timeHasCome;
 }
 
 // Transition a game to question state

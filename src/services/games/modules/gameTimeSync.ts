@@ -1,21 +1,69 @@
-
 /**
  * Servicio para sincronizar el tiempo del cliente con el servidor
  */
 export const gameTimeSync = {
+  // Cache del último offset válido y su timestamp
+  lastOffset: 0,
+  lastSyncTime: 0,
+  // Tiempo de validez del cache (15 minutos)
+  cacheValidity: 15 * 60 * 1000,
+  
   // Sincronizar el tiempo del cliente con el servidor
   async syncWithServerTime() {
     try {
-      const samples = [];
+      // Verificar si tenemos un offset en cache y si es válido aún
+      const now = Date.now();
+      if (this.lastOffset !== 0 && now - this.lastSyncTime < this.cacheValidity) {
+        console.log(`[TimeSync] Using cached offset: ${this.lastOffset}ms (age: ${Math.round((now - this.lastSyncTime)/1000)}s)`);
+        return this.lastOffset;
+      }
       
-      // Tomar 3 muestras para mayor precisión
-      for (let i = 0; i < 3; i++) {
+      // Si hay demasiados errores, usamos métodos alternativos
+      // Intento 1: API externa worldtimeapi.org
+      try {
+        const offset = await this.syncWithExternalAPI();
+        if (offset !== 0) {
+          // Guardar en cache
+          this.lastOffset = offset;
+          this.lastSyncTime = now;
+          return offset;
+        }
+      } catch (err) {
+        console.warn('[TimeSync] External API sync failed:', err);
+      }
+      
+      // Intento 2: Usar la fecha del servidor de Supabase (no implementado aún)
+      // En este caso, usamos un offset de 0 como último recurso
+      console.log('[TimeSync] All sync methods failed, using zero offset');
+      return 0;
+    } catch (err) {
+      console.error('[TimeSync] Error al sincronizar con el servidor:', err);
+      return 0;
+    }
+  },
+  
+  // Sincronizar con API externa
+  async syncWithExternalAPI() {
+    // Límite de intentos reducido a 1 para evitar bloqueos
+    const maxSamples = 1;
+    const samples = [];
+    
+    for (let i = 0; i < maxSamples; i++) {
+      try {
         const startTime = Date.now();
-        const response = await fetch('https://worldtimeapi.org/api/ip');
+        const response = await fetch('https://worldtimeapi.org/api/ip', {
+          // Agregar headers específicos, cache-control y timeout
+          headers: {
+            'User-Agent': 'AlaGloriaGame/1.0',
+            'Cache-Control': 'no-cache'
+          },
+          // Usar AbortController para limitar el tiempo de espera
+          signal: AbortSignal.timeout(3000) // 3 segundos de timeout
+        });
         const endTime = Date.now();
         
         if (!response.ok) {
-          console.error(`Error en muestra de tiempo ${i+1}: ${response.status}`);
+          console.error(`[TimeSync] Error en muestra de tiempo ${i+1}: ${response.status}`);
           continue;
         }
         
@@ -29,22 +77,21 @@ export const gameTimeSync = {
         console.log(`[TimeSync] Sample ${i+1}: Offset ${offset}ms, RTT ${roundTripTime}ms`);
         
         samples.push({ offset, roundTripTime });
+      } catch (err) {
+        console.error(`[TimeSync] Error en muestra ${i+1}:`, err);
       }
-      
-      if (samples.length === 0) {
-        console.error('[TimeSync] No valid time samples obtained');
-        return 0;
-      }
-      
-      // Ordenar por menor tiempo de ida y vuelta y usar ese valor
-      samples.sort((a, b) => a.roundTripTime - b.roundTripTime);
-      const bestSample = samples[0];
-      
-      console.log(`[TimeSync] Using best sample: Offset ${bestSample.offset}ms, RTT ${bestSample.roundTripTime}ms`);
-      return bestSample.offset;
-    } catch (err) {
-      console.error('[TimeSync] Error al sincronizar con el servidor:', err);
+    }
+    
+    if (samples.length === 0) {
+      console.error('[TimeSync] No valid time samples obtained');
       return 0;
     }
+    
+    // Ordenar por menor tiempo de ida y vuelta y usar ese valor
+    samples.sort((a, b) => a.roundTripTime - b.roundTripTime);
+    const bestSample = samples[0];
+    
+    console.log(`[TimeSync] Using best sample: Offset ${bestSample.offset}ms, RTT ${bestSample.roundTripTime}ms`);
+    return bestSample.offset;
   }
 };

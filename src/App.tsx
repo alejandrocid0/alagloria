@@ -27,7 +27,6 @@ function App() {
     <Router>
       <ScrollToTop />
       <GoogleAnalyticsTracker />
-      <MicrosoftClarityTracker />
       <AppRouter />
       <Toaster />
     </Router>
