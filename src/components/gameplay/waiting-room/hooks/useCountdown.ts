@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTimeFormatting } from './useTimeFormatting';
 import { useVisualEffects } from './useVisualEffects';
 import { useTimeSync } from '@/hooks/liveGame/useTimeSync';

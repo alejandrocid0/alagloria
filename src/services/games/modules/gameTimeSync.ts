@@ -25,11 +25,9 @@ export const gameTimeSync = {
       const clientStartTime = Date.now();
       
       // Llamar al servidor para obtener tiempo
-      // Usamos una consulta SQL directa para obtener el tiempo del servidor
+      // Usamos una función RPC directa para obtener el tiempo del servidor
       const { data, error } = await supabase
-        .from('_unused_')
-        .select('now() as server_time')
-        .limit(1)
+        .rpc('get_current_timestamp')
         .single();
       
       if (error) {
@@ -44,9 +42,9 @@ export const gameTimeSync = {
       const roundTripTime = clientEndTime - clientStartTime;
       const estimatedOneWayLatency = roundTripTime / 2;
       
-      if (data && data.server_time) {
+      if (data) {
         // Convertir tiempo del servidor a epoch milliseconds
-        const serverTimeMs = new Date(data.server_time).getTime();
+        const serverTimeMs = new Date(data).getTime();
         
         // Ajustar por latencia estimada
         const adjustedServerTime = serverTimeMs + estimatedOneWayLatency;
