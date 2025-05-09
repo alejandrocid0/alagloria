@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.2.0'
 
 // CORS headers for browser access
@@ -16,11 +17,12 @@ const supabaseClient = createClient(
 async function initializeUpcomingGames(now: Date) {
   console.log('Checking for games to initialize...');
   
+  // Búsqueda ampliada para cubrir también juegos cuya hora de inicio ya ha pasado 
+  // pero que podrían no haberse inicializado correctamente
   const { data: upcomingGames, error: upcomingError } = await supabaseClient
     .from('games')
-    .select('id, date, title')
-    .gte('date', new Date(now.getTime() - 5 * 60 * 1000).toISOString())
-    .lte('date', new Date(now.getTime() + 10 * 60 * 1000).toISOString())
+    .select('id, date, title, auto_start')
+    .or(`and(date.gte.${new Date(now.getTime() - 15 * 60 * 1000).toISOString()},date.lte.${new Date(now.getTime() + 15 * 60 * 1000).toISOString()}),and(date.lt.${now.toISOString()},auto_start.eq.true)`)
     .order('date', { ascending: true });
   
   if (upcomingError) {
@@ -28,7 +30,7 @@ async function initializeUpcomingGames(now: Date) {
     throw upcomingError;
   }
   
-  console.log(`Found ${upcomingGames?.length || 0} games scheduled for the next 10 minutes`);
+  console.log(`Found ${upcomingGames?.length || 0} games scheduled for processing`);
   
   for (const game of upcomingGames || []) {
     await initializeSingleGame(game, now);
@@ -53,8 +55,16 @@ async function initializeSingleGame(game: any, now: Date) {
     
     if (!liveGame) {
       await createLiveGameEntry(game, now);
+    } else if (liveGame.status === 'waiting') {
+      // Si ya existe pero está en espera, verificar si debe actualizarse
+      // Por ejemplo, si la hora programada ya pasó y tiene auto_start=true
+      const gameTime = new Date(game.date);
+      if (now >= gameTime && game.auto_start === true) {
+        console.log(`Game ${game.id} should have started (auto_start=true, scheduled time passed), updating...`);
+        await transitionGameToQuestion({ id: game.id });
+      }
     } else {
-      console.log(`Game ${game.id} already initialized, skipping`);
+      console.log(`Game ${game.id} already initialized with status ${liveGame.status}, skipping`);
     }
   } catch (err) {
     console.error(`Error initializing game ${game.id}:`, err);
@@ -312,7 +322,8 @@ Deno.serve(async (req) => {
         success: true,
         message: 'Scheduled games check completed',
         initialized_games: initializedCount,
-        transitioned_games: transitionedGames.length
+        transitioned_games: transitionedGames.length,
+        timestamp: now.toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -322,7 +333,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error('Unexpected error:', err);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', message: err.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500

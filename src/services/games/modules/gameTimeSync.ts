@@ -1,3 +1,4 @@
+
 /**
  * Servicio para sincronizar el tiempo del cliente con el servidor
  */
@@ -8,9 +9,53 @@ export const gameTimeSync = {
   // Tiempo de validez del cache (15 minutos)
   cacheValidity: 15 * 60 * 1000,
   
+  // Inicializar desde localStorage si está disponible
+  initialize() {
+    try {
+      const cachedData = localStorage.getItem('timeSync');
+      if (cachedData) {
+        const { offset, timestamp } = JSON.parse(cachedData);
+        const now = Date.now();
+        // Solo usar cache si no ha expirado
+        if (now - timestamp < this.cacheValidity) {
+          this.lastOffset = offset;
+          this.lastSyncTime = timestamp;
+          console.log(`[TimeSync] Loaded cached offset: ${this.lastOffset}ms (age: ${Math.round((now - this.lastSyncTime)/1000)}s)`);
+          return true;
+        } else {
+          console.log('[TimeSync] Cached time offset expired, will sync again');
+          localStorage.removeItem('timeSync');
+        }
+      }
+    } catch (err) {
+      console.warn('[TimeSync] Error loading cached time sync data:', err);
+      localStorage.removeItem('timeSync');
+    }
+    return false;
+  },
+  
+  // Guardar en localStorage
+  saveToCache(offset) {
+    try {
+      const now = Date.now();
+      localStorage.setItem('timeSync', JSON.stringify({
+        offset,
+        timestamp: now
+      }));
+      console.log(`[TimeSync] Saved offset to cache: ${offset}ms`);
+    } catch (err) {
+      console.warn('[TimeSync] Error saving time sync data to cache:', err);
+    }
+  },
+  
   // Sincronizar el tiempo del cliente con el servidor
   async syncWithServerTime() {
     try {
+      // Intentar cargar desde localStorage primero, si no se ha inicializado ya
+      if (this.lastOffset === 0) {
+        this.initialize();
+      }
+      
       // Verificar si tenemos un offset en cache y si es válido aún
       const now = Date.now();
       if (this.lastOffset !== 0 && now - this.lastSyncTime < this.cacheValidity) {
@@ -26,6 +71,7 @@ export const gameTimeSync = {
           // Guardar en cache
           this.lastOffset = offset;
           this.lastSyncTime = now;
+          this.saveToCache(offset);
           return offset;
         }
       } catch (err) {
@@ -95,3 +141,6 @@ export const gameTimeSync = {
     return bestSample.offset;
   }
 };
+
+// Inicializar al cargar
+gameTimeSync.initialize();

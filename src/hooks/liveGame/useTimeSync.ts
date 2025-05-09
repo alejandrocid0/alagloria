@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { gameTimeSync } from '@/services/games/modules/gameTimeSync';
 
@@ -49,6 +50,12 @@ export const useTimeSync = () => {
     return clientTime + serverTimeOffset;
   }, [serverTimeOffset]);
 
+  // Reset sync attempts counter (useful when forcing a new sync series)
+  const resetSyncAttempts = useCallback(() => {
+    syncAttempts.current = 0;
+    console.log('[TimeSync] Reset sync attempts counter');
+  }, []);
+
   // Set up initial sync and periodic re-sync
   useEffect(() => {
     // Initial time sync
@@ -72,6 +79,7 @@ export const useTimeSync = () => {
     serverTimeOffset,
     syncWithServer,
     getServerTime,
-    lastSyncTime
+    lastSyncTime,
+    resetSyncAttempts
   };
 };
