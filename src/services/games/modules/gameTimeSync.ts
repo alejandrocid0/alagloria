@@ -25,10 +25,8 @@ export const gameTimeSync = {
       const clientStartTime = Date.now();
       
       // Llamar al servidor para obtener tiempo
-      // Usamos una función RPC directa para obtener el tiempo del servidor
-      const { data, error } = await supabase
-        .rpc('get_current_timestamp')
-        .single();
+      // Usamos la edge function para obtener el tiempo del servidor
+      const { data, error } = await supabase.functions.invoke('get_current_timestamp');
       
       if (error) {
         console.error('[TimeSync] Error al obtener tiempo del servidor:', error);
