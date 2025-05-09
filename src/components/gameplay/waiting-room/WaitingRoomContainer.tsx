@@ -117,12 +117,12 @@ const WaitingRoomContainer = () => {
         return;
       }
       
-      const isAutoStart = gameConfig?.auto_start === true;
-      const scheduledTime = new Date(gameConfig?.date);
-      const currentTime = new Date();
-      const shouldHaveStarted = currentTime >= scheduledTime;
+      // Ensure gameConfig exists and has the properties we need before accessing them
+      const isAutoStart = gameConfig && gameConfig.auto_start === true;
+      const scheduledTime = gameConfig && gameConfig.date ? new Date(gameConfig.date) : null;
+      const shouldHaveStarted = scheduledTime ? currentTime >= scheduledTime : false;
       
-      console.log(`[WaitingRoom] Game config: auto_start=${isAutoStart}, scheduled=${scheduledTime.toISOString()}, should have started=${shouldHaveStarted}`);
+      console.log(`[WaitingRoom] Game config: auto_start=${isAutoStart}, scheduled=${scheduledTime?.toISOString()}, should have started=${shouldHaveStarted}`);
       
       // Intentar obtener el estado actual del juego directamente
       const currentState = await gameStateSync.getGameState(gameId);
@@ -132,7 +132,7 @@ const WaitingRoomContainer = () => {
       if (currentState?.status === 'waiting' && shouldHaveStarted && isAutoStart) {
         console.warn('[WaitingRoom] Potential state inconsistency: Game should have auto-started but is still in waiting state');
         // No forzamos nada, dejamos que sea el servidor quien lo resuelva
-      } else if (currentState?.status === 'question' && !shouldHaveStarted) {
+      } else if (currentState?.status === 'question' && scheduledTime && !shouldHaveStarted) {
         console.warn('[WaitingRoom] Potential state inconsistency: Game is in question state but scheduled time has not been reached yet');
       }
       

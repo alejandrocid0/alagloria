@@ -173,6 +173,7 @@ export type Database = {
       }
       games: {
         Row: {
+          auto_start: boolean | null
           category: string | null
           created_at: string
           created_by: string
@@ -184,6 +185,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_start?: boolean | null
           category?: string | null
           created_at?: string
           created_by: string
@@ -195,6 +197,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_start?: boolean | null
           category?: string | null
           created_at?: string
           created_by?: string
