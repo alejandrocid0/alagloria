@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTimeFormatting } from './useTimeFormatting';
 import { useVisualEffects } from './useVisualEffects';
@@ -44,10 +45,11 @@ export const useCountdown = (
     
     // Set the target timestamp based on the synchronized server time
     const serverNow = getServerTime();
-    const endTime = serverNow + (countdown * 1000);
-    setTargetTimestamp(endTime);
+    const serverTimeInMs = serverNow.getTime();
+    const endTimeInMs = serverTimeInMs + (countdown * 1000);
+    setTargetTimestamp(endTimeInMs);
     
-    console.log(`[Countdown] Target end time set to ${new Date(endTime).toISOString()} (${countdown}s from now)`);
+    console.log(`[Countdown] Target end time set to ${new Date(endTimeInMs).toISOString()} (${countdown}s from now)`);
   }, [countdown, hasGameStarted, getServerTime]);
   
   // Sync countdown with server time
@@ -59,9 +61,10 @@ export const useCountdown = (
       // Re-sync time with server to ensure accuracy
       syncWithServer().then(() => {
         const serverNow = getServerTime();
-        const endTime = serverNow + (serverCountdown * 1000);
-        setTargetTimestamp(endTime);
-        console.log(`[Countdown] Updated target time to ${new Date(endTime).toISOString()}`);
+        const serverTimeInMs = serverNow.getTime();
+        const endTimeInMs = serverTimeInMs + (serverCountdown * 1000);
+        setTargetTimestamp(endTimeInMs);
+        console.log(`[Countdown] Updated target time to ${new Date(endTimeInMs).toISOString()}`);
       });
     } else if (serverCountdown === 0) {
       // If countdown reaches zero from server, trigger game start
@@ -76,7 +79,8 @@ export const useCountdown = (
     
     const calculateTimeRemaining = () => {
       const serverNow = getServerTime();
-      const msRemaining = Math.max(0, targetTimestamp - serverNow);
+      const serverTimeInMs = serverNow.getTime();
+      const msRemaining = Math.max(0, targetTimestamp - serverTimeInMs);
       const secondsRemaining = Math.ceil(msRemaining / 1000);
       
       // Only update countdown if it's changed to avoid unnecessary renders

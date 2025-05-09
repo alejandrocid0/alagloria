@@ -1,6 +1,4 @@
 
-// Si no existe este archivo, lo creamos:
-
 import { supabase } from '@/integrations/supabase/client';
 
 const SERVER_TIME_CACHE_KEY = 'server_time_offset';
@@ -27,7 +25,12 @@ export const gameTimeSync = {
       const clientStartTime = Date.now();
       
       // Llamar al servidor para obtener tiempo
-      const { data, error } = await supabase.rpc('get_server_time');
+      // Usamos una consulta SQL directa para obtener el tiempo del servidor
+      const { data, error } = await supabase
+        .from('_unused_')
+        .select('now() as server_time')
+        .limit(1)
+        .single();
       
       if (error) {
         console.error('[TimeSync] Error al obtener tiempo del servidor:', error);
