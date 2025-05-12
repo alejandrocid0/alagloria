@@ -1,18 +1,11 @@
+
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
-// Tipos para el gestor de conexiones
-export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
-export type ConnectionCallback = (status: ConnectionStatus) => void;
-export type ChannelEventCallback = (payload: any) => void;
-
-interface ManagedChannel {
-  channel: RealtimeChannel;
-  callbacks: Map<string, ChannelEventCallback>;
-  status: ConnectionStatus;
-  lastActivity: number;
-}
+import { ConnectionStatus, ConnectionCallback, ChannelEventCallback, ManagedChannel, SubscriptionOptions } from './types';
+import { ChannelManager } from './ChannelManager';
+import { ReconnectionHandler } from './ReconnectionHandler';
+import { HeartbeatService } from './HeartbeatService';
 
 /**
  * Gestor centralizado de conexiones WebSocket
@@ -22,14 +15,18 @@ class ConnectionManager {
   private channels: Map<string, ManagedChannel> = new Map();
   private globalListeners: ConnectionCallback[] = [];
   private connectionStatus: ConnectionStatus = 'disconnected';
-  private reconnectionAttempts: number = 0;
-  private maxReconnectionAttempts: number = 10;
-  private reconnectionTimer: NodeJS.Timeout | null = null;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private reconnectionHandler: ReconnectionHandler;
+  private heartbeatService: HeartbeatService;
 
   constructor() {
     console.log('[ConnectionManager] Inicializando gestor de conexiones WebSocket');
-    this.startHeartbeat();
+    
+    // Inicializar el manejador de reconexiones
+    this.reconnectionHandler = new ReconnectionHandler(this.handleReconnect.bind(this));
+    
+    // Inicializar el servicio de heartbeat
+    this.heartbeatService = new HeartbeatService(this.checkChannelsActivity.bind(this));
+    this.heartbeatService.start();
   }
 
   /**
@@ -43,7 +40,7 @@ class ConnectionManager {
    * Obtener el número de intentos de reconexión
    */
   public getReconnectionAttempts(): number {
-    return this.reconnectionAttempts;
+    return this.reconnectionHandler.getAttempts();
   }
 
   /**
@@ -83,44 +80,39 @@ class ConnectionManager {
     
     // Crear nuevo canal
     try {
-      // Crear una instancia del canal
-      const channel = supabase.channel(channelId);
+      // Crear opciones de suscripción
+      const options: SubscriptionOptions = {
+        tableName,
+        filter,
+        event
+      };
       
-      // Configurar el canal para escuchar cambios en la base de datos
-      channel.on(
-        'postgres_changes', 
-        {
-          event: event, 
-          schema: 'public', 
-          table: tableName,
-          filter: filter
-        }, 
-        (payload) => {
-          console.log(`[ConnectionManager] Recibido evento en tabla ${tableName}:`, payload);
+      // Función para manejar eventos del canal
+      const handleChannelEvent = (payload: any) => {
+        console.log(`[ConnectionManager] Recibido evento en tabla ${tableName}:`, payload);
+        
+        // Actualizar timestamp de última actividad
+        if (this.channels.has(channelId)) {
+          const managedChannel = this.channels.get(channelId)!;
+          const updatedChannel = ChannelManager.updateChannelStatus(managedChannel, 'connected');
+          this.channels.set(channelId, updatedChannel);
           
-          // Actualizar timestamp de última actividad
-          if (this.channels.has(channelId)) {
-            const managedChannel = this.channels.get(channelId)!;
-            managedChannel.lastActivity = Date.now();
-            managedChannel.status = 'connected';
-            
-            // Ejecutar todos los callbacks registrados para este canal
-            managedChannel.callbacks.forEach(cb => {
-              try {
-                cb(payload);
-              } catch (err) {
-                console.error(`[ConnectionManager] Error en callback para canal ${channelId}:`, err);
-              }
-            });
-          }
-          
-          // Actualizar estado global de conexión
-          this.updateConnectionStatus('connected');
+          // Ejecutar todos los callbacks registrados para este canal
+          updatedChannel.callbacks.forEach(cb => {
+            try {
+              cb(payload);
+            } catch (err) {
+              console.error(`[ConnectionManager] Error en callback para canal ${channelId}:`, err);
+            }
+          });
         }
-      );
+        
+        // Actualizar estado global de conexión
+        this.updateConnectionStatus('connected');
+      };
       
-      // Ahora suscribirse al canal después de configurar los listeners
-      channel.subscribe((status) => {
+      // Función para manejar cambios de estado del canal
+      const handleStatusChange = (status: string) => {
         console.log(`[ConnectionManager] Canal ${channelId} estado:`, status);
         
         if (status === 'SUBSCRIBED') {
@@ -128,7 +120,8 @@ class ConnectionManager {
           
           if (this.channels.has(channelId)) {
             const managedChannel = this.channels.get(channelId)!;
-            managedChannel.status = 'connected';
+            const updatedChannel = ChannelManager.updateChannelStatus(managedChannel, 'connected');
+            this.channels.set(channelId, updatedChannel);
           }
           
           this.updateConnectionStatus('connected');
@@ -139,11 +132,12 @@ class ConnectionManager {
           
           if (this.channels.has(channelId)) {
             const managedChannel = this.channels.get(channelId)!;
-            managedChannel.status = 'error';
+            const updatedChannel = ChannelManager.updateChannelStatus(managedChannel, 'error');
+            this.channels.set(channelId, updatedChannel);
           }
           
           this.updateConnectionStatus('error');
-          this.scheduleReconnect(channelId);
+          this.reconnectionHandler.scheduleReconnect(channelId);
         }
         
         if (status === 'CLOSED') {
@@ -151,24 +145,28 @@ class ConnectionManager {
           
           if (this.channels.has(channelId)) {
             const managedChannel = this.channels.get(channelId)!;
-            managedChannel.status = 'disconnected';
+            const updatedChannel = ChannelManager.updateChannelStatus(managedChannel, 'disconnected');
+            this.channels.set(channelId, updatedChannel);
           }
           
           // Comprobar si todos los canales están desconectados
           this.checkAllChannelsStatus();
-          this.scheduleReconnect(channelId);
+          this.reconnectionHandler.scheduleReconnect(channelId);
         }
-      });
-      
-      // Guardar canal gestionado
-      const callbackId = `${channelId}-${Date.now()}`;
-      const managedChannel: ManagedChannel = {
-        channel,
-        callbacks: new Map([[callbackId, callback]]),
-        status: 'connecting',
-        lastActivity: Date.now()
       };
       
+      // Crear y registrar el canal
+      const managedChannel = ChannelManager.createChannel(
+        channelId,
+        options,
+        handleChannelEvent,
+        handleStatusChange
+      );
+      
+      // Crear ID para el callback
+      const callbackId = `${channelId}-${Date.now()}`;
+      
+      // Guardar canal y su callback
       this.channels.set(channelId, managedChannel);
       this.updateConnectionStatus('connecting');
       
@@ -192,7 +190,7 @@ class ConnectionManager {
         // Si no quedan callbacks, cerrar el canal
         if (managedChannel.callbacks.size === 0) {
           console.log(`[ConnectionManager] Cerrando canal ${channelId} por falta de suscriptores`);
-          supabase.removeChannel(managedChannel.channel);
+          ChannelManager.removeChannel(managedChannel.channel);
           this.channels.delete(channelId);
         }
         
@@ -211,26 +209,46 @@ class ConnectionManager {
     this.updateConnectionStatus('connecting');
     
     for (const [channelId, managedChannel] of this.channels.entries()) {
-      console.log(`[ConnectionManager] Reconectando canal ${channelId}`);
+      this.reconnectChannel(channelId, managedChannel);
+    }
+  }
+
+  /**
+   * Reconectar un canal específico
+   */
+  private reconnectChannel(channelId: string, managedChannel: ManagedChannel): void {
+    console.log(`[ConnectionManager] Reconectando canal ${channelId}`);
+    
+    try {
+      // Primero eliminar el canal actual
+      ChannelManager.removeChannel(managedChannel.channel);
       
-      try {
-        // Primero eliminar el canal actual
-        supabase.removeChannel(managedChannel.channel);
-        
-        // Crear nuevo canal con las mismas configuraciones
-        const newChannel = supabase.channel(channelId);
-        
-        // Re-suscribir con los mismos parámetros
-        // Nota: Esto es una simplificación, habría que extraer los parámetros exactos
-        newChannel.subscribe();
-        
-        // Actualizar el canal en nuestro registro
-        managedChannel.channel = newChannel;
-        managedChannel.status = 'connecting';
-        managedChannel.lastActivity = Date.now();
-      } catch (error) {
-        console.error(`[ConnectionManager] Error reconectando canal ${channelId}:`, error);
-        managedChannel.status = 'error';
+      // Recuperar todos los callbacks actuales
+      const callbacks = [...managedChannel.callbacks.entries()];
+      
+      // Crear un nuevo canal con la misma configuración
+      // Nota: Esto es una simplificación y requiere más información para ser completamente funcional
+      const newChannel = supabase.channel(channelId);
+      
+      // Actualizar el canal en nuestro registro con estado de conectando
+      const updatedManagedChannel: ManagedChannel = {
+        channel: newChannel,
+        callbacks: managedChannel.callbacks,
+        status: 'connecting',
+        lastActivity: Date.now()
+      };
+      
+      this.channels.set(channelId, updatedManagedChannel);
+      
+      // Suscribirse de nuevo al canal
+      newChannel.subscribe();
+    } catch (error) {
+      console.error(`[ConnectionManager] Error reconectando canal ${channelId}:`, error);
+      
+      if (this.channels.has(channelId)) {
+        const currentChannel = this.channels.get(channelId)!;
+        const updatedChannel = ChannelManager.updateChannelStatus(currentChannel, 'error');
+        this.channels.set(channelId, updatedChannel);
       }
     }
   }
@@ -299,7 +317,7 @@ class ConnectionManager {
       }
       
       if (previousStatus !== 'connected' && newStatus === 'connected') {
-        if (this.reconnectionAttempts > 0) {
+        if (this.reconnectionHandler.getAttempts() > 0) {
           toast({
             title: "Conexión restablecida",
             description: "La conexión ha sido restablecida correctamente",
@@ -310,80 +328,22 @@ class ConnectionManager {
       
       // Resetear contador de reconexiones si conectamos correctamente
       if (newStatus === 'connected') {
-        this.reconnectionAttempts = 0;
+        this.reconnectionHandler.resetAttempts();
       }
     }
   }
 
   /**
-   * Programar un intento de reconexión con backoff exponencial
+   * Manejador para la reconexión de canales
    */
-  private scheduleReconnect(channelId?: string): void {
-    // Evitar múltiples timers de reconexión
-    if (this.reconnectionTimer) {
-      clearTimeout(this.reconnectionTimer);
+  private handleReconnect(channelId?: string): void {
+    if (channelId && this.channels.has(channelId)) {
+      // Reconectar canal específico
+      this.reconnectChannel(channelId, this.channels.get(channelId)!);
+    } else {
+      // Reconectar todos los canales
+      this.reconnectAll();
     }
-    
-    if (this.reconnectionAttempts >= this.maxReconnectionAttempts) {
-      console.error(`[ConnectionManager] Máximo número de intentos de reconexión alcanzado (${this.maxReconnectionAttempts})`);
-      
-      toast({
-        title: "Error de conexión",
-        description: "No se pudo restablecer la conexión después de varios intentos",
-        variant: "destructive"
-      });
-      
-      return;
-    }
-    
-    this.reconnectionAttempts++;
-    
-    // Backoff exponencial: 1s, 2s, 4s, 8s, 16s, etc. con un máximo de 30s
-    const delay = Math.min(30000, Math.pow(2, this.reconnectionAttempts) * 500);
-    
-    console.log(`[ConnectionManager] Programando reconexión en ${delay}ms (intento ${this.reconnectionAttempts})`);
-    
-    this.reconnectionTimer = setTimeout(() => {
-      console.log(`[ConnectionManager] Ejecutando reconexión programada (intento ${this.reconnectionAttempts})`);
-      
-      if (channelId && this.channels.has(channelId)) {
-        // Reconectar canal específico
-        const managedChannel = this.channels.get(channelId)!;
-        
-        try {
-          // Recrear canal
-          supabase.removeChannel(managedChannel.channel);
-          const newChannel = supabase.channel(channelId);
-          newChannel.subscribe();
-          
-          managedChannel.channel = newChannel;
-          managedChannel.status = 'connecting';
-          managedChannel.lastActivity = Date.now();
-        } catch (error) {
-          console.error(`[ConnectionManager] Error reconectando canal ${channelId}:`, error);
-          managedChannel.status = 'error';
-          this.scheduleReconnect(channelId); // Intentar de nuevo
-        }
-      } else {
-        // Reconectar todos los canales
-        this.reconnectAll();
-      }
-    }, delay);
-  }
-
-  /**
-   * Iniciar heartbeat para verificar estado de conexión periódicamente
-   */
-  private startHeartbeat(): void {
-    // Limpiar intervalo existente si hay
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-    }
-    
-    // Verificar estado cada 15 segundos
-    this.heartbeatInterval = setInterval(() => {
-      this.checkChannelsActivity();
-    }, 15000);
   }
 
   /**
@@ -399,8 +359,8 @@ class ConnectionManager {
           managedChannel.status === 'connected') {
         console.warn(`[ConnectionManager] Canal ${channelId} inactivo por más de 1 minuto`);
         
-        // Intentar ping o reconexión
-        this.scheduleReconnect(channelId);
+        // Intentar reconexión
+        this.reconnectionHandler.scheduleReconnect(channelId);
       }
     }
   }
@@ -411,19 +371,14 @@ class ConnectionManager {
   public destroy(): void {
     console.log('[ConnectionManager] Destruyendo gestor de conexiones');
     
-    // Limpiar intervalos
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-    }
-    
-    if (this.reconnectionTimer) {
-      clearTimeout(this.reconnectionTimer);
-    }
+    // Limpiar servicios
+    this.heartbeatService.stop();
+    this.reconnectionHandler.destroy();
     
     // Cerrar todos los canales
     for (const [channelId, managedChannel] of this.channels.entries()) {
       console.log(`[ConnectionManager] Cerrando canal ${channelId}`);
-      supabase.removeChannel(managedChannel.channel);
+      ChannelManager.removeChannel(managedChannel.channel);
     }
     
     this.channels.clear();
@@ -433,3 +388,4 @@ class ConnectionManager {
 
 // Exportar una única instancia del gestor de conexiones
 export const connectionManager = new ConnectionManager();
+export { ConnectionStatus } from './types';
