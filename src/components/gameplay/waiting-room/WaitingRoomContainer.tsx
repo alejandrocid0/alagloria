@@ -138,6 +138,7 @@ const WaitingRoomContainer = () => {
       <ConnectionStatus 
         connectionStatus={isConnected ? 'connected' : 'disconnected'} 
         reconnectAttempts={reconnectAttempts}
+        onRefresh={refreshGameState}
       />
       <WaitingRoom 
         gameTitle={gameInfo.title || "Partida"}

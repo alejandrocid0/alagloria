@@ -81,7 +81,8 @@ const GameContainer: React.FC<GameContainerProps> = ({
       
       <ConnectionStatus 
         connectionStatus={isConnected ? 'connected' : 'disconnected'} 
-        reconnectAttempts={reconnectAttempts} 
+        reconnectAttempts={reconnectAttempts}
+        onRefresh={() => window.location.reload()}
       />
       
       <AnimatePresence mode="wait">

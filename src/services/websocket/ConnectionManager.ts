@@ -1,3 +1,4 @@
+
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -85,9 +86,9 @@ class ConnectionManager {
     try {
       const channel = supabase.channel(channelId);
       
-      // Use .on() to listen for postgres changes
+      // Configurar el canal para escuchar cambios en la base de datos
       channel.on(
-        'postgres_changes', 
+        'postgres_changes',
         { 
           event: event, 
           schema: 'public', 
@@ -117,7 +118,9 @@ class ConnectionManager {
           this.updateConnectionStatus('connected');
         }
       )
-      .subscribe((status) => {
+      
+      // Suscribirse al canal
+      channel.subscribe((status) => {
         console.log(`[ConnectionManager] Canal ${channelId} estado:`, status);
         
         if (status === 'SUBSCRIBED') {
