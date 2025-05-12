@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import useLiveGameState from './hooks/useLiveGameState';
 import GameContainer from './GameContainer';
-import ConnectionStatus from './ConnectionStatus';
+import ConnectionStatus, { ConnectionStatusType } from './ConnectionStatus';
 import { useEnhancedGameSync } from '@/hooks/liveGame/useEnhancedGameSync';
 
 const LiveGameRenderer = () => {
@@ -59,7 +59,7 @@ const LiveGameRenderer = () => {
   return (
     <>
       <ConnectionStatus 
-        connectionStatus={connectionStatus} 
+        connectionStatus={connectionStatus as ConnectionStatusType} 
         reconnectAttempts={reconnectAttempts}
         onRefresh={refreshConnection}
       />

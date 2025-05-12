@@ -1,4 +1,5 @@
-import { connectionManager } from '../websocket/ConnectionManager';
+
+import { connectionManager, ConnectionStatus } from '../websocket/ConnectionManager';
 
 /**
  * Versión mejorada del servicio de sincronización en tiempo real
@@ -87,7 +88,7 @@ export const enhancedRealTimeSync = {
   /**
    * Obtener el estado actual de la conexión
    */
-  getConnectionStatus: () => {
+  getConnectionStatus: (): ConnectionStatus => {
     return connectionManager.getConnectionStatus();
   },
 
@@ -101,7 +102,7 @@ export const enhancedRealTimeSync = {
   /**
    * Suscribirse a cambios en el estado de la conexión
    */
-  onConnectionChange: (callback: (status: string) => void) => {
+  onConnectionChange: (callback: (status: ConnectionStatus) => void) => {
     return connectionManager.onConnectionChange(callback);
   },
 

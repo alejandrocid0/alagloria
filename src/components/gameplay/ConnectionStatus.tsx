@@ -3,8 +3,10 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+export type ConnectionStatusType = 'connected' | 'disconnected' | 'connecting' | 'error';
+
 interface ConnectionStatusProps {
-  connectionStatus: 'connected' | 'disconnected' | 'connecting' | 'error';
+  connectionStatus: ConnectionStatusType;
   reconnectAttempts: number;
   onRefresh: () => void;
 }

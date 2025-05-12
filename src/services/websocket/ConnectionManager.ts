@@ -87,14 +87,15 @@ class ConnectionManager {
       const channel = supabase.channel(channelId);
       
       // Configurar el canal para escuchar cambios en la base de datos
-      // Agregamos el listener pero NO llamamos a subscribe() todavía
-      channel
-        .on('postgres_changes', {
+      channel.on(
+        'postgres_changes', 
+        {
           event: event, 
           schema: 'public', 
           table: tableName,
           filter: filter
-        }, (payload) => {
+        }, 
+        (payload) => {
           console.log(`[ConnectionManager] Recibido evento en tabla ${tableName}:`, payload);
           
           // Actualizar timestamp de última actividad
@@ -115,7 +116,8 @@ class ConnectionManager {
           
           // Actualizar estado global de conexión
           this.updateConnectionStatus('connected');
-        });
+        }
+      );
       
       // Ahora suscribirse al canal después de configurar los listeners
       channel.subscribe((status) => {
