@@ -80,7 +80,7 @@ const GameContainer: React.FC<GameContainerProps> = ({
       />
       
       <ConnectionStatus 
-        isConnected={isConnected} 
+        connectionStatus={isConnected ? 'connected' : 'disconnected'} 
         reconnectAttempts={reconnectAttempts} 
       />
       

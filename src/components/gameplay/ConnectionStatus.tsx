@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { WifiOff, Wifi, WifiAlert, Loader2 } from 'lucide-react';
+import { Wifi, WifiOff, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ConnectionStatusProps {
@@ -40,7 +40,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     error: {
       bg: "bg-red-50",
       text: "text-red-700",
-      icon: <WifiAlert className="h-3 w-3" />,
+      icon: <AlertTriangle className="h-3 w-3" />,
       message: "Error de conexión"
     }
   };

@@ -136,7 +136,7 @@ const WaitingRoomContainer = () => {
   return (
     <>
       <ConnectionStatus 
-        isConnected={isConnected} 
+        connectionStatus={isConnected ? 'connected' : 'disconnected'} 
         reconnectAttempts={reconnectAttempts}
       />
       <WaitingRoom 

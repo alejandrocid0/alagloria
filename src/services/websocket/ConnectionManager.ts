@@ -1,4 +1,3 @@
-
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -86,77 +85,77 @@ class ConnectionManager {
     try {
       const channel = supabase.channel(channelId);
       
-      channel
-        .on(
-          'postgres_changes',
-          { 
-            event: event, 
-            schema: 'public', 
-            table: tableName,
-            filter: filter
-          },
-          (payload) => {
-            console.log(`[ConnectionManager] Recibido evento en tabla ${tableName}:`, payload);
-            
-            // Actualizar timestamp de última actividad
-            if (this.channels.has(channelId)) {
-              const managedChannel = this.channels.get(channelId)!;
-              managedChannel.lastActivity = Date.now();
-              managedChannel.status = 'connected';
-              
-              // Ejecutar todos los callbacks registrados para este canal
-              managedChannel.callbacks.forEach(cb => {
-                try {
-                  cb(payload);
-                } catch (err) {
-                  console.error(`[ConnectionManager] Error en callback para canal ${channelId}:`, err);
-                }
-              });
-            }
-            
-            // Actualizar estado global de conexión
-            this.updateConnectionStatus('connected');
-          }
-        )
-        .subscribe((status) => {
-          console.log(`[ConnectionManager] Canal ${channelId} estado:`, status);
+      // Use .on() to listen for postgres changes
+      channel.on(
+        'postgres_changes', 
+        { 
+          event: event, 
+          schema: 'public', 
+          table: tableName,
+          filter: filter
+        },
+        (payload) => {
+          console.log(`[ConnectionManager] Recibido evento en tabla ${tableName}:`, payload);
           
-          if (status === 'SUBSCRIBED') {
-            console.log(`[ConnectionManager] Canal ${channelId} suscrito correctamente`);
+          // Actualizar timestamp de última actividad
+          if (this.channels.has(channelId)) {
+            const managedChannel = this.channels.get(channelId)!;
+            managedChannel.lastActivity = Date.now();
+            managedChannel.status = 'connected';
             
-            if (this.channels.has(channelId)) {
-              const managedChannel = this.channels.get(channelId)!;
-              managedChannel.status = 'connected';
-            }
-            
-            this.updateConnectionStatus('connected');
+            // Ejecutar todos los callbacks registrados para este canal
+            managedChannel.callbacks.forEach(cb => {
+              try {
+                cb(payload);
+              } catch (err) {
+                console.error(`[ConnectionManager] Error en callback para canal ${channelId}:`, err);
+              }
+            });
           }
           
-          if (status === 'CHANNEL_ERROR') {
-            console.error(`[ConnectionManager] Error en canal ${channelId}`);
-            
-            if (this.channels.has(channelId)) {
-              const managedChannel = this.channels.get(channelId)!;
-              managedChannel.status = 'error';
-            }
-            
-            this.updateConnectionStatus('error');
-            this.scheduleReconnect(channelId);
+          // Actualizar estado global de conexión
+          this.updateConnectionStatus('connected');
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[ConnectionManager] Canal ${channelId} estado:`, status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log(`[ConnectionManager] Canal ${channelId} suscrito correctamente`);
+          
+          if (this.channels.has(channelId)) {
+            const managedChannel = this.channels.get(channelId)!;
+            managedChannel.status = 'connected';
           }
           
-          if (status === 'CLOSED') {
-            console.warn(`[ConnectionManager] Canal ${channelId} cerrado`);
-            
-            if (this.channels.has(channelId)) {
-              const managedChannel = this.channels.get(channelId)!;
-              managedChannel.status = 'disconnected';
-            }
-            
-            // Comprobar si todos los canales están desconectados
-            this.checkAllChannelsStatus();
-            this.scheduleReconnect(channelId);
+          this.updateConnectionStatus('connected');
+        }
+        
+        if (status === 'CHANNEL_ERROR') {
+          console.error(`[ConnectionManager] Error en canal ${channelId}`);
+          
+          if (this.channels.has(channelId)) {
+            const managedChannel = this.channels.get(channelId)!;
+            managedChannel.status = 'error';
           }
-        });
+          
+          this.updateConnectionStatus('error');
+          this.scheduleReconnect(channelId);
+        }
+        
+        if (status === 'CLOSED') {
+          console.warn(`[ConnectionManager] Canal ${channelId} cerrado`);
+          
+          if (this.channels.has(channelId)) {
+            const managedChannel = this.channels.get(channelId)!;
+            managedChannel.status = 'disconnected';
+          }
+          
+          // Comprobar si todos los canales están desconectados
+          this.checkAllChannelsStatus();
+          this.scheduleReconnect(channelId);
+        }
+      });
       
       // Guardar canal gestionado
       const callbackId = `${channelId}-${Date.now()}`;
