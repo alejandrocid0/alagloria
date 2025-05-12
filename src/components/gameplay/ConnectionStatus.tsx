@@ -1,78 +1,61 @@
 
 import React from 'react';
-import { Wifi, WifiOff, AlertTriangle, Loader2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ConnectionStatusProps {
-  connectionStatus: string;
+  connectionStatus: 'connected' | 'disconnected' | 'connecting' | 'error';
   reconnectAttempts: number;
-  onRefresh?: () => void;
+  onRefresh: () => void;
 }
 
 const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ 
   connectionStatus, 
   reconnectAttempts,
-  onRefresh
+  onRefresh 
 }) => {
-  // Solo mostrar si hay un problema de conexión o ha habido intentos de reconexión
-  if (connectionStatus === 'connected' && reconnectAttempts === 0) return null;
+  // No mostrar nada si estamos conectados
+  if (connectionStatus === 'connected') {
+    return null;
+  }
   
-  // Configuración según el estado
-  const config = {
-    connected: {
-      bg: "bg-green-50",
-      text: "text-green-700",
-      icon: <Wifi className="h-3 w-3" />,
-      message: "Conexión establecida"
-    },
-    connecting: {
-      bg: "bg-yellow-50",
-      text: "text-yellow-700",
-      icon: <Loader2 className="h-3 w-3 animate-spin" />,
-      message: "Conectando..."
-    },
-    disconnected: {
-      bg: "bg-red-50",
-      text: "text-red-700",
-      icon: <WifiOff className="h-3 w-3" />,
-      message: "Desconectado"
-    },
-    error: {
-      bg: "bg-red-50",
-      text: "text-red-700",
-      icon: <AlertTriangle className="h-3 w-3" />,
-      message: "Error de conexión"
-    }
-  };
+  let statusText = '';
+  let statusClass = '';
   
-  // Obtener configuración actual
-  const currentConfig = config[connectionStatus as keyof typeof config] || config.error;
+  switch (connectionStatus) {
+    case 'disconnected':
+      statusText = 'Conexión perdida';
+      statusClass = 'bg-amber-100 text-amber-800 border-amber-300';
+      break;
+    case 'connecting':
+      statusText = 'Conectando...';
+      statusClass = 'bg-blue-100 text-blue-800 border-blue-300';
+      break;
+    case 'error':
+      statusText = 'Error de conexión';
+      statusClass = 'bg-red-100 text-red-800 border-red-300';
+      break;
+  }
   
   return (
-    <div className={`px-4 py-1 text-sm text-center ${currentConfig.bg} ${currentConfig.text}`}>
-      <div className="flex items-center justify-center gap-2">
-        {currentConfig.icon}
-        <span>{currentConfig.message}</span>
-        
-        {/* Botón de reconexión manual si hay problemas */}
-        {(connectionStatus === 'disconnected' || connectionStatus === 'error') && onRefresh && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6 px-2 py-1 ml-2" 
-            onClick={onRefresh}
-          >
-            Reconectar
-          </Button>
-        )}
-        
-        {/* Mostrar intentos de reconexión si hay más de 0 */}
-        {reconnectAttempts > 0 && connectionStatus !== 'connected' && (
-          <span className="text-xs ml-1">
-            (intento {reconnectAttempts})
+    <div className={`p-2 mb-4 flex items-center justify-between rounded border ${statusClass}`}>
+      <div className="flex items-center">
+        <span className="font-medium">{statusText}</span>
+        {reconnectAttempts > 0 && (
+          <span className="ml-2 text-sm">
+            (Intentos: {reconnectAttempts})
           </span>
         )}
       </div>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={onRefresh}
+        className="flex items-center"
+      >
+        <RefreshCw className="h-3 w-3 mr-1" />
+        Recargar
+      </Button>
     </div>
   );
 };

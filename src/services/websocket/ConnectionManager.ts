@@ -1,4 +1,3 @@
-
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -84,18 +83,18 @@ class ConnectionManager {
     
     // Crear nuevo canal
     try {
+      // Crear una instancia del canal
       const channel = supabase.channel(channelId);
       
       // Configurar el canal para escuchar cambios en la base de datos
-      channel.on(
-        'postgres_changes',
-        { 
+      // Agregamos el listener pero NO llamamos a subscribe() todavía
+      channel
+        .on('postgres_changes', {
           event: event, 
           schema: 'public', 
           table: tableName,
           filter: filter
-        },
-        (payload) => {
+        }, (payload) => {
           console.log(`[ConnectionManager] Recibido evento en tabla ${tableName}:`, payload);
           
           // Actualizar timestamp de última actividad
@@ -116,10 +115,9 @@ class ConnectionManager {
           
           // Actualizar estado global de conexión
           this.updateConnectionStatus('connected');
-        }
-      )
+        });
       
-      // Suscribirse al canal
+      // Ahora suscribirse al canal después de configurar los listeners
       channel.subscribe((status) => {
         console.log(`[ConnectionManager] Canal ${channelId} estado:`, status);
         

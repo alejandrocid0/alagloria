@@ -1,5 +1,3 @@
-
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { connectionManager } from '../websocket/ConnectionManager';
 
 /**
