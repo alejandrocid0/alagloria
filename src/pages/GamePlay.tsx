@@ -22,9 +22,7 @@ const GamePlay = () => {
     window.location.reload();
   };
   
-  // Mostrar para usuarios autenticados o para la partida demo
-  if (!user && gameId !== 'demo-123') return null;
-  
+  // Eliminar la restricción para no mostrar la partida a usuarios no autenticados
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />

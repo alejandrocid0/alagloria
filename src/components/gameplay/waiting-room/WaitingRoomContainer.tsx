@@ -93,7 +93,7 @@ const WaitingRoomContainer = () => {
     }
   }, [gameState?.countdown, syncCountdown]);
   
-  // Acciones de la sala de espera
+  // Acciones de la sala de espera - Permitir que cualquiera pueda jugar la demo
   const { 
     isGameHost,
     handlePlayNow,

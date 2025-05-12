@@ -22,7 +22,8 @@ export const useWaitingRoomState = ({
   setIsJoining
 }: UseWaitingRoomStateProps) => {
   // Determinar si el usuario es el anfitrión de la partida
-  const isGameHost = gameInfo?.created_by === user?.id;
+  // Para la demo o si no hay usuario, no consideramos al usuario como anfitrión
+  const isGameHost = user && gameInfo?.created_by === user?.id;
   
   // Manejar la acción de jugar ahora
   const handlePlayNow = useCallback(() => {

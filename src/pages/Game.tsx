@@ -12,9 +12,9 @@ const Game = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Redireccionar a login si no hay usuario y no es la demo
+  // Solo redirigir a login si no es la demo y el usuario no está autenticado
   useEffect(() => {
-    if (!user && gameId !== 'demo-123') {
+    if (!user && gameId && gameId !== 'demo-123') {
       navigate('/login', { state: { from: location.pathname } });
     }
   }, [user, navigate, gameId]);
@@ -41,24 +41,20 @@ const Game = () => {
     checkGameState();
   }, [gameId, navigate]);
   
-  // Para la demo o usuarios autenticados
-  if (gameId === 'demo-123' || user) {
-    return (
-      <>
-        <Navbar />
-        
-        <section className="pt-24 pb-20">
-          <div className="container mx-auto px-4 max-w-7xl">
-            <LiveGameRenderer />
-          </div>
-        </section>
-        
-        <Footer />
-      </>
-    );
-  }
-  
-  return null;
+  // Renderizar el componente sin importar si hay usuario o no
+  return (
+    <>
+      <Navbar />
+      
+      <section className="pt-24 pb-20">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <LiveGameRenderer />
+        </div>
+      </section>
+      
+      <Footer />
+    </>
+  );
 };
 
 export default Game;

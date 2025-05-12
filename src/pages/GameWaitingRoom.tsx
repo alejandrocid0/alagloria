@@ -13,9 +13,9 @@ const GameWaitingRoom = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   
-  // Redirigir a login si no hay usuario autenticado y no es la demo
+  // Solo redirigir a login si no es la demo y el usuario no está autenticado
   useEffect(() => {
-    if (!user && gameId !== 'demo-123') {
+    if (!user && gameId && gameId !== 'demo-123') {
       navigate('/login', { state: { from: location.pathname } });
     }
   }, [user, navigate, gameId]);
