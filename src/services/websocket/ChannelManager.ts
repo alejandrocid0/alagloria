@@ -21,6 +21,7 @@ export class ChannelManager {
     const channel = supabase.channel(channelId);
     
     // Configurar el canal para escuchar cambios en la base de datos
+    // Usando la sintaxis correcta de Supabase v2
     channel.on(
       'postgres_changes', 
       {

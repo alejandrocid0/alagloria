@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
-import { quizService } from '@/services/quiz';
-import { LiveQuestion } from '@/types/liveGame';
+import { getQuizById } from '@/services/quiz';
+import { Question } from '@/types/liveGame';
 
 interface GameInfo {
   title: string;
@@ -8,7 +9,7 @@ interface GameInfo {
 }
 
 export const useGameInitialization = (gameId: string | undefined) => {
-  const [gameQuestions, setGameQuestions] = useState<LiveQuestion[]>([]);
+  const [gameQuestions, setGameQuestions] = useState<Question[]>([]);
   const [gameInfo, setGameInfo] = useState<GameInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +29,13 @@ export const useGameInitialization = (gameId: string | undefined) => {
     setError(null);
 
     try {
-      const quizData = await quizService.getQuizById(gameId);
-      setGameQuestions(quizData.questions);
-      setGameInfo({ title: quizData.title, gameId });
+      const quizData = await getQuizById(gameId);
+      if (quizData && quizData.questions) {
+        setGameQuestions(quizData.questions);
+        setGameInfo({ title: quizData.title, gameId });
+      } else {
+        throw new Error('Quiz data not found');
+      }
     } catch (error: any) {
       console.error('Error initializing game:', error);
       setError(error.message || 'Failed to initialize game');

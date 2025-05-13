@@ -1,4 +1,3 @@
-
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,8 +24,7 @@ export const realTimeSync = {
       // Create a new channel with the unique ID
       const channel = supabase.channel(channelId);
       
-      // Configure the channel to listen for database changes
-      // Using the correct format for Supabase Realtime v2
+      // Configuring the channel using the correct Supabase Realtime v2 API
       channel.on(
         'postgres_changes',
         { 

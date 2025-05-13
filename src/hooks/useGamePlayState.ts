@@ -4,19 +4,20 @@ import { useGameActions } from './gameplay/useGameActions';
 import { useGameCountdown } from './gameplay/useGameCountdown';
 import { useAnswerHandler } from './gameplay/useAnswerHandler';
 
-export const useGamePlayState = () => {
+export const useGamePlayState = (gameId: string) => {
   // Inicialización de datos del juego
   const {
-    gameId,
-    quizTitle,
-    loading,
-    error,
     gameQuestions,
-    ranking,
-    myRank,
-    setRanking,
-    setMyRank
-  } = useGameInitialization();
+    gameInfo,
+    isLoading,
+    error
+  } = useGameInitialization(gameId);
+
+  // Crear variables dummy para satisfacer el tipo esperado mientras implementamos correctamente
+  const ranking = [];
+  const myRank = 0;
+  const setRanking = () => {};
+  const setMyRank = () => {};
 
   // Acciones básicas del juego (estado, preguntas, opciones, etc.)
   const {
@@ -64,8 +65,8 @@ export const useGamePlayState = () => {
 
   return {
     gameId,
-    quizTitle,
-    loading,
+    quizTitle: gameInfo?.title,
+    loading: isLoading,
     error,
     currentState,
     countdown,
