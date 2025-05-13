@@ -22,7 +22,7 @@ export class ChannelManager {
     
     // Configurar el canal para escuchar cambios en la base de datos
     channel.on(
-      'postgres_changes', 
+      'postgres_changes' as any, 
       {
         event: options.event, 
         schema: 'public', 
