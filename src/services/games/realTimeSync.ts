@@ -27,34 +27,35 @@ export const realTimeSync = {
       
       // Configure the channel to listen for database changes
       // Using the correct format for Supabase Realtime v2
-      const subscription = channel
-        .on('postgres_changes', { 
-            event: '*', 
-            schema: 'public', 
-            table: table,
-            filter: filter
-          },
-          (payload) => {
-            console.log(`[RealTimeSync] Received update for ${table}:`, payload);
-            callback(payload);
-          }
-        )
-        .subscribe((status) => {
-          console.log(`[RealTimeSync] Channel ${channelId} status:`, status);
-          
-          if (status === 'SUBSCRIBED') {
-            console.log(`[RealTimeSync] Successfully subscribed to ${table}`);
-          }
-          
-          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-            console.error(`[RealTimeSync] Channel error or closed for ${table}`);
-            // Try to reconnect after an error
-            setTimeout(() => {
-              console.log(`[RealTimeSync] Attempting to reconnect to ${table}`);
-              channel.subscribe();
-            }, 5000);
-          }
-        });
+      channel.on(
+        'postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: table,
+          filter: filter
+        },
+        (payload) => {
+          console.log(`[RealTimeSync] Received update for ${table}:`, payload);
+          callback(payload);
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[RealTimeSync] Channel ${channelId} status:`, status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log(`[RealTimeSync] Successfully subscribed to ${table}`);
+        }
+        
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.error(`[RealTimeSync] Channel error or closed for ${table}`);
+          // Try to reconnect after an error
+          setTimeout(() => {
+            console.log(`[RealTimeSync] Attempting to reconnect to ${table}`);
+            channel.subscribe();
+          }, 5000);
+        }
+      });
 
       return channel;
     } catch (error) {

@@ -14,4 +14,5 @@ export interface Quiz {
 export interface QuizWithDetails extends Quiz {
   creator_name?: string;
   participants_count?: number;
+  questions?: any[]; // Adding questions property that might be needed
 }
