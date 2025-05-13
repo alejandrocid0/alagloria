@@ -388,4 +388,4 @@ class ConnectionManager {
 
 // Exportar una única instancia del gestor de conexiones
 export const connectionManager = new ConnectionManager();
-export { ConnectionStatus } from './types';
+export type { ConnectionStatus } from './types';
