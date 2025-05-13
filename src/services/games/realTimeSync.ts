@@ -1,4 +1,3 @@
-
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,7 +28,7 @@ export const realTimeSync = {
       // Using correct typing for Supabase v2 API
       const subscription = channel
         .on(
-          'postgres_changes' as any, // Type assertion to bypass TypeScript error
+          'postgres_changes', 
           { 
             event: '*', 
             schema: 'public', 
