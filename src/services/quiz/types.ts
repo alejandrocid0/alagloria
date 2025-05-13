@@ -1,31 +1,17 @@
 
-/**
- * Represents a quiz question with options
- */
-export interface QuizQuestion {
+export interface Quiz {
   id: string;
-  text: string;
-  position: number;
-  correctOption: string;
-  options: QuizQuestionOption[];
+  title: string;
+  description?: string;
+  image_url?: string;
+  category?: string;
+  date: string; // ISO date string
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
-/**
- * Represents a single option for a quiz question
- */
-export interface QuizQuestionOption {
-  id: string;
-  optionId: string;
-  text: string;
-}
-
-/**
- * Represents a submission of a quiz answer
- */
-export interface QuizSubmission {
-  gameId: string;
-  userId: string;
-  questionPosition: number;
-  selectedOption: string;
-  answerTimeMs?: number;
+export interface QuizWithDetails extends Quiz {
+  creator_name?: string;
+  participants_count?: number;
 }
