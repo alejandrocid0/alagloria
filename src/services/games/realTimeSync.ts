@@ -1,5 +1,5 @@
 
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -14,7 +14,7 @@ export const realTimeSync = {
     channelName: string,
     table: string,
     filter: Record<string, any>,
-    callback: (payload: any) => void
+    callback: (payload: RealtimePostgresChangesPayload<any>) => void
   ): RealtimeChannel => {
     console.log(`[RealTimeSync] Subscribing to ${table} with filter:`, filter);
     
@@ -28,7 +28,7 @@ export const realTimeSync = {
       // Configure the channel to listen for database changes
       // Using the correct format for Supabase Realtime v2
       channel.on(
-        'postgres_changes', 
+        'postgres_changes',
         { 
           event: '*', 
           schema: 'public', 
