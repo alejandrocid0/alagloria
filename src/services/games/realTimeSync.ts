@@ -1,3 +1,4 @@
+
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,7 +32,7 @@ export const realTimeSync = {
           event: '*', 
           schema: 'public', 
           table: table,
-          filter: filter
+          filter: Object.keys(filter).map(key => `${key}=${filter[key]}`).join(',')
         },
         (payload) => {
           console.log(`[RealTimeSync] Received update for ${table}:`, payload);

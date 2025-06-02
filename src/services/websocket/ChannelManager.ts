@@ -28,7 +28,7 @@ export class ChannelManager {
         event: options.event, 
         schema: 'public', 
         table: options.tableName,
-        filter: options.filter
+        filter: Object.keys(options.filter).map(key => `${key}=${options.filter[key]}`).join(',')
       }, 
       onEvent
     );
