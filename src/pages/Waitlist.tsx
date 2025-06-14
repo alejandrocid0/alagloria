@@ -159,7 +159,7 @@ const Waitlist = () => {
                   <Checkbox 
                     id="privacy-policy"
                     checked={acceptedPolicy}
-                    onCheckedChange={(checked) => setAcceptedPolicy(checked === true)}
+                    onCheckedChange={(checked) => setAcceptedPolicy(checked)}
                   />
                   <label 
                     htmlFor="privacy-policy" 
