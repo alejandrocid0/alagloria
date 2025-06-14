@@ -1,16 +1,15 @@
 
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import WaitlistPage from '@/pages/WaitlistPage';
 import Waitlist from '@/pages/Waitlist';
 
 const SimpleRouter = () => {
   return (
     <Routes>
-      <Route path="/" element={<WaitlistPage />} />
+      <Route path="/" element={<Waitlist />} />
       <Route path="/waitlist" element={<Waitlist />} />
-      {/* Redirigir cualquier otra ruta a la página principal */}
-      <Route path="*" element={<WaitlistPage />} />
+      {/* Todas las rutas redirigen a la lista de espera */}
+      <Route path="*" element={<Waitlist />} />
     </Routes>
   );
 };
