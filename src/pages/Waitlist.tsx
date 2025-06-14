@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Button from '@/components/Button';
 import Footer from '@/components/Footer';
@@ -11,6 +10,9 @@ const Waitlist = () => {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Añadimos una ref para el formulario
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +40,13 @@ const Waitlist = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handler para scroll suave
+  const scrollToForm = () => {
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -79,7 +88,12 @@ const Waitlist = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
               >
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form
+                  ref={formRef}
+                  onSubmit={handleSubmit}
+                  className="space-y-4"
+                  id="waitlist-form"
+                >
                   <input
                     type="text"
                     placeholder="Tu nombre"
@@ -112,7 +126,7 @@ const Waitlist = () => {
         </section>
 
         <WaitlistHowItWorksSection />
-        <WaitlistCtaSection />
+        <WaitlistCtaSection onJoinNowClick={scrollToForm} />
       </div>
       <Footer />
     </>
@@ -168,7 +182,8 @@ const Step = ({ number, title, description }: { number: string; title: string; d
   );
 };
 
-const WaitlistCtaSection = () => {
+// Recibe el handler onJoinNowClick como prop para el scroll
+const WaitlistCtaSection = ({ onJoinNowClick }: { onJoinNowClick?: () => void }) => {
   return (
     <section className="py-16 md:py-24 bg-purple-900 text-white">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -186,7 +201,10 @@ const WaitlistCtaSection = () => {
             Únete a nuestra lista de espera y sé de los primeros en poner a prueba 
             tus conocimientos cuando abramos la aplicación.
           </p>
-          <Button className="bg-yellow-600 hover:bg-yellow-700 text-white">
+          <Button
+            className="bg-yellow-600 hover:bg-yellow-700 text-white"
+            onClick={onJoinNowClick}
+          >
             Únete ahora
           </Button>
         </motion.div>
