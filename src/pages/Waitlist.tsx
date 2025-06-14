@@ -4,9 +4,9 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
 import Button from '@/components/Button';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/simple-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/simple-checkbox";
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
@@ -40,7 +40,6 @@ const Waitlist = () => {
     setIsSubmitting(true);
     
     try {
-      // Guardar en Supabase
       const { error } = await supabase
         .from('waitlist_subscribers')
         .insert([
