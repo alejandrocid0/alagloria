@@ -1,196 +1,210 @@
 
 import React, { useState } from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
 import Button from '@/components/Button';
-import { useToast } from "@/components/ui/simple-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Checkbox } from "@/components/ui/simple-checkbox";
+import Footer from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/simple-toast';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [acceptedPolicy, setAcceptedPolicy] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !name) {
-      toast({
-        title: "Error",
-        description: "Por favor completa todos los campos",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!acceptedPolicy) {
-      toast({
-        title: "Error",
-        description: "Debes aceptar la política de privacidad para continuar",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
+    setIsLoading(true);
+
     try {
       const { error } = await supabase
         .from('waitlist_subscribers')
-        .insert([
-          { name, email }
-        ]);
-        
+        .insert([{ email, name, notes: '' }]);
+
       if (error) throw error;
-      
-      setHasSubmitted(true);
+
       toast({
         title: "¡Gracias por unirte!",
-        description: "Te avisaremos cuando la aplicación esté disponible",
+        description: "Te notificaremos cuando esté disponible."
       });
+      
+      setEmail('');
+      setName('');
     } catch (error) {
-      console.error("Error al guardar en lista de espera:", error);
       toast({
         title: "Error",
-        description: "Ha ocurrido un error. Por favor, inténtalo de nuevo.",
-        variant: "destructive",
+        description: "Hubo un problema. Inténtalo de nuevo.",
+        variant: "destructive"
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <>
-      <Navbar />
-      <section className="pt-24 pb-16 md:pt-40 md:pb-24 bg-gradient-to-b from-gloria-cream to-white">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <motion.div 
-            className="max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="text-center mb-10">
+      <div className="min-h-screen bg-gradient-to-b from-purple-100 to-white">
+        <section className="pt-24 pb-16 md:pt-40 md:pb-24 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\\'80\\' height=\\'80\\' viewBox=\\'0 0 80 80\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cg fill=\\'none\\' fill-rule=\\'evenodd\\'%3E%3Cg fill=\\'%234a2a6b\\' fill-opacity=\\'0.03\\'%3E%3Cpath d=\\'M50 50c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10s-10-4.477-10-10 4.477-10 10-10zM10 10c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10S0 25.523 0 20s4.477-10 10-10zm10 8c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm40 40c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z\\' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
+          
+          <div className="container mx-auto px-4 max-w-7xl relative z-10">
+            <motion.div 
+              className="text-center max-w-4xl mx-auto"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <motion.div 
+                className="mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                <img 
+                  src="/logo.png" 
+                  alt="A la Gloria" 
+                  className="h-20 w-auto mx-auto mb-6" 
+                />
+              </motion.div>
+              
               <motion.h1 
-                className="text-3xl md:text-5xl font-serif font-bold text-gloria-purple mb-6"
+                className="text-4xl md:text-6xl font-serif font-bold text-purple-900 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <span className="text-gloria-gold">Lista de</span> Espera
+                <span className="text-yellow-600">A la</span> Gloria
               </motion.h1>
               
               <motion.p 
-                className="text-lg md:text-xl text-gray-700 mb-8"
+                className="text-xl md:text-2xl text-gray-700 mb-8 leading-relaxed"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
-                Sé de los primeros en probar <span className="font-bold">A la Gloria</span>, el juego
-                definitivo sobre la Semana Santa de Sevilla.
+                Pon a prueba tus conocimientos sobre la Semana Santa de Sevilla
+                y compite por premios en tiempo real.
               </motion.p>
-            </div>
-            
-            {hasSubmitted ? (
+              
               <motion.div 
-                className="bg-white p-8 rounded-xl shadow-md border border-gray-100 text-center"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <div className="text-5xl mb-4">🎉</div>
-                <h2 className="text-2xl font-bold text-gloria-purple mb-4">¡Gracias por unirte!</h2>
-                <p className="text-gray-600 mb-6">
-                  Te hemos añadido a nuestra lista de espera. Te avisaremos por email
-                  cuando la aplicación esté disponible.
-                </p>
-                <Button 
-                  variant="primary"
-                  href="/"
-                >
-                  Volver al inicio
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.form 
-                onSubmit={handleSubmit}
-                className="bg-white p-8 rounded-xl shadow-md border border-gray-100"
+                className="max-w-md mx-auto"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
               >
-                <div className="mb-6">
-                  <label htmlFor="name" className="block text-gray-700 font-medium mb-2">
-                    Nombre
-                  </label>
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <input
                     type="text"
-                    id="name"
+                    placeholder="Tu nombre"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gloria-purple focus:border-transparent"
-                    placeholder="Tu nombre"
                     required
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
-                </div>
-                
-                <div className="mb-6">
-                  <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
-                    Email
-                  </label>
                   <input
                     type="email"
-                    id="email"
+                    placeholder="Tu email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gloria-purple focus:border-transparent"
-                    placeholder="tu@email.com"
                     required
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
-                </div>
-                
-                <div className="flex items-start space-x-2 mb-6">
-                  <Checkbox 
-                    id="privacy-policy"
-                    checked={acceptedPolicy}
-                    onCheckedChange={(checked) => setAcceptedPolicy(checked)}
-                  />
-                  <label 
-                    htmlFor="privacy-policy" 
-                    className="text-sm text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  <Button 
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full"
                   >
-                    Acepto la <a href="#" className="text-gloria-purple hover:underline">política de privacidad</a> y los términos de uso.
-                  </label>
-                </div>
-                
-                <Button 
-                  variant="secondary"
-                  size="lg"
-                  className="w-full"
-                  type="submit"
-                  isLoading={isSubmitting}
-                  disabled={isSubmitting || !acceptedPolicy}
-                >
-                  {isSubmitting ? 'Procesando...' : 'Unirme a la lista de espera'}
-                </Button>
-                
-                <p className="text-gray-500 text-sm mt-4 text-center">
-                  No compartiremos tu información con nadie. Solo te contactaremos 
-                  cuando la aplicación esté disponible.
-                </p>
-              </motion.form>
-            )}
-          </motion.div>
-        </div>
-      </section>
+                    {isLoading ? 'Enviando...' : 'Únete a la lista de espera'}
+                  </Button>
+                </form>
+              </motion.div>
+            </motion.div>
+          </div>
+          
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
+        </section>
+
+        <WaitlistHowItWorksSection />
+        <WaitlistCtaSection />
+      </div>
       <Footer />
     </>
+  );
+};
+
+const WaitlistHowItWorksSection = () => {
+  return (
+    <section className="py-16 md:py-24 bg-purple-50">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-purple-900 mb-4">¿Cómo funciona?</h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Prepárate para poner a prueba tus conocimientos sobre la Semana Santa sevillana.
+          </p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-8 mt-12">
+          <Step 
+            number="01" 
+            title="Regístrate" 
+            description="Únete a la lista de espera y sé de los primeros en acceder cuando abramos el juego."
+          />
+          <Step 
+            number="02" 
+            title="Compite" 
+            description="Reta a amigos y otros jugadores en partidas en vivo sobre conocimientos cofrades."
+          />
+          <Step 
+            number="03" 
+            title="Gana Premios" 
+            description="Los mejores jugadores podrán ganar premios exclusivos relacionados con la Semana Santa."
+          />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Step = ({ number, title, description }: { number: string; title: string; description: string }) => {
+  return (
+    <motion.div 
+      className="bg-white p-8 rounded-xl shadow-sm border border-gray-100"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="text-yellow-600 text-5xl font-serif font-bold mb-4">{number}</div>
+      <h3 className="text-xl font-bold text-purple-900 mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </motion.div>
+  );
+};
+
+const WaitlistCtaSection = () => {
+  return (
+    <section className="py-16 md:py-24 bg-purple-900 text-white">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <motion.div 
+          className="text-center max-w-3xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6">
+            ¿Listo para la experiencia definitiva sobre la Semana Santa de Sevilla?
+          </h2>
+          <p className="text-xl mb-8 text-gray-200">
+            Únete a nuestra lista de espera y sé de los primeros en poner a prueba 
+            tus conocimientos cuando abramos la aplicación.
+          </p>
+          <Button className="bg-yellow-600 hover:bg-yellow-700 text-white">
+            Únete ahora
+          </Button>
+        </motion.div>
+      </div>
+    </section>
   );
 };
 

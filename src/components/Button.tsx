@@ -3,47 +3,47 @@ import React from 'react';
 
 interface ButtonProps {
   children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+  className?: string;
   variant?: 'primary' | 'secondary';
   size?: 'sm' | 'md' | 'lg';
-  className?: string;
-  type?: 'button' | 'submit' | 'reset';
-  isLoading?: boolean;
-  disabled?: boolean;
   href?: string;
-  onClick?: () => void;
 }
 
 const Button: React.FC<ButtonProps> = ({
   children,
+  onClick,
+  disabled = false,
+  type = 'button',
+  className = '',
   variant = 'primary',
   size = 'md',
-  className = '',
-  type = 'button',
-  isLoading = false,
-  disabled = false,
-  href,
-  onClick
+  href
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
   
   const variantClasses = {
-    primary: 'bg-gloria-purple text-white hover:bg-gloria-deepPurple focus:ring-gloria-purple',
-    secondary: 'bg-gloria-gold text-white hover:bg-yellow-600 focus:ring-gloria-gold'
+    primary: 'bg-purple-900 text-white hover:bg-purple-800 focus:ring-purple-500 shadow-md hover:shadow-lg',
+    secondary: 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500 shadow-md hover:shadow-lg'
   };
   
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
+    sm: 'px-3 py-2 text-sm',
     md: 'px-4 py-2 text-base',
     lg: 'px-6 py-3 text-lg'
   };
   
-  const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className} ${
-    (disabled || isLoading) ? 'opacity-50 cursor-not-allowed' : ''
-  }`;
+  const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`;
 
   if (href) {
     return (
-      <a href={href} className={classes}>
+      <a
+        href={href}
+        className={classes}
+        onClick={onClick}
+      >
         {children}
       </a>
     );
@@ -52,11 +52,11 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <button
       type={type}
-      className={classes}
-      disabled={disabled || isLoading}
       onClick={onClick}
+      disabled={disabled}
+      className={classes}
     >
-      {isLoading ? 'Cargando...' : children}
+      {children}
     </button>
   );
 };
