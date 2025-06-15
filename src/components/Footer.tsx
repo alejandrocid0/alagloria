@@ -10,7 +10,7 @@ const Footer = () => {
             El juego definitivo sobre la Semana Santa de Sevilla
           </p>
           <p className="text-purple-300 text-sm">
-            © 2024 A la Gloria. Todos los derechos reservados.
+            © 2025 A la Gloria. Todos los derechos reservados.
           </p>
         </div>
       </div>
