@@ -5,6 +5,7 @@ import Button from '@/components/Button';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/simple-toast';
+import logoAmarillo from '@/assets/logo-amarillo.png';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
@@ -59,14 +60,18 @@ const Waitlist = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <motion.h1 
-                className="text-4xl md:text-6xl font-serif font-bold text-purple-900 mb-6"
+              <motion.div
+                className="mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <span className="text-yellow-600">A la</span> Gloria
-              </motion.h1>
+                <img 
+                  src={logoAmarillo} 
+                  alt="A la Gloria" 
+                  className="h-16 md:h-24 w-auto mx-auto"
+                />
+              </motion.div>
               
               <motion.p 
                 className="text-xl md:text-2xl text-gray-700 mb-8 leading-relaxed"
