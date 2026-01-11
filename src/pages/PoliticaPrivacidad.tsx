@@ -29,7 +29,7 @@ const PoliticaPrivacidad = () => {
               </p>
               <p>
                 Para cualquier consulta relacionada con el tratamiento de sus datos personales, puede contactarnos 
-                a través de nuestro correo electrónico de contacto disponible en la aplicación principal.
+                a través de nuestro correo electrónico: <a href="mailto:info@alagloria.es" className="text-purple-600 underline">info@alagloria.es</a>.
               </p>
             </section>
 
@@ -92,8 +92,8 @@ const PoliticaPrivacidad = () => {
                 <li><strong>Limitación:</strong> Solicitar la limitación del tratamiento en determinadas circunstancias.</li>
               </ul>
               <p className="mt-4">
-                Para ejercer cualquiera de estos derechos, puede contactarnos a través del correo electrónico 
-                disponible en nuestra aplicación principal.
+                Para ejercer cualquiera de estos derechos, puede contactarnos a través del correo electrónico: {' '}
+                <a href="mailto:info@alagloria.es" className="text-purple-600 underline">info@alagloria.es</a>.
               </p>
             </section>
 
