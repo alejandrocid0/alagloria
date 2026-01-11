@@ -16,11 +16,25 @@ const Waitlist = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const {
-        error
-      } = await supabase.from('lista_lanzamiento').insert([{
-        email,
-        name,
+      // Check for duplicate email
+      const { data: existing } = await supabase
+        .from('lista_lanzamiento')
+        .select('id')
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
+      
+      if (existing) {
+        toast({
+          title: "Ya estás registrado",
+          description: "Este email ya está en nuestra lista. ¡Pronto te contactaremos!",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.from('lista_lanzamiento').insert([{
+        email: email.trim().toLowerCase(),
+        name: name.trim(),
         notes: ''
       }]);
       if (error) throw error;
