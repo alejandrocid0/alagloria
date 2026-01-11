@@ -188,13 +188,8 @@ const Waitlist = () => {
           }} transition={{
             duration: 0.6
           }}>
-              <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6">
-                ¿Listo para la experiencia definitiva sobre la Semana Santa de Sevilla?
-              </h2>
-              <p className="text-xl mb-8 text-gray-200">
-                Únete a nuestra lista de espera y sé de los primeros en poner a prueba 
-                tus conocimientos cuando abramos la aplicación.
-              </p>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6">¿Listo para probar el mejor juego sobre la Semana Santa de Sevilla?</h2>
+              <p className="text-xl mb-8 text-gray-200">Únete a nuestra lista y entra para demostrar todo lo que sabes sobre Semana Santa y aprender mucho más jugando.</p>
               <Button className="bg-yellow-600 hover:bg-yellow-700 text-white" onClick={scrollToTop}>
                 Únete ahora
               </Button>
