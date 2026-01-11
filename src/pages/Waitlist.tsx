@@ -168,7 +168,7 @@ const Waitlist = () => {
             }}>
                 <div className="text-yellow-600 text-5xl font-serif font-bold mb-4">03</div>
                 <h3 className="text-xl font-bold text-purple-900 mb-2">Próximamente...</h3>
-                <p className="text-gray-600">Los mejores jugadores podrán ganar premios exclusivos relacionados con la Semana Santa.</p>
+                <p className="text-gray-600">Pronto habrá torneos, eventos de la comunidad, nuevas preguntas y mucho más.</p>
               </motion.div>
             </div>
           </div>
