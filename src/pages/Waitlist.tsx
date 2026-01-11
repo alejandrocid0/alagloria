@@ -100,7 +100,7 @@ const Waitlist = () => {
                   <input type="text" placeholder="Tu nombre" value={name} onChange={e => setName(e.target.value)} required className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   <input type="email" placeholder="Tu email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading ? 'Enviando...' : 'Únete a la lista de espera'}
+                    {isLoading ? 'Enviando...' : 'Quiero jugar ya'}
                   </Button>
                 </form>
               </motion.div>
