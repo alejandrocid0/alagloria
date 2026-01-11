@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      lista_lanzamiento: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
       waitlist_subscribers: {
         Row: {
           created_at: string

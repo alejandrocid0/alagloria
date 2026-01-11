@@ -18,7 +18,7 @@ const Waitlist = () => {
     try {
       const {
         error
-      } = await supabase.from('waitlist_subscribers').insert([{
+      } = await supabase.from('lista_lanzamiento').insert([{
         email,
         name,
         notes: ''
