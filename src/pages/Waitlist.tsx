@@ -134,7 +134,7 @@ const Waitlist = () => {
             }}>
                 <div className="text-yellow-600 text-5xl font-serif font-bold mb-4">01</div>
                 <h3 className="text-xl font-bold text-purple-900 mb-2">Regístrate</h3>
-                <p className="text-gray-600">Únete a la lista de espera y sé de los primeros en acceder cuando abramos el juego.</p>
+                <p className="text-gray-600">Entra a nuestra aplicación con tu hermandad favorita y juega la partida diaria para sumar puntos.</p>
               </motion.div>
               
               <motion.div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100" initial={{
