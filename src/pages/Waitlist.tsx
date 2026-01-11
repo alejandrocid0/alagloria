@@ -26,10 +26,13 @@ const Waitlist = () => {
       if (error) throw error;
       toast({
         title: "¡Gracias por unirte!",
-        description: "Te notificaremos cuando esté disponible."
+        description: "Redirigiendo a la aplicación..."
       });
-      setEmail('');
-      setName('');
+      
+      // Redirect to external page after a short delay
+      setTimeout(() => {
+        window.location.href = 'https://alagloria.es';
+      }, 1500);
     } catch (error) {
       toast({
         title: "Error",
