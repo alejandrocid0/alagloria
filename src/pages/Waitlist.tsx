@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Button from '@/components/Button';
 import Footer from '@/components/Footer';
@@ -126,23 +127,21 @@ const Waitlist = () => {
                     />
                     <span className="text-sm text-gray-600">
                       He leído y acepto la{' '}
-                      <a 
-                        href="https://alagloria.es/politica-privacidad" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
+                      <Link 
+                        to="/politica-privacidad" 
+                        target="_blank"
                         className="text-purple-600 underline hover:text-purple-800"
                       >
                         Política de Privacidad
-                      </a>{' '}
+                      </Link>{' '}
                       y las{' '}
-                      <a 
-                        href="https://alagloria.es/condiciones-uso" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
+                      <Link 
+                        to="/condiciones-uso" 
+                        target="_blank"
                         className="text-purple-600 underline hover:text-purple-800"
                       >
                         Condiciones de Uso
-                      </a>
+                      </Link>
                     </span>
                   </label>
                   <Button type="submit" disabled={isLoading || !acceptedPrivacy} className="w-full">
