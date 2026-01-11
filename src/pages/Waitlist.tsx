@@ -80,7 +80,7 @@ const Waitlist = () => {
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
                 Pon a prueba tus conocimientos sobre la Semana Santa de Sevilla
-                y compite por premios en tiempo real.
+                y compite por premios en el ranking.
               </motion.p>
               
               <motion.div 
