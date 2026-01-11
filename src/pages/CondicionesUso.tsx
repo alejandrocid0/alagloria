@@ -70,7 +70,8 @@ const CondicionesUso = () => {
               </ul>
               <p className="mt-4">
                 Podrá darse de baja de estas comunicaciones en cualquier momento utilizando el enlace 
-                de cancelación de suscripción incluido en cada email o contactándonos directamente.
+                de cancelación de suscripción incluido en cada email o contactándonos en {' '}
+                <a href="mailto:info@alagloria.es" className="text-purple-600 underline">info@alagloria.es</a>.
               </p>
             </section>
 
@@ -123,8 +124,7 @@ const CondicionesUso = () => {
               <h2 className="text-xl font-bold text-purple-900 mt-8 mb-4">9. Contacto</h2>
               <p>
                 Para cualquier consulta sobre estas Condiciones de Uso, puede contactarnos a través 
-                del correo electrónico disponible en nuestra aplicación principal en{' '}
-                <a href="https://alagloria.es" className="text-purple-600 underline">alagloria.es</a>.
+                del correo electrónico: <a href="mailto:info@alagloria.es" className="text-purple-600 underline">info@alagloria.es</a>.
               </p>
             </section>
 
