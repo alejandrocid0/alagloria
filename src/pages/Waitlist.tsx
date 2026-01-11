@@ -151,7 +151,7 @@ const Waitlist = () => {
             }}>
                 <div className="text-yellow-600 text-5xl font-serif font-bold mb-4">02</div>
                 <h3 className="text-xl font-bold text-purple-900 mb-2">Compite</h3>
-                <p className="text-gray-600">Reta a amigos y otros jugadores en partidas en vivo sobre conocimientos cofrades.</p>
+                <p className="text-gray-600">Escala posiciones en el ranking y consigue logros exclusivos.</p>
               </motion.div>
               
               <motion.div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100" initial={{
